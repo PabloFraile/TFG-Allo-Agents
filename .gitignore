@@ -1,0 +1,29 @@
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# --- Node.js ---
+node_modules/
+
+# --- Secretos: NUNCA subir esto ---
+.env
+*.key
+ANTHROPIC_API_KEY*
+
+# --- Artefactos de compilación (si algún día compilas Allo desde fuente) ---
+external/allo/build/
+external/allo/**/build/
+*.o
+*.so
+
+# --- Resultados voluminosos (ajusta según crezca el catálogo) ---
+results/catalogo/*.log
+
+# --- Windows / editor ---
+Thumbs.db
+.vscode/
+.idea/

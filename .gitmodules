@@ -1,0 +1,3 @@
+[submodule "allo"]
+	path = external/allo
+	url = https://github.com/cornell-zhang/allo.git
