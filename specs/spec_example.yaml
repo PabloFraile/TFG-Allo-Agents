@@ -1,0 +1,29 @@
+# Ejemplo de "contrato de entrada a nivel de bloque" (ver correo del proyecto).
+# Esto es lo que recibe el agente Generador para escribir el kernel Allo.
+
+bloque: fft_radix2
+descripcion: >
+  Kernel de una mariposa FFT radix-2 (Cooley-Tukey), entrada compleja de N
+  puntos, salida compleja de N puntos.
+
+entradas:
+  - nombre: x_real
+    tipo: allo.float32
+    forma: [1024]
+  - nombre: x_imag
+    tipo: allo.float32
+    forma: [1024]
+
+salidas:
+  - nombre: y_real
+    tipo: allo.float32
+    forma: [1024]
+  - nombre: y_imag
+    tipo: allo.float32
+    forma: [1024]
+
+golden_model_id: fft_radix2_numpy_reference
+
+restricciones:
+  objetivo_ii: 1          # II=1 en el bucle interno (ver nivel L4)
+  throughput_min: 100e6   # muestras/segundo
