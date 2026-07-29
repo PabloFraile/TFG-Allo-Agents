@@ -148,7 +148,7 @@ async def llamar_validador(resultado_ejecutor: dict, fallos_l2_seguidos: int) ->
 
 
 async def main():
-    with open("spec_example.yaml") as f:
+    with open("../../specs/spec_example.yaml") as f:
         spec = yaml.safe_load(f)
 
     historial_errores: list[str] = []
