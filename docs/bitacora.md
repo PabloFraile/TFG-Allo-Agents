@@ -135,11 +135,7 @@ quedaba ninguno), y antivirus de terceros interfiriendo con el hipervisor
 11 25H2 reservando el hipervisor de forma exclusiva para Credential Guard,
 sin dejar partición libre para WSL2).
 
-<<<<<<< HEAD
-![Docker Desktop: "Virtualization support not detected" al intentar arrancar el motor de contenedores en Windows](img/2026-07-29_docker-virtualizacion-error.png)
-=======
 ![Docker Desktop: "Virtualization support not detected" al intentar arrancar el motor de contenedores en Windows](img/error_virtualizacion_docker_windows.png)
->>>>>>> 432220988e6be42f2e1e3ad1aeda9ddb73cb22cb
 *Figura 1. Pantalla de error de Docker Desktop en el equipo Windows de pruebas. El motor queda en estado `Engine stopped` y el arranque no llega a completarse pese a haber descartado las causas habituales (BIOS, VirtualBox, antivirus). Causa raíz no confirmada; hipótesis principal: reserva exclusiva del hipervisor por VBS/Credential Guard en Windows 11 25H2.*
 
 **Decisión: usar un segundo ordenador con Linux nativo** en vez de seguir
@@ -157,10 +153,6 @@ cuenta Pro, y ejecución de `test_minimo.py` — confirmado
 respuesta correcta del modelo, tanto desde Claude Code como desde una
 terminal normal de forma independiente.
 
-<<<<<<< HEAD
-![Ejecución de test_minimo.py en Linux, con apiKeySource: 'none' y respuesta 'funciona'](img/2026-07-29_test-minimo-exitoso.png)
-*Figura 2. Salida completa de `python3 test_minimo.py` en el nuevo entorno Linux. El `SystemMessage` confirma `apiKeySource: 'none'` (autenticación vía suscripción Pro, no API de pago por uso); el `AssistantMessage` devuelve el texto esperado (`'funciona'`); el `RateLimitEvent` confirma cuota de cinco horas con `overageDisabledReason: 'org_level_disabled'` (sin riesgo de facturación adicional); y el `ResultMessage` cierra con `is_error=False`. Esta captura cierra la validación del entorno antes de la primera ejecución del pipeline completo.*
-=======
 **Primera comprobación: dentro de Claude Code (sesión interactiva).**
 Antes de validar el entorno "en frío" desde una terminal corriente, se hizo
 una primera comprobación rápida dentro de la propia sesión de Claude Code
@@ -208,7 +200,6 @@ respuesta correcta del modelo.
 
 ![Ejecución de test_minimo.py directamente desde terminal, con apiKeySource: 'none' y respuesta 'funciona'](img/test_minimo_terminal_exitoso.png)
 *Figura 3. Salida completa de `python3 test_minimo.py` invocado directamente desde terminal (sin Claude Code de por medio), en contraste con la Figura 2. El `SystemMessage` confirma `apiKeySource: 'none'` (autenticación vía suscripción Pro, no API de pago por uso); el `AssistantMessage` devuelve el texto esperado (`'funciona'`); el `RateLimitEvent` confirma cuota de cinco horas con `overageDisabledReason: 'org_level_disabled'` (sin riesgo de facturación adicional); y el `ResultMessage` cierra con `is_error=False`. Esta es la ejecución que se toma como validación real del entorno, precisamente por no depender de ningún asistente interactivo.*
->>>>>>> 432220988e6be42f2e1e3ad1aeda9ddb73cb22cb
 
 **Primera ejecución del pipeline completo (con Allo aún mockeado).**
 Se detectan y corrigen dos errores de integración al ejecutar
@@ -222,13 +213,8 @@ Se detectan y corrigen dos errores de integración al ejecutar
    no una lista, y lo interpretaba erróneamente como ruta a un archivo de
    configuración.
 
-<<<<<<< HEAD
-![Traza residual del error de spec_example.yaml y error "Invalid MCP configuration" al pasar mcp_servers como lista](img/2026-07-29_generador-fft-error-mcp.png)
-*Figura 3. Salida de terminal de la primera ejecución de `orchestrator.py` desde su ubicación definitiva. Se observa, al inicio, el rastro del primer error ya resuelto (`FileNotFoundError: 'spec_example.yaml'`); a continuación, el código Allo generado por el agente Generador para el bloque `fft_radix2` (kernel de mariposa FFT radix-2, bucle `allo.grid(H)` con `H=512`); y finalmente el error `Invalid MCP configuration: MCP config file not found`, producido porque el SDK interpretó la lista `[allo_tools_server]` como ruta a un archivo de configuración en lugar de como el servidor MCP ya instanciado — confirmando el segundo bug descrito en el punto 2 anterior. Captura tomada **antes** de aplicar la corrección (diccionario `{"allo-tools": allo_tools_server}`); se conserva como evidencia del proceso de depuración, no como estado final del sistema.*
-=======
 ![Traza residual del error de spec_example.yaml y error "Invalid MCP configuration" al pasar mcp_servers como lista](img/generador_codigo_allo_fft.png)
 *Figura 4. Salida de terminal de la primera ejecución de `orchestrator.py` desde su ubicación definitiva. Se observa, al inicio, el rastro del primer error ya resuelto (`FileNotFoundError: 'spec_example.yaml'`); a continuación, el código Allo generado por el agente Generador para el bloque `fft_radix2` (kernel de mariposa FFT radix-2, bucle `allo.grid(H)` con `H=512`); y finalmente el error `Invalid MCP configuration: MCP config file not found`, producido porque el SDK interpretó la lista `[allo_tools_server]` como ruta a un archivo de configuración en lugar de como el servidor MCP ya instanciado — confirmando el segundo bug descrito en el punto 2 anterior. Captura tomada **antes** de aplicar la corrección (diccionario `{"allo-tools": allo_tools_server}`); se conserva como evidencia del proceso de depuración, no como estado final del sistema.*
->>>>>>> 432220988e6be42f2e1e3ad1aeda9ddb73cb22cb
 
 **Estado al cierre de esta sesión:** el Generador produce código Allo
 plausible para la FFT radix-2 de prueba; el Ejecutor y el Validador están
@@ -237,14 +223,147 @@ confirmar una iteración completa exitosa tras el último arreglo).
 
 ---
 
+## 30 de julio de 2026 — Arreglo del `mcp_servers`, primera iteración completa y persistencia del catálogo
+
+**Contexto.** Pendiente de la sesión anterior: confirmar que `orchestrator.py`
+completa una iteración entera con las herramientas del Ejecutor aún
+mockeadas, y verificar que el bug de `mcp_servers` (pasado como lista en vez
+de diccionario) estaba realmente corregido en el código.
+
+**Bug confirmado: `mcp_servers` como lista en vez de diccionario.** Al
+revisar `orchestrator.py`, el bug seguía presente en `llamar_ejecutor()`:
+
+```python
+# Antes (incorrecto)
+opciones = ClaudeAgentOptions(
+    mcp_servers=[allo_tools_server],   # lista -> el SDK lo trata como ruta a config
+    ...
+)
+```
+
+`ClaudeAgentOptions` espera un **diccionario** `nombre -> servidor`, no una
+lista. Al pasar una lista, el SDK intenta interpretar cada elemento como una
+ruta a un archivo de configuración MCP externo (formato stdio/HTTP), no como
+un objeto de servidor en proceso ya instanciado — el mismo tipo de error de
+"Invalid MCP configuration" ya documentado en la Figura 4, pero esta vez
+manifestado como `claude_agent_sdk._errors.ProcessError: Command failed
+with exit code 1` en una ejecución posterior.
+
+Arreglo aplicado:
+
+```python
+# Después (correcto)
+opciones = ClaudeAgentOptions(
+    mcp_servers={"allo-tools": allo_tools_server},
+    allowed_tools=[
+        "mcp__allo-tools__run_l1_parse_types",
+        "mcp__allo-tools__run_l2_functional",
+        "mcp__allo-tools__run_l3_equivalence",
+        "mcp__allo-tools__run_l4_hls",
+    ],
+)
+```
+
+El nombre `"allo-tools"` en el diccionario debe coincidir con el prefijo
+`mcp__allo-tools__` usado en `allowed_tools`.
+
+![Rastro del ProcessError de una ejecución previa al arreglo, seguido de una ejecución ya corregida que llega a iteración 2 y éxito](img/2026-07-30_error-mcp-y-primera-ejecucion.png)
+*Figura 5. Terminal con el rastro (scroll hacia arriba) del `ProcessError: Command failed with exit code 1` de una ejecución anterior al arreglo del diccionario `mcp_servers`, seguido inmediatamente de una ejecución ya corregida de `orchestrator.py`: iteración 1 falla en L1 (falta `return` en el kernel generado), iteración 2 genera un kernel con tabla de twiddle factors precalculada, pasa L1-L3 y alcanza II=1 en L4, cerrando con `✅ Éxito. Guardando en el catálogo.`*
+
+**Primera iteración completa confirmada.** Con el arreglo aplicado, se
+ejecuta `orchestrator.py` limpio desde `src/agentes/`:
+
+```bash
+cd ~/TFG/src/agentes
+python3 orchestrator.py
+```
+
+Resultado:
+- **Iteración 1/6:** el Generador escribe un kernel con una tabla de
+  twiddle factors precalculada como lista de literales (`TWID_COS = [...]`).
+  Falla en **L1** porque falta la sentencia `return` en el kernel — el
+  Validador devuelve `decision=CONTINUAR` con el mensaje accionable
+  correspondiente.
+- **Iteración 2/6:** el Generador corrige el enfoque, esta vez generando
+  los twiddle factors por rotación iterativa (`COS_STEP`, `SIN_STEP`) en
+  vez de una tabla de literales, e incluye el `return`. Pasa las 4 capas
+  (L1 sintaxis/tipos, L2 funcional contra `fft_radix2_numpy_reference`, L3
+  equivalencia de schedule, L4 síntesis HLS con II=1 exacto).
+- Resultado final: `✅ Éxito. Guardado en el catálogo:
+  ../../results/catalogo/fft_radix2.json`
+
+![Ejecución completa desde iteración 1 (fallo L1) hasta iteración 2 (éxito) y confirmación del guardado en catálogo](img/2026-07-30_exito-catalogo-fft.png)
+*Figura 6. Salida completa de la ejecución de `orchestrator.py` ya con el arreglo de `mcp_servers` aplicado, mostrando la corrección automática entre iteración 1 y 2, y el mensaje final de guardado en `results/catalogo/fft_radix2.json`.*
+
+**Bug encontrado: el catálogo no se persistía a disco.** Al revisar el
+código tras el primer `✅ Éxito`, se detecta que el mensaje "Guardando en el
+catálogo" era engañoso: solo hacía `catalogo_validados.append(...)` a una
+lista **en memoria**, local a `main()`. Al terminar el script, esa lista se
+perdía — no se escribía nada a `results/catalogo/`, a pesar de que la
+carpeta ya existía en la estructura del repo para ese propósito.
+
+Arreglo aplicado: nueva función `guardar_en_catalogo()` en
+`orchestrator.py` que escribe un JSON a `results/catalogo/<bloque>.json`
+(el nombre del bloque viene del campo `spec["bloque"]`) con la spec
+completa, el código Allo generado (kernel + schedule) y las métricas HLS:
+
+```python
+def guardar_en_catalogo(spec: dict, codigo: str, metricas: dict | None) -> str:
+    os.makedirs(DIR_CATALOGO, exist_ok=True)
+    registro = {
+        "bloque": spec.get("bloque", "sin_nombre"),
+        "spec": spec,
+        "codigo_allo": codigo,
+        "metricas_hls": metricas,
+    }
+    ruta = os.path.join(DIR_CATALOGO, f"{registro['bloque']}.json")
+    with open(ruta, "w") as f:
+        json.dump(registro, f, indent=2, ensure_ascii=False)
+    return ruta
+```
+
+Llamada desde `main()` en el momento de éxito, sustituyendo el `print` que
+no hacía nada:
+
+```python
+if informe.nivel_fallo == NivelFallo.NINGUNO:
+    ruta = guardar_en_catalogo(spec, codigo, informe.metricas_hls)
+    print(f"\n✅ Éxito. Guardado en el catálogo: {ruta}")
+    ...
+```
+
+Verificado con `cat ../../results/catalogo/fft_radix2.json` — el archivo
+contiene la spec, el código Allo (kernel con rotación iterativa de twiddle
+factors + schedule con `pipeline("k")` y `pipeline("kb")` a II=1), y las
+métricas mockeadas (`II=1, latencia=42, BRAM=4, DSP=8, LUT=1200`).
+
+**Nota importante:** estas métricas siguen siendo del mock de
+`run_l4_hls` (valores fijos salvo el II) — no representan una síntesis
+real todavía. Sirven para confirmar que el *mecanismo* de persistencia
+funciona de punta a punta, no para sacar conclusiones sobre recursos reales
+de hardware.
+
+**Estado al cierre de esta sesión:** el punto pendiente de confirmar la
+iteración completa mockeada queda **cerrado** — el pipeline corre de
+principio a fin, con reintento tras fallo en L1 y éxito en la siguiente
+iteración, y ahora sí persiste el resultado en `results/catalogo/`.
+
+---
+
 ## Pendiente para la siguiente sesión
 
-- Confirmar que `orchestrator.py` completa una iteración entera con las
-  herramientas mockeadas, ahora que `mcp_servers` está corregido.
 - Instalar Allo de verdad en el Linux (`pip install -e .` dentro de
   `external/allo`) y sustituir las funciones `MOCK_*` de `allo_tools.py`
   por llamadas reales (`allo.customize()`, `s.build()`, el verificador
-  formal, síntesis HLS).
+  formal, síntesis HLS), empezando por `run_l1_parse_types` al ser la más
+  sencilla.
+- Definir cómo se resuelve `golden_model_id` (p. ej.
+  `"fft_radix2_numpy_reference"`) contra una función NumPy real que genere
+  los vectores de test — todavía no existe esa convención en el repo.
+- Decidir si el RTL/HLS real que produzca L4 (cuando Allo esté conectado
+  de verdad) se persiste también en `results/catalogo/`, y en qué formato.
+- Decidir si se generaliza `main()` para iterar sobre varios ficheros de
+  `specs/` en vez de tener la ruta a `spec_example.yaml` hardcodeada.
 - Decidir si se retoma el diagnóstico de virtualización en el equipo
   Windows (para poder reproducir el entorno en ambas máquinas) o se
   documenta como limitación conocida del entorno de desarrollo.
