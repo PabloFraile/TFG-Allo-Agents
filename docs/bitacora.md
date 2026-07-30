@@ -135,6 +135,9 @@ quedaba ninguno), y antivirus de terceros interfiriendo con el hipervisor
 11 25H2 reservando el hipervisor de forma exclusiva para Credential Guard,
 sin dejar partición libre para WSL2).
 
+![Docker Desktop: "Virtualization support not detected" al intentar arrancar el motor de contenedores en Windows](img/error_virtualizacion_docker_windows.png)
+*Figura 1. Pantalla de error de Docker Desktop en el equipo Windows de pruebas. El motor queda en estado `Engine stopped` y el arranque no llega a completarse pese a haber descartado las causas habituales (BIOS, VirtualBox, antivirus). Causa raíz no confirmada; hipótesis principal: reserva exclusiva del hipervisor por VBS/Credential Guard en Windows 11 25H2.*
+
 **Decisión: usar un segundo ordenador con Linux nativo** en vez de seguir
 depurando la virtualización de Windows. Justificación: Allo está pensado
 para Linux de origen — evitar la capa de virtualización elimina de raíz la
@@ -150,6 +153,9 @@ cuenta Pro, y ejecución de `test_minimo.py` — confirmado
 respuesta correcta del modelo, tanto desde Claude Code como desde una
 terminal normal de forma independiente.
 
+![Ejecución de test_minimo.py en Linux, con apiKeySource: 'none' y respuesta 'funciona'](img/test_minimo_terminal_exitoso.png)
+*Figura 2. Salida completa de `python3 test_minimo.py` en el nuevo entorno Linux. El `SystemMessage` confirma `apiKeySource: 'none'` (autenticación vía suscripción Pro, no API de pago por uso); el `AssistantMessage` devuelve el texto esperado (`'funciona'`); el `RateLimitEvent` confirma cuota de cinco horas con `overageDisabledReason: 'org_level_disabled'` (sin riesgo de facturación adicional); y el `ResultMessage` cierra con `is_error=False`. Esta captura cierra la validación del entorno antes de la primera ejecución del pipeline completo.*
+
 **Primera ejecución del pipeline completo (con Allo aún mockeado).**
 Se detectan y corrigen dos errores de integración al ejecutar
 `orchestrator.py` por primera vez fuera de la carpeta original:
@@ -161,6 +167,9 @@ Se detectan y corrigen dos errores de integración al ejecutar
    herramientas del Ejecutor — el SDK esperaba un mapeo nombre→servidor,
    no una lista, y lo interpretaba erróneamente como ruta a un archivo de
    configuración.
+
+![Traza residual del error de spec_example.yaml y error "Invalid MCP configuration" al pasar mcp_servers como lista](img/generador_codigo_allo_fft.png)
+*Figura 3. Salida de terminal de la primera ejecución de `orchestrator.py` desde su ubicación definitiva. Se observa, al inicio, el rastro del primer error ya resuelto (`FileNotFoundError: 'spec_example.yaml'`); a continuación, el código Allo generado por el agente Generador para el bloque `fft_radix2` (kernel de mariposa FFT radix-2, bucle `allo.grid(H)` con `H=512`); y finalmente el error `Invalid MCP configuration: MCP config file not found`, producido porque el SDK interpretó la lista `[allo_tools_server]` como ruta a un archivo de configuración en lugar de como el servidor MCP ya instanciado — confirmando el segundo bug descrito en el punto 2 anterior. Captura tomada **antes** de aplicar la corrección (diccionario `{"allo-tools": allo_tools_server}`); se conserva como evidencia del proceso de depuración, no como estado final del sistema.*
 
 **Estado al cierre de esta sesión:** el Generador produce código Allo
 plausible para la FFT radix-2 de prueba; el Ejecutor y el Validador están
