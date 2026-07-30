@@ -18,6 +18,7 @@ reference) e ajusta los nombres de los argumentos, la lógica no cambia.
 
 import asyncio
 import json
+import os
 import yaml
 
 from claude_agent_sdk import query, ClaudeAgentOptions, AssistantMessage, TextBlock
@@ -27,6 +28,9 @@ from schemas import InformeValidacion, DecisionEscalada, NivelFallo
 
 MAX_ITERACIONES = 6
 MAX_FALLOS_L2_SEGUIDOS = 2  # a partir de aquí, regenerar desde cero
+
+# Carpeta donde se persisten los kernels validados con éxito.
+DIR_CATALOGO = "../../results/catalogo"
 
 
 # ---------------------------------------------------------------------------
@@ -99,14 +103,14 @@ async def llamar_ejecutor(codigo_allo: str, spec: dict) -> dict:
     """Ejecuta la cascada L1->L4 llamando a las herramientas reales (o mock).
     Se detiene en el primer nivel que falle."""
     opciones = ClaudeAgentOptions(
-    mcp_servers={"allo-tools": allo_tools_server},   # diccionario, no lista
-    allowed_tools=[
-        "mcp__allo-tools__run_l1_parse_types",
-        "mcp__allo-tools__run_l2_functional",
-        "mcp__allo-tools__run_l3_equivalence",
-        "mcp__allo-tools__run_l4_hls",
-    ],
-)
+        mcp_servers={"allo-tools": allo_tools_server},
+        allowed_tools=[
+            "mcp__allo-tools__run_l1_parse_types",
+            "mcp__allo-tools__run_l2_functional",
+            "mcp__allo-tools__run_l3_equivalence",
+            "mcp__allo-tools__run_l4_hls",
+        ],
+    )
     prompt = (
         "Ejecuta la cascada de validación EN ORDEN (L1, L2, L3, L4) sobre el "
         "siguiente código Allo. Detente en el primer nivel que falle y "
@@ -147,13 +151,35 @@ async def llamar_validador(resultado_ejecutor: dict, fallos_l2_seguidos: int) ->
     return InformeValidacion(**datos)
 
 
+def guardar_en_catalogo(spec: dict, codigo: str, metricas: dict | None) -> str:
+    """Persiste un kernel validado con éxito en results/catalogo/<bloque>.json.
+
+    Devuelve la ruta del archivo escrito. Si ya existe un resultado previo
+    para el mismo bloque, lo sobreescribe (última ejecución válida gana).
+    """
+    os.makedirs(DIR_CATALOGO, exist_ok=True)
+
+    registro = {
+        "bloque": spec.get("bloque", "sin_nombre"),
+        "spec": spec,
+        "codigo_allo": codigo,
+        "metricas_hls": metricas,
+    }
+
+    ruta = os.path.join(DIR_CATALOGO, f"{registro['bloque']}.json")
+    with open(ruta, "w") as f:
+        json.dump(registro, f, indent=2, ensure_ascii=False)
+
+    return ruta
+
+
 async def main():
     with open("../../specs/spec_example.yaml") as f:
         spec = yaml.safe_load(f)
 
     historial_errores: list[str] = []
     fallos_l2_seguidos = 0
-    catalogo_validados = []  # aquí guardarías (spec, código, métricas) en producción
+    catalogo_validados = []  # espejo en memoria de lo que también se escribe a disco
 
     for i in range(1, MAX_ITERACIONES + 1):
         print(f"\n=== Iteración {i}/{MAX_ITERACIONES} ===")
@@ -170,7 +196,8 @@ async def main():
         print(informe.mensaje_accionable)
 
         if informe.nivel_fallo == NivelFallo.NINGUNO:
-            print("\n✅ Éxito. Guardando en el catálogo.")
+            ruta = guardar_en_catalogo(spec, codigo, informe.metricas_hls)
+            print(f"\n✅ Éxito. Guardado en el catálogo: {ruta}")
             catalogo_validados.append({"spec": spec, "codigo": codigo, "metricas": informe.metricas_hls})
             break
 

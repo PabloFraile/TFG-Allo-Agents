@@ -1,0 +1,52 @@
+{
+  "bloque": "fft_radix2",
+  "spec": {
+    "bloque": "fft_radix2",
+    "descripcion": "Kernel de una mariposa FFT radix-2 (Cooley-Tukey), entrada compleja de N puntos, salida compleja de N puntos.\n",
+    "entradas": [
+      {
+        "nombre": "x_real",
+        "tipo": "allo.float32",
+        "forma": [
+          1024
+        ]
+      },
+      {
+        "nombre": "x_imag",
+        "tipo": "allo.float32",
+        "forma": [
+          1024
+        ]
+      }
+    ],
+    "salidas": [
+      {
+        "nombre": "y_real",
+        "tipo": "allo.float32",
+        "forma": [
+          1024
+        ]
+      },
+      {
+        "nombre": "y_imag",
+        "tipo": "allo.float32",
+        "forma": [
+          1024
+        ]
+      }
+    ],
+    "golden_model_id": "fft_radix2_numpy_reference",
+    "restricciones": {
+      "objetivo_ii": 1,
+      "throughput_min": "100e6"
+    }
+  },
+  "codigo_allo": "### KERNEL\n```python\nimport allo\nfrom allo.ir.types import float32\n\nN = 1024\nHALF = N // 2\n\n# Precomputed rotation constants for angle = 2*pi/N (base twiddle step),\n# generated offline (no runtime trig calls, only basic arithmetic below).\nCOS_STEP: float32 = 0.9999811752826011\nSIN_STEP: float32 = 0.006135884649154475\n\n\ndef fft_radix2(x_real: float32[N], x_imag: float32[N]) -> (float32[N], float32[N]):\n    y_real: float32[N]\n    y_imag: float32[N]\n    tw_real: float32[HALF]\n    tw_imag: float32[HALF]\n\n    # Build twiddle factor table W_N^k = cos(2*pi*k/N) - j*sin(2*pi*k/N)\n    # via iterative complex rotation using only basic arithmetic.\n    for k in range(HALF):\n        if k == 0:\n            tw_real[k] = 1.0\n            tw_imag[k] = 0.0\n        else:\n            tw_real[k] = tw_real[k - 1] * COS_STEP + tw_imag[k - 1] * SIN_STEP\n            tw_imag[k] = tw_imag[k - 1] * COS_STEP - tw_real[k - 1] * SIN_STEP\n\n    # Radix-2 Cooley-Tukey butterfly stage\n    for kb in range(HALF):\n        t_real: float32 = x_real[kb + HALF] * tw_real[kb] - x_imag[kb + HALF] * tw_imag[kb]\n        t_imag: float32 = x_real[kb + HALF] * tw_imag[kb] + x_imag[kb + HALF] * tw_real[kb]\n\n        y_real[kb] = x_real[kb] + t_real\n        y_imag[kb] = x_imag[kb] + t_imag\n        y_real[kb + HALF] = x_real[kb] - t_real\n        y_imag[kb + HALF] = x_imag[kb] - t_imag\n\n    return y_real, y_imag\n```\n\n### SCHEDULE\n```python\ns = allo.customize(fft_radix2)\n\n# Pipeline the twiddle-factor generation loop\ns.pipeline(\"k\", initiation_interval=1)\n\n# Pipeline the butterfly computation loop to target II=1\ns.pipeline(\"kb\", initiation_interval=1)\n\nmod = s.build()\n```",
+  "metricas_hls": {
+    "II": 1,
+    "latencia": 42,
+    "BRAM": 4,
+    "DSP": 8,
+    "LUT": 1200
+  }
+}
