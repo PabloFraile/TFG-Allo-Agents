@@ -135,7 +135,11 @@ quedaba ninguno), y antivirus de terceros interfiriendo con el hipervisor
 11 25H2 reservando el hipervisor de forma exclusiva para Credential Guard,
 sin dejar partición libre para WSL2).
 
+<<<<<<< HEAD
 ![Docker Desktop: "Virtualization support not detected" al intentar arrancar el motor de contenedores en Windows](img/2026-07-29_docker-virtualizacion-error.png)
+=======
+![Docker Desktop: "Virtualization support not detected" al intentar arrancar el motor de contenedores en Windows](img/error_virtualizacion_docker_windows.png)
+>>>>>>> 432220988e6be42f2e1e3ad1aeda9ddb73cb22cb
 *Figura 1. Pantalla de error de Docker Desktop en el equipo Windows de pruebas. El motor queda en estado `Engine stopped` y el arranque no llega a completarse pese a haber descartado las causas habituales (BIOS, VirtualBox, antivirus). Causa raíz no confirmada; hipótesis principal: reserva exclusiva del hipervisor por VBS/Credential Guard en Windows 11 25H2.*
 
 **Decisión: usar un segundo ordenador con Linux nativo** en vez de seguir
@@ -153,8 +157,58 @@ cuenta Pro, y ejecución de `test_minimo.py` — confirmado
 respuesta correcta del modelo, tanto desde Claude Code como desde una
 terminal normal de forma independiente.
 
+<<<<<<< HEAD
 ![Ejecución de test_minimo.py en Linux, con apiKeySource: 'none' y respuesta 'funciona'](img/2026-07-29_test-minimo-exitoso.png)
 *Figura 2. Salida completa de `python3 test_minimo.py` en el nuevo entorno Linux. El `SystemMessage` confirma `apiKeySource: 'none'` (autenticación vía suscripción Pro, no API de pago por uso); el `AssistantMessage` devuelve el texto esperado (`'funciona'`); el `RateLimitEvent` confirma cuota de cinco horas con `overageDisabledReason: 'org_level_disabled'` (sin riesgo de facturación adicional); y el `ResultMessage` cierra con `is_error=False`. Esta captura cierra la validación del entorno antes de la primera ejecución del pipeline completo.*
+=======
+**Primera comprobación: dentro de Claude Code (sesión interactiva).**
+Antes de validar el entorno "en frío" desde una terminal corriente, se hizo
+una primera comprobación rápida dentro de la propia sesión de Claude Code
+usada para desarrollar el código, pidiéndole textualmente que comprobara el
+login y ejecutara `test_minimo.py`.
+
+![Secuencia dentro de Claude Code: comprobación de login y "run test_minimo.py" ejecutado con éxito, con el siguiente prompt "run orchestrator.py" ya escrito](img/ejecucion_basica_en_claude_code.png)
+*Figura 2. Sesión interactiva de Claude Code (v2.1.220) en `~/TFG/src/agentes`. Claude Code confirma que la sesión ya estaba autenticada con la cuenta Pro (`pafracal@gmail.com`) y razona correctamente que, como `test_minimo.py` usa `claude_agent_sdk`, que a su vez invoca el mismo CLI de `claude`, debería quedar autenticado sin pasos adicionales. A continuación ejecuta `test_minimo.py` con éxito ("the assistant replied `funciona`"). En la línea de comandos, ya tecleado y a la espera de confirmación, se aprecia el siguiente paso natural: `run orchestrator.py` — es decir, la tentación de seguir pidiéndole a Claude Code que ejecute también el pipeline completo.*
+
+**Por qué esta comprobación no se usó como validación del entorno, y por
+qué no se debe operar el pipeline desde dentro de Claude Code.** El
+resultado de la Figura 2 es correcto, pero se descartó deliberadamente como
+prueba válida, y se decidió no continuar por ese camino (no se llegó a
+escribir `run orchestrator.py`), por dos motivos:
+
+1. **Contaminaría la validación del sistema.** El objetivo del proyecto es
+   un pipeline **autónomo**: un script (`orchestrator.py`) que encadena
+   Generador → Ejecutor → Validador en bucle, sin intervención humana en
+   cada iteración. Si la comprobación de que "funciona" se hace pidiéndoselo
+   a Claude Code de forma conversacional, no queda claro si el mérito es
+   del propio script o de alguna gestión de contexto/autenticación que
+   Claude Code está haciendo por detrás sin que sea evidente desde fuera.
+   La única prueba inequívoca de que el sistema es autónomo es que corra
+   igual de bien invocado directamente (`python3 test_minimo.py`,
+   `python3 orchestrator.py`) desde una terminal corriente, sin ningún
+   asistente conversacional de por medio.
+2. **Contradiría el objetivo del propio TFG.** Todo el proyecto gira en
+   torno a demostrar un lazo de generación-validación que no necesita
+   supervisión humana turno a turno. Operar el pipeline pidiéndoselo
+   manualmente a un asistente interactivo, aunque sea cómodo durante el
+   desarrollo, es exactamente el patrón contrario al que se quiere
+   demostrar que funciona.
+
+**Regla práctica adoptada a partir de este punto:** Claude Code se usa
+únicamente para escribir y depurar código; toda ejecución que cuente como
+resultado o evidencia del proyecto se hace siempre mediante invocación
+directa desde terminal, sin mediación de ningún asistente conversacional.
+
+**Entorno validado en Linux (terminal directa).** Clonado del repositorio
+(`git clone --recurse-submodules`), instalación de dependencias, `claude
+login` con la cuenta Pro, y ejecución de `test_minimo.py` **directamente
+desde terminal**, siguiendo la regla anterior — confirmado
+`apiKeySource: none` (usando la suscripción, no facturación de API) y
+respuesta correcta del modelo.
+
+![Ejecución de test_minimo.py directamente desde terminal, con apiKeySource: 'none' y respuesta 'funciona'](img/test_minimo_terminal_exitoso.png)
+*Figura 3. Salida completa de `python3 test_minimo.py` invocado directamente desde terminal (sin Claude Code de por medio), en contraste con la Figura 2. El `SystemMessage` confirma `apiKeySource: 'none'` (autenticación vía suscripción Pro, no API de pago por uso); el `AssistantMessage` devuelve el texto esperado (`'funciona'`); el `RateLimitEvent` confirma cuota de cinco horas con `overageDisabledReason: 'org_level_disabled'` (sin riesgo de facturación adicional); y el `ResultMessage` cierra con `is_error=False`. Esta es la ejecución que se toma como validación real del entorno, precisamente por no depender de ningún asistente interactivo.*
+>>>>>>> 432220988e6be42f2e1e3ad1aeda9ddb73cb22cb
 
 **Primera ejecución del pipeline completo (con Allo aún mockeado).**
 Se detectan y corrigen dos errores de integración al ejecutar
@@ -168,8 +222,13 @@ Se detectan y corrigen dos errores de integración al ejecutar
    no una lista, y lo interpretaba erróneamente como ruta a un archivo de
    configuración.
 
+<<<<<<< HEAD
 ![Traza residual del error de spec_example.yaml y error "Invalid MCP configuration" al pasar mcp_servers como lista](img/2026-07-29_generador-fft-error-mcp.png)
 *Figura 3. Salida de terminal de la primera ejecución de `orchestrator.py` desde su ubicación definitiva. Se observa, al inicio, el rastro del primer error ya resuelto (`FileNotFoundError: 'spec_example.yaml'`); a continuación, el código Allo generado por el agente Generador para el bloque `fft_radix2` (kernel de mariposa FFT radix-2, bucle `allo.grid(H)` con `H=512`); y finalmente el error `Invalid MCP configuration: MCP config file not found`, producido porque el SDK interpretó la lista `[allo_tools_server]` como ruta a un archivo de configuración en lugar de como el servidor MCP ya instanciado — confirmando el segundo bug descrito en el punto 2 anterior. Captura tomada **antes** de aplicar la corrección (diccionario `{"allo-tools": allo_tools_server}`); se conserva como evidencia del proceso de depuración, no como estado final del sistema.*
+=======
+![Traza residual del error de spec_example.yaml y error "Invalid MCP configuration" al pasar mcp_servers como lista](img/generador_codigo_allo_fft.png)
+*Figura 4. Salida de terminal de la primera ejecución de `orchestrator.py` desde su ubicación definitiva. Se observa, al inicio, el rastro del primer error ya resuelto (`FileNotFoundError: 'spec_example.yaml'`); a continuación, el código Allo generado por el agente Generador para el bloque `fft_radix2` (kernel de mariposa FFT radix-2, bucle `allo.grid(H)` con `H=512`); y finalmente el error `Invalid MCP configuration: MCP config file not found`, producido porque el SDK interpretó la lista `[allo_tools_server]` como ruta a un archivo de configuración en lugar de como el servidor MCP ya instanciado — confirmando el segundo bug descrito en el punto 2 anterior. Captura tomada **antes** de aplicar la corrección (diccionario `{"allo-tools": allo_tools_server}`); se conserva como evidencia del proceso de depuración, no como estado final del sistema.*
+>>>>>>> 432220988e6be42f2e1e3ad1aeda9ddb73cb22cb
 
 **Estado al cierre de esta sesión:** el Generador produce código Allo
 plausible para la FFT radix-2 de prueba; el Ejecutor y el Validador están
