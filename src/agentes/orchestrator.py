@@ -99,14 +99,14 @@ async def llamar_ejecutor(codigo_allo: str, spec: dict) -> dict:
     """Ejecuta la cascada L1->L4 llamando a las herramientas reales (o mock).
     Se detiene en el primer nivel que falle."""
     opciones = ClaudeAgentOptions(
-        mcp_servers=[allo_tools_server],
-        allowed_tools=[
-            "mcp__allo-tools__run_l1_parse_types",
-            "mcp__allo-tools__run_l2_functional",
-            "mcp__allo-tools__run_l3_equivalence",
-            "mcp__allo-tools__run_l4_hls",
-        ],
-    )
+    mcp_servers={"allo-tools": allo_tools_server},   # diccionario, no lista
+    allowed_tools=[
+        "mcp__allo-tools__run_l1_parse_types",
+        "mcp__allo-tools__run_l2_functional",
+        "mcp__allo-tools__run_l3_equivalence",
+        "mcp__allo-tools__run_l4_hls",
+    ],
+)
     prompt = (
         "Ejecuta la cascada de validación EN ORDEN (L1, L2, L3, L4) sobre el "
         "siguiente código Allo. Detente en el primer nivel que falle y "
