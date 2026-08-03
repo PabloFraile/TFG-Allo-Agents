@@ -10,7 +10,7 @@ decisión sin tener que reconstruirlo de memoria al final.
 
 ---
 
-## 27 de julio de 2026 — Arranque del proyecto: arquitectura de agentes
+## Arranque del proyecto: arquitectura de agentes
 
 **Contexto.** Recibido por correo el planteamiento del proyecto: generación
 automática de código RTL (comunicaciones/procesado de señal — 5G/6G, radar)
@@ -65,7 +65,7 @@ lógica muy específica del dominio.
 
 ---
 
-## 28 de julio de 2026 — Entorno de desarrollo, Allo, y estructura de TFG
+## Entorno de desarrollo, Allo, y estructura de TFG
 
 **Entorno base en Windows.** Instalación de Node.js, Python, el SDK
 (`claude-agent-sdk`), y autenticación con la API. Problemas menores
@@ -118,7 +118,7 @@ contraseña (GitHub ya no acepta contraseña plana por `git push`).
 
 ---
 
-## 29 de julio de 2026 — Problemas de virtualización en Windows, cambio a Linux
+## Problemas de virtualización en Windows, cambio a Linux
 
 **Intento de levantar Docker Desktop en Windows.** Error
 `Virtualization support not detected`. Se descarta que sea por tener
@@ -223,7 +223,7 @@ confirmar una iteración completa exitosa tras el último arreglo).
 
 ---
 
-## 30 de julio de 2026 — Arreglo del `mcp_servers`, primera iteración completa y persistencia del catálogo
+## Arreglo del `mcp_servers`, primera iteración completa y persistencia del catálogo
 
 **Contexto.** Pendiente de la sesión anterior: confirmar que `orchestrator.py`
 completa una iteración entera con las herramientas del Ejecutor aún
