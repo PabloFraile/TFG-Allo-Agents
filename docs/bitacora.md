@@ -89,7 +89,74 @@ GitHub no los incluye, así que hay que clonar con
 `git clone --recursive`.
 
 **Decisión: entorno unificado en un contenedor** en vez de cruzar llamadas
-Windows↔Docker en cada iteración del bucle (menos puntos de fallo). Se
+Windows↔Docker en cada iteración del bucle (menos punt## 4 de agosto de 2026 — Instalación real de Allo (sustituyendo el mock)
+
+Se instala el toolchain de Allo desde fuente, sustituyendo la dependencia
+mockeada en `allo_tools.py`. El proceso reveló una cadena de tres/cinco
+problemas encadenados, cada uno enmascarando al siguiente — merece la pena
+documentarlos con detalle porque la causa raíz de cada uno solo se hizo
+visible al resolver el anterior.
+
+**1. `LLVM_BUILD_DIR` no configurado.** Allo no compila su propia copia de
+LLVM/MLIR — asume un build externo ya hecho, apuntado vía variable de
+entorno. Se compiló LLVM 19 (commit pinned por Allo) desde
+`external/allo/externals/llvm-project`, con:
+
+```bash
+cmake -G Ninja ../llvm \
+  -DLLVM_ENABLE_PROJECTS=mlir \
+  -DLLVM_BUILD_EXAMPLES=ON \
+  -DLLVM_TARGETS_TO_BUILD="host" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DLLVM_ENABLE_ASSERTIONS=ON \
+  -DLLVM_INSTALL_UTILS=ON \
+  -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
+  -DPython3_EXECUTABLE=$(which python3)
+ninja
+```
+
+(≈2 horas, 855 pasos de compilación).
+
+**2. Aislamiento de build de pip rompía la detección de `ninja`.** El
+primer intento de `pip install -e .` fallaba con
+`RuntimeError: LLVM_BUILD_DIR environment variable is not set` y, tras
+exportar la variable, con un error posterior de `ninja: no such file or
+directory`. La causa: pip crea un entorno aislado temporal (`overlay`)
+para las dependencias declaradas en `pyproject.toml`, y el binario
+`ninja` de PyPI instalado ahí no se resolvía correctamente en ese
+entorno. Solución: forzar a pip a reutilizar las herramientas del
+sistema (`ninja-build` y `cmake` ya instalados vía `apt`):
+
+```bash
+pip install --break-system-packages --no-build-isolation -v -e .
+```
+
+**3. `nanobind` no instalado.** Al resolver (2), apareció un error más
+simple: `RuntimeError: nanobind is not installed`. Se instaló con
+`pip install --break-system-packages nanobind`.
+
+**4. `MLIRConfig.cmake` no se generó en la build inicial de LLVM**, aunque
+`LLVMConfig.cmake` sí existía en `build/lib/cmake/llvm/`. Al faltar, el
+`find_package(MLIR)` del `CMakeLists.txt` de Allo fallaba con
+`Could not find a package configuration file provided by "MLIR"`.
+Se confirmó que `LLVM_ENABLE_PROJECTS=mlir` sí estaba activo en la
+caché de CMake, y que `tools/mlir` sí se había compilado — el problema
+era solo la generación del archivo de configuración exportable. Se
+resolvió reconfigurando in-place (sin recompilar nada) dentro del build
+de LLVM:
+
+```bash
+cd external/allo/externals/llvm-project/build
+cmake .
+```
+
+Bastaron unos segundos para que se regenerara `lib/cmake/mlir/MLIRConfig.cmake`.
+
+**5. Consecuencia de (4): `mlir-tblgen` y otros binarios de MLIR nunca se
+habían compilado.** La build original de Ninja (855 pasos) se había
+completado *antes* de que la configuración de MLIR quedara resuelta, así
+que el propio `build.ninja` de aquel momento no incluía los targets de
+MLIR. Al reintentar `pip install` de Allo, fallaba con:os de fallo). Se
 escribe un `Dockerfile` que parte de la imagen oficial de Allo y añade
 Node.js + Claude Code CLI + el SDK de Python encima.
 
@@ -349,7 +416,120 @@ principio a fin, con reintento tras fallo en L1 y éxito en la siguiente
 iteración, y ahora sí persiste el resultado en `results/catalogo/`.
 
 ---
+## Instalación real de Allo (sustituyendo el mock)
 
+Se instala el toolchain de Allo desde fuente, sustituyendo la dependencia
+mockeada en `allo_tools.py`. El proceso reveló una cadena de tres/cinco
+problemas encadenados, cada uno enmascarando al siguiente — merece la pena
+documentarlos con detalle porque la causa raíz de cada uno solo se hizo
+visible al resolver el anterior.
+
+**1. `LLVM_BUILD_DIR` no configurado.** Allo no compila su propia copia de
+LLVM/MLIR — asume un build externo ya hecho, apuntado vía variable de
+entorno. Se compiló LLVM 19 (commit pinned por Allo) desde
+`external/allo/externals/llvm-project`, con:
+
+```bash
+cmake -G Ninja ../llvm \
+  -DLLVM_ENABLE_PROJECTS=mlir \
+  -DLLVM_BUILD_EXAMPLES=ON \
+  -DLLVM_TARGETS_TO_BUILD="host" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DLLVM_ENABLE_ASSERTIONS=ON \
+  -DLLVM_INSTALL_UTILS=ON \
+  -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
+  -DPython3_EXECUTABLE=$(which python3)
+ninja
+```
+
+(≈2 horas, 855 pasos de compilación).
+
+**2. Aislamiento de build de pip rompía la detección de `ninja`.** El
+primer intento de `pip install -e .` fallaba con
+`RuntimeError: LLVM_BUILD_DIR environment variable is not set` y, tras
+exportar la variable, con un error posterior de `ninja: no such file or
+directory`. La causa: pip crea un entorno aislado temporal (`overlay`)
+para las dependencias declaradas en `pyproject.toml`, y el binario
+`ninja` de PyPI instalado ahí no se resolvía correctamente en ese
+entorno. Solución: forzar a pip a reutilizar las herramientas del
+sistema (`ninja-build` y `cmake` ya instalados vía `apt`):
+
+```bash
+pip install --break-system-packages --no-build-isolation -v -e .
+```
+
+**3. `nanobind` no instalado.** Al resolver (2), apareció un error más
+simple: `RuntimeError: nanobind is not installed`. Se instaló con
+`pip install --break-system-packages nanobind`.
+
+**4. `MLIRConfig.cmake` no se generó en la build inicial de LLVM**, aunque
+`LLVMConfig.cmake` sí existía en `build/lib/cmake/llvm/`. Al faltar, el
+`find_package(MLIR)` del `CMakeLists.txt` de Allo fallaba con
+`Could not find a package configuration file provided by "MLIR"`.
+Se confirmó que `LLVM_ENABLE_PROJECTS=mlir` sí estaba activo en la
+caché de CMake, y que `tools/mlir` sí se había compilado — el problema
+era solo la generación del archivo de configuración exportable. Se
+resolvió reconfigurando in-place (sin recompilar nada) dentro del build
+de LLVM:
+
+```bash
+cd external/allo/externals/llvm-project/build
+cmake .
+```
+
+Bastaron unos segundos para que se regenerara `lib/cmake/mlir/MLIRConfig.cmake`.
+
+**5. Consecuencia de (4): `mlir-tblgen` y otros binarios de MLIR nunca se
+habían compilado.** La build original de Ninja (855 pasos) se había
+completado *antes* de que la configuración de MLIR quedara resuelta, así
+que el propio `build.ninja` de aquel momento no incluía los targets de
+MLIR. Al reintentar `pip install` de Allo, fallaba con:
+
+```bash
+ninja: error: '.../llvm-project/build/bin/mlir-tblgen', needed by
+'...', missing and no known rule to make it
+```
+Se relanzó Ninja en el build de LLVM (incremental — no repitió los 855
+pasos ya hechos, solo compiló los targets de MLIR que faltaban,
+incluyendo `mlir-tblgen`):
+
+```bash
+cd external/allo/externals/llvm-project/build
+ninja -j2
+```
+
+**6. Caché de CMake obsoleta en `allo/mlir/build/CMakeCache.txt`** seguía
+apuntando al `ninja` roto del punto (2) incluso después de añadir
+`--no-build-isolation` — CMake reutilizaba la configuración cacheada de
+un intento anterior en vez de reevaluar el comando nuevo. Hubo que
+localizar y borrar esa carpeta de build concreta (no la de LLVM, que
+estaba bien) para forzar una reconfiguración limpia:
+
+```bash
+rm -rf external/allo/mlir/build
+```
+
+**Resultado.** Tras resolver los seis puntos:
+
+```bash
+pip install --break-system-packages --no-build-isolation -v -e .
+```
+
+completó con éxito (`Successfully installed allo-0.5 astpretty-3.0.0
+astroid-3.0.3 black-24.8.0 ...`), y:
+
+```bash
+python3 -c "import allo; import allo.ir; print('OK')"
+```
+
+confirma `OK`. El toolchain de Allo ya está disponible en el mismo
+entorno Python que usa el orquestador, lo que desbloquea el trabajo
+pendiente de sustituir las funciones `MOCK_*`.
+
+**Pendiente para la siguiente sesión:** sustituir las funciones `MOCK_*`
+de `allo_tools.py` por llamadas reales, empezando por L1
+(`allo.customize()`) por ser el nivel más sencillo, y después L2 con un
+golden model real en NumPy para la FFT radix-2.
 ## Pendiente para la siguiente sesión
 
 - Instalar Allo de verdad en el Linux (`pip install -e .` dentro de
