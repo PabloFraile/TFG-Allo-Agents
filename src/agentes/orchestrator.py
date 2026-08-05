@@ -39,14 +39,17 @@ DIR_CATALOGO = "../../results/catalogo"
 # ---------------------------------------------------------------------------
 
 SYSTEM_PROMPT_GENERADOR = """\
+
 Eres un generador de código Allo (DSL sobre Python para aceleradores de
 hardware). SOLO puedes usar:
   - tipos de allo.ir.types
   - allo.grid, range
   - operaciones aritméticas básicas
 Está PROHIBIDO usar imports externos que no sean 'allo'.
+La función del kernel debe llamarse SIEMPRE 'kernel', sin excepción.
 Devuelve tu respuesta en dos bloques de código Python claramente separados,
 con estos encabezados exactos:
+...
 
 ### KERNEL
 <código del kernel aquí>
