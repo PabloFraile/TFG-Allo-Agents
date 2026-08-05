@@ -526,27 +526,108 @@ confirma `OK`. El toolchain de Allo ya está disponible en el mismo
 entorno Python que usa el orquestador, lo que desbloquea el trabajo
 pendiente de sustituir las funciones `MOCK_*`.
 
-**Pendiente para la siguiente sesión:** sustituir las funciones `MOCK_*`
-de `allo_tools.py` por llamadas reales, empezando por L1
-(`allo.customize()`) por ser el nivel más sencillo, y después L2 con un
-golden model real en NumPy para la FFT radix-2.
-## Pendiente para la siguiente sesión
+## L1 conectado a Allo real: bug de `inspect.getsource()` y primera cascada completa
 
-- Instalar Allo de verdad en el Linux (`pip install -e .` dentro de
-  `external/allo`) y sustituir las funciones `MOCK_*` de `allo_tools.py`
-  por llamadas reales (`allo.customize()`, `s.build()`, el verificador
-  formal, síntesis HLS), empezando por `run_l1_parse_types` al ser la más
-  sencilla.
-- Definir cómo se resuelve `golden_model_id` (p. ej.
-  `"fft_radix2_numpy_reference"`) contra una función NumPy real que genere
-  los vectores de test — todavía no existe esa convención en el repo.
-- Decidir si el RTL/HLS real que produzca L4 (cuando Allo esté conectado
-  de verdad) se persiste también en `results/catalogo/`, y en qué formato.
-- Decidir si se generaliza `main()` para iterar sobre varios ficheros de
-  `specs/` en vez de tener la ruta a `spec_example.yaml` hardcodeada.
-- Decidir si se retoma el diagnóstico de virtualización en el equipo
-  Windows (para poder reproducir el entorno en ambas máquinas) o se
-  documenta como limitación conocida del entorno de desarrollo.
-- Confirmar con el tutor si el repositorio debe mantenerse privado por
-  alguna norma específica de la universidad o del colaborador que propuso
-  el proyecto.
+**Contexto.** Con Allo ya instalado de verdad en el entorno Linux, se conecta
+el primer nivel de la cascada de validación (`run_l1_parse_types` en
+`allo_tools.py`) a la llamada real `allo.customize()`, sustituyendo el chequeo
+trivial de texto (`"def " in codigo and "return" in codigo`) que se usaba
+mientras Allo estaba mockeado. Para ello se fija además una convención nueva
+en el Generador: la función del kernel debe llamarse siempre `kernel`, de
+forma que el Ejecutor pueda localizarla de manera determinista dentro del
+texto generado (antes no había ningún nombre garantizado).
+
+**Primer intento fallido: `OSError: could not get source code`.** Al lanzar
+`orchestrator.py` con L1 ya conectado, las seis iteraciones agotan el
+presupuesto sin converger, todas con el mismo fallo en L1 (Figuras 1-4). El
+Validador identifica correctamente y de forma consistente que el problema no
+está en el código Allo generado por el Generador, sino en la propia
+herramienta: `allo.customize()` usa internamente `inspect.getsource()` sobre
+la función del kernel para poder parsearla, y `inspect.getsource()` necesita
+que esa función tenga un archivo `.py` real de respaldo en disco. La primera
+implementación de `run_l1_parse_types` construía el kernel con `exec()` sobre
+un *namespace* en memoria, sin ningún archivo asociado — de ahí el error,
+determinista e independiente de la calidad del código generado en cada
+iteración.
+
+**Diagnóstico correcto pero acción del orquestador subóptima.** Merece la
+pena dejar constancia de que el Validador diagnosticó el problema real desde
+la primera iteración, con `decision_escalada = continuar` en las seis, tal
+como está definido en `SYSTEM_PROMPT_VALIDADOR`. Sin embargo, al tratarse de
+un fallo de *tooling* (determinista) y no de una carencia del código
+generado, ningún número de reintentos del Generador iba a resolverlo — el
+presupuesto de iteraciones se agotó "en balde" desde el punto de vista de la
+búsqueda, aunque fue muy útil como evidencia de diagnóstico. Queda anotado
+como caso de estudio para la memoria: un ejemplo real de por qué distinguir
+"fallo de herramienta" de "fallo de código" en la política de escalada
+tendría valor (de momento el esquema `InformeValidacion` no distingue entre
+ambos).
+
+**Arreglo.** Se sustituye la construcción del kernel en memoria por escritura
+a un archivo `.py` real en un directorio temporal (`tempfile.mkdtemp()`) y
+carga como módulo con `importlib.util.spec_from_file_location`, de forma que
+`inspect.getsource()` sí encuentra el código fuente. El propio texto generado
+por el Generador ya incluye sus imports (`import allo`,
+`from allo.ir.types import ...`), así que no hace falta inyectar ningún
+namespace adicional al escribirlo a disco.
+
+**Resultado: primera cascada completa con L1 real.** Tras el arreglo, la
+iteración 1/6 pasa L1 (sintaxis/tipos) a la primera contra Allo real, y la
+cascada completa hasta L4 con el resultado persistido en
+`results/catalogo/fft_radix2.json` (Figura 5).
+
+> **Aviso para no sobre-interpretar el resultado:** L2, L3 y L4 siguen
+> **mockeados** en esta fecha. El mensaje final del Validador lo dice
+> explícitamente ("L3 (equivalencia de schedule, MOCK) verificada"), y las
+> métricas de L4 (II=1, latencia 42, BRAM 4, DSP 8, LUT 1200) son las cifras
+> de relleno fijas que devuelve el mock, no el resultado de una síntesis HLS
+> real. Lo que queda confirmado a día de hoy es que **L1 es real y
+> funcionando end-to-end**; la validación funcional y la síntesis siguen
+> pendientes.
+
+**Pendiente para la siguiente sesión:**
+- Conectar `run_l2_functional`: compilar con `s.build(target="llvm")` y
+  comparar contra un golden model NumPy real de la FFT radix-2 (ahora mismo
+  `golden_model_id` es solo un identificador de texto, sin implementación
+  detrás).
+- Limpiar los directorios temporales que crea `_cargar_kernel_desde_disco()`
+  en cada llamada (no hay *cleanup* todavía).
+- Confirmar la API real del verificador formal de Allo antes de conectar L3
+  (no dar por buena ninguna firma sin comprobarla contra el código fuente
+  instalado en `external/allo`).
+
+**Figuras:**
+
+![Figura 1: primer intento con L1 conectado — OSError: could not get source code en las iteraciones 1 y 2](img/2026-08-05_fig1_error_getsource_it1-2.png)
+
+*Figura 1. Iteraciones 1-2 del primer intento con L1 conectado a Allo real: fallo determinista por `OSError: could not get source code`.*
+
+![Figura 2: mismo fallo en las iteraciones 3 y 4](img/2026-08-05_fig2_error_getsource_it3-4.png)
+
+*Figura 2. Iteraciones 3-4: el Validador diagnostica de forma consistente el mismo fallo de herramienta.*
+
+![Figura 3: mismo fallo en las iteraciones 5 y 6](img/2026-08-05_fig3_error_getsource_it5-6.png)
+
+*Figura 3. Iteraciones 5-6: el fallo se repite de forma determinista, confirmando que no depende del código generado.*
+
+![Figura 4: presupuesto de 6 iteraciones agotado sin converger](img/2026-08-05_fig4_presupuesto_agotado.png)
+
+*Figura 4. Fin de la primera ejecución: presupuesto de 6 iteraciones agotado sin converger, por el bug de `inspect.getsource()`.*
+
+**Nota adicional.** Más allá del arreglo en sí, esta sesión ha servido
+también para comprobar que el bucle del orquestador funciona correctamente a
+nivel de control de flujo: ante un fallo persistente y determinista en L1,
+el pipeline agota efectivamente el presupuesto completo de las 6 iteraciones
+configurado en `MAX_ITERACIONES` (reintentando en cada una según la
+`decision_escalada` recibida) y termina de forma ordenada con el aviso de
+"presupuesto agotado sin converger", en vez de quedarse colgado o romperse a
+mitad de bucle. Es una confirmación útil de que la lógica de control del
+orquestador es robusta de forma independiente a si el fallo subyacente es de
+la herramienta o del código generado.
+
+**Éxito ya en la primera iteración tras el arreglo.**      
+Conviene destacar que, una vez aplicado el arreglo de inspect.getsource(), el pipeline no necesitó agotar de nuevo el presupuesto de iteraciones ni recurrir al historial de errores para converger: la cascada completa (L1-L4) se superó directamente en la iteración 1/6, a la primera. Esto es la confirmación más directa hasta la fecha de que el bug estaba correctamente diagnosticado y aislado — no era un problema latente adicional ni dependía de una casualidad favorable del Generador, sino exactamente la causa que se había identificado en las Figuras 1-4.
+
+![Figura 5: cascada completa tras el arreglo, éxito en la iteración 1](img/2026-08-05_fig5_l1_real_exito.png)
+
+*Figura 5. Tras escribir el kernel a disco antes de `allo.customize()`: L1 real pasa a la primera y la cascada completa (L2-L4 aún mockeados) persiste el resultado en `results/catalogo/fft_radix2.json`.*
