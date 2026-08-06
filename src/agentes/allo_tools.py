@@ -6,7 +6,8 @@ llamar.
 
 Estado actual:
   - run_l1_parse_types  -> CONECTADO A ALLO REAL (allo.customize())
-  - run_l2_functional   -> todavía MOCKEADO
+  - run_l2_functional   -> CONECTADO A ALLO REAL (s.build(target='llvm') +
+                            comparación contra golden model real)
   - run_l3_equivalence  -> todavía MOCKEADO
   - run_l4_hls          -> todavía MOCKEADO
 
@@ -18,12 +19,16 @@ La firma (nombre, descripción, parámetros) puede quedarse igual.
 import json
 import os
 import tempfile
+import traceback
 import uuid
 import importlib.util
 from typing import Any
 
+import numpy as np
 import allo
 from claude_agent_sdk import tool, create_sdk_mcp_server
+
+from golden_models import GOLDEN_MODELS, generar_vectores_test
 
 
 # ---------------------------------------------------------------------------
@@ -90,6 +95,34 @@ def _cargar_kernel_desde_disco(kernel_src: str):
     return modulo.kernel
 
 
+def _construir_schedule(kernel_fn, schedule_src: str):
+    """Ejecuta el bloque SCHEDULE sobre el kernel ya cargado desde disco y
+    devuelve el Schedule resultante.
+
+    CONVENCIÓN ASUMIDA (mismo espíritu que el nombre 'kernel' fijo para L1):
+    el bloque SCHEDULE es código Python que ve la función del kernel bajo el
+    nombre 'kernel' y el módulo 'allo' ya disponibles, y debe terminar
+    dejando el Schedule final en una variable llamada 's'. Típicamente:
+
+        s = allo.customize(kernel)
+        s.split("i", factor=4)   # transformaciones opcionales del schedule
+
+    Si el Generador no respeta esto (p. ej. no deja 's' definida, o espera
+    que 'kernel' se llame de otra forma), esta función es el primer sitio
+    donde revisar cuando L2 empiece a fallar de forma sistemática -- igual
+    que la convención de 'kernel' lo es para L1.
+    """
+    namespace: dict[str, Any] = {"allo": allo, "kernel": kernel_fn}
+    exec(schedule_src, namespace)
+
+    if "s" not in namespace:
+        raise ValueError(
+            "El bloque SCHEDULE no define una variable 's' con el Schedule "
+            "de Allo. Revisa el prompt del Generador (SYSTEM_PROMPT_GENERADOR)."
+        )
+    return namespace["s"]
+
+
 @tool(
     "run_l1_parse_types",
     "Nivel L1: compila el kernel Allo con allo.customize() y comprueba "
@@ -122,17 +155,51 @@ async def run_l2_functional(args: dict[str, Any]) -> dict[str, Any]:
     codigo = args["codigo_allo"]
     golden_id = args["golden_model_id"]
 
-    # TODO: reemplazar por:
-    #   kernel_src, schedule_src = _extraer_bloques(codigo)
-    #   kernel_fn = _cargar_kernel_desde_disco(kernel_src)
-    #   s = allo.customize(kernel_fn)
-    #   (aplicar aquí el schedule_src sobre 's', p.ej. exec(schedule_src, {"s": s, "allo": allo}))
-    #   mod = s.build(target="llvm")
-    #   salida = mod(*vectores_test)
-    #   comparar contra golden_model(*vectores_test) -> diff + índices discrepantes
-    #   (pendiente: resolver golden_id contra un registro real, ver golden_models.py)
-    ok = True  # MOCK: asumimos éxito para que el pipeline de ejemplo llegue al final
-    salida = f"Ejecución funcional OK contra golden model '{golden_id}'"
+    try:
+        golden_fn = GOLDEN_MODELS.get(golden_id)
+        if golden_fn is None:
+            raise KeyError(
+                f"golden_model_id '{golden_id}' no está registrado en "
+                f"golden_models.GOLDEN_MODELS: {list(GOLDEN_MODELS.keys())}"
+            )
+
+        kernel_src, schedule_src = _extraer_bloques(codigo)
+        kernel_fn = _cargar_kernel_desde_disco(kernel_src)
+        s = _construir_schedule(kernel_fn, schedule_src)
+        mod = s.build(target="llvm")
+
+        x_real, x_imag = generar_vectores_test()
+        y_real = np.zeros_like(x_real)
+        y_imag = np.zeros_like(x_imag)
+
+        # Asume firma kernel(x_real, x_imag, y_real, y_imag) -> None, con las
+        # salidas escritas in-place (patrón habitual en Allo/HLS). Si tu
+        # kernel en vez de eso RETORNA los arrays, cambia esta línea a
+        # y_real, y_imag = mod(x_real, x_imag).
+        mod(x_real, x_imag, y_real, y_imag)
+
+        y_real_ref, y_imag_ref = golden_fn(x_real, x_imag)
+
+        tol = 1e-3
+        diff_real = np.abs(y_real - y_real_ref)
+        diff_imag = np.abs(y_imag - y_imag_ref)
+        ok = bool(np.all(diff_real < tol) and np.all(diff_imag < tol))
+
+        if ok:
+            salida = f"Ejecución funcional OK contra golden model '{golden_id}'"
+        else:
+            idx_discrepantes = np.where((diff_real >= tol) | (diff_imag >= tol))[0]
+            salida = (
+                f"Diff contra '{golden_id}': {len(idx_discrepantes)} índices "
+                f"discrepantes de {len(x_real)}. Primeros 10: "
+                f"{idx_discrepantes[:10].tolist()}. "
+                f"max|diff_real|={diff_real.max():.4g}, "
+                f"max|diff_imag|={diff_imag.max():.4g}, tol={tol}"
+            )
+
+    except Exception as e:  # noqa: BLE001 -- igual que en L1, cualquier fallo se traduce a ok=False
+        ok = False
+        salida = f"{type(e).__name__}: {e}\n{traceback.format_exc(limit=3)}"
 
     return {
         "content": [{"type": "text", "text": json.dumps({"nivel": "L2", "ok": ok, "salida_cruda": salida})}]
@@ -173,8 +240,7 @@ async def run_l4_hls(args: dict[str, Any]) -> dict[str, Any]:
     # TODO: reemplazar por:
     #   kernel_src, schedule_src = _extraer_bloques(codigo)
     #   kernel_fn = _cargar_kernel_desde_disco(kernel_src)
-    #   s = allo.customize(kernel_fn)
-    #   (aplicar aquí el schedule_src sobre 's')
+    #   s = _construir_schedule(kernel_fn, schedule_src)
     #   mod = s.build(target="vitis_hls", mode="csyn")
     #   parsear el informe de síntesis -> II, latencia, BRAM, DSP, LUT
     ii_conseguido = objetivo_ii  # MOCK: asumimos que se cumple el objetivo

@@ -39,23 +39,61 @@ DIR_CATALOGO = "../../results/catalogo"
 # ---------------------------------------------------------------------------
 
 SYSTEM_PROMPT_GENERADOR = """\
-
 Eres un generador de código Allo (DSL sobre Python para aceleradores de
-hardware). SOLO puedes usar:
-  - tipos de allo.ir.types
-  - allo.grid, range
-  - operaciones aritméticas básicas
-Está PROHIBIDO usar imports externos que no sean 'allo'.
-La función del kernel debe llamarse SIEMPRE 'kernel', sin excepción.
+hardware).
+
+CONSTRUCCIONES PERMITIDAS (nada más que esto):
+  - tipos de allo.ir.types (float32, int32, etc.)
+  - bucles: SOLO el `range(N)` nativo de Python para bucles secuenciales, y
+    `allo.grid(N, M, ...)` para nidos de bucles paralelos. NO EXISTE
+    `allo.range`, `allo.for_`, ni ninguna otra variante -- si necesitas un
+    bucle simple, usa el `range()` normal de Python, sin argumentos de
+    palabra clave como `name=`.
+  - operaciones aritméticas básicas (+, -, *, /)
+Está PROHIBIDO usar imports externos que no sean 'allo', y PROHIBIDO usar
+o inventar cualquier función de allo.* que no esté en esta lista. Si no
+estás seguro de que una función existe en Allo, NO la uses -- resuelve el
+problema con range()/allo.grid() y aritmética básica en su lugar.
+
 Devuelve tu respuesta en dos bloques de código Python claramente separados,
 con estos encabezados exactos:
-...
 
 ### KERNEL
 <código del kernel aquí>
 
 ### SCHEDULE
 <código del schedule aquí>
+
+Reglas OBLIGATORIAS de cada bloque:
+
+1. El bloque KERNEL debe ser un archivo Python AUTOCONTENIDO: incluye tú
+   mismo todos los imports que necesite (p. ej. "import allo",
+   "from allo.ir.types import ..."), porque se guarda y se importa como
+   módulo independiente. La función del kernel debe llamarse SIEMPRE
+   'kernel', sin excepción.
+
+2. FIRMA DEL KERNEL -- estilo in-place, NO estilo "return": el kernel debe
+   declarar TODAS las entradas Y TODAS las salidas de la especificación
+   como parámetros de la función, en ese orden (primero entradas, luego
+   salidas), y escribir el resultado directamente en los parámetros de
+   salida. NO uses "-> (...)" para devolver las salidas. Ejemplo de forma
+   general (adapta nombres/tipos a la spec real):
+
+       def kernel(x_real: float32[N], x_imag: float32[N],
+                  y_real: float32[N], y_imag: float32[N]):
+           for i in range(N):
+               y_real[i] = ...
+               y_imag[i] = ...
+
+3. El bloque SCHEDULE es código Python que ya tiene disponibles las
+   variables 'kernel' (la función del kernel, ya cargada) y 'allo' (el
+   módulo). Debe EMPEZAR SIEMPRE por:
+       s = allo.customize(kernel)
+   seguido, si hace falta, de transformaciones sobre 's' (p. ej.
+   s.split("i", factor=4), s.pipeline(...), etc., usando solo primitivas
+   de Schedule que existan de verdad en Allo). El bloque debe dejar la
+   variable 's' definida al final -- es lo único que se comprueba fuera
+   de este bloque.
 
 No expliques nada fuera de esos dos bloques.
 """
@@ -92,7 +130,18 @@ async def llamar_generador(spec: dict, historial_errores: list[str]) -> str:
     )
     prompt = f"Especificación del bloque:\n{json.dumps(spec, indent=2)}{contexto_errores}"
 
-    opciones = ClaudeAgentOptions(system_prompt=SYSTEM_PROMPT_GENERADOR)
+    # IMPORTANTE: el Generador NO debe tener acceso a ninguna herramienta
+    # (Bash, edición de archivos, etc.). Solo escribe texto. Darle acceso a
+    # herramientas de ejecución le permitiría "hacer trampa" comprobando su
+    # propio resultado en vez de dejar que lo valide el Ejecutor de forma
+    # independiente -- ver docs/arquitectura.md, decisión #1. Un caso real
+    # de esto: el Generador intentó usar Bash para "verificar" constantes
+    # de twiddle y se quedó pidiendo aprobación de un comando en mitad de
+    # la generación (5 de agosto).
+    opciones = ClaudeAgentOptions(
+        system_prompt=SYSTEM_PROMPT_GENERADOR,
+        allowed_tools=[],
+    )
     texto_completo = ""
     async for msg in query(prompt=prompt, options=opciones):
         if isinstance(msg, AssistantMessage):
@@ -137,7 +186,7 @@ async def llamar_validador(resultado_ejecutor: dict, fallos_l2_seguidos: int) ->
         f"Resultado crudo del ejecutor:\n{resultado_ejecutor['salida_cruda']}\n\n"
         f"Fallos consecutivos en L2 hasta ahora: {fallos_l2_seguidos}"
     )
-    opciones = ClaudeAgentOptions(system_prompt=SYSTEM_PROMPT_VALIDADOR)
+    opciones = ClaudeAgentOptions(system_prompt=SYSTEM_PROMPT_VALIDADOR, allowed_tools=[])
 
     texto_json = ""
     async for msg in query(prompt=prompt, options=opciones):
@@ -154,6 +203,21 @@ async def llamar_validador(resultado_ejecutor: dict, fallos_l2_seguidos: int) ->
     return InformeValidacion(**datos)
 
 
+def _limpiar_codigo_para_catalogo(codigo: str) -> str:
+    """Recorta cualquier texto que el Generador haya escrito antes del
+    primer '### KERNEL' (p. ej. narración de intentos de usar herramientas,
+    dudas en voz alta, etc.) antes de persistir en el catálogo.
+
+    El pipeline en sí no necesita esto -- _extraer_bloques() ya localiza
+    las cabeceras estén donde estén -- pero lo que se guarda como evidencia
+    del TFG debe ser código limpio, no la conversación completa del modelo.
+    Si no encuentra '### KERNEL', devuelve el texto tal cual (mejor guardar
+    algo revisable a mano que perder el resultado silenciosamente).
+    """
+    idx = codigo.find("### KERNEL")
+    return codigo[idx:] if idx != -1 else codigo
+
+
 def guardar_en_catalogo(spec: dict, codigo: str, metricas: dict | None) -> str:
     """Persiste un kernel validado con éxito en results/catalogo/<bloque>.json.
 
@@ -165,7 +229,7 @@ def guardar_en_catalogo(spec: dict, codigo: str, metricas: dict | None) -> str:
     registro = {
         "bloque": spec.get("bloque", "sin_nombre"),
         "spec": spec,
-        "codigo_allo": codigo,
+        "codigo_allo": _limpiar_codigo_para_catalogo(codigo),
         "metricas_hls": metricas,
     }
 
