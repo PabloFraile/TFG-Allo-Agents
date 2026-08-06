@@ -89,7 +89,7 @@ GitHub no los incluye, así que hay que clonar con
 `git clone --recursive`.
 
 **Decisión: entorno unificado en un contenedor** en vez de cruzar llamadas
-Windows↔Docker en cada iteración del bucle (menos punt## 4 de agosto de 2026 — Instalación real de Allo (sustituyendo el mock)
+Windows↔Docker en cada iteración del bucle
 
 Se instala el toolchain de Allo desde fuente, sustituyendo la dependencia
 mockeada en `allo_tools.py`. El proceso reveló una cadena de tres/cinco
@@ -631,3 +631,144 @@ Conviene destacar que, una vez aplicado el arreglo de inspect.getsource(), el pi
 ![Figura 5: cascada completa tras el arreglo, éxito en la iteración 1](img/2026-08-05_fig5_l1_real_exito.png)
 
 *Figura 5. Tras escribir el kernel a disco antes de `allo.customize()`: L1 real pasa a la primera y la cascada completa (L2-L4 aún mockeados) persiste el resultado en `results/catalogo/fft_radix2.json`.*
+
+
+## L2 conectado a Allo real: primeros fallos genuinos
+
+**Contexto.** Con L1 ya validado contra Allo real, se ataca el pendiente
+inmediato: conectar `run_l2_functional`. Se añade `golden_models.py`
+(referencia NumPy real de la FFT vía `np.fft.fft`, con generación
+determinista de vectores de test) y se reescribe `run_l2_functional` para
+compilar con `s.build(target="llvm")`, ejecutar, y comparar contra el
+golden model. Se añade `_construir_schedule()` como utilidad compartida con
+el mismo patrón que `_cargar_kernel_desde_disco`: ejecuta el bloque
+`### SCHEDULE` en un namespace con `kernel` y `allo` ya disponibles, y
+exige que quede una variable `s` definida (típicamente
+`s = allo.customize(kernel)` + transformaciones).
+
+**Primer intento real: fallo por contrato de firma no especificado
+(Figura 6).** El Generador devolvió un kernel de estilo
+`def kernel(x_real, x_imag) -> (y_real, y_imag)` (salidas por `return`),
+pero el arnés de L2 invoca el módulo compilado asumiendo salidas por
+parámetro (`mod(x_real, x_imag, y_real, y_imag)`, estilo in-place). El
+propio Validador diagnosticó correctamente el problema a partir del error
+de invocación.
+
+![Iteración: fallo de contrato de firma del kernel](img/2026-08-05_iteracion1_fallo_firma_kernel.png)
+*Figura 6 — Primera ejecución real de L2: el kernel generado devuelve las
+salidas por `return` en vez de escribirlas en parámetros, y el Validador
+señala correctamente la incompatibilidad con el arnés.*
+
+**Segundo intento: fallo real de Allo por API alucinada (Figura 7).** Tras
+una regeneración, el kernel falla en L1 con
+`RuntimeError: Unsupported for loop`, lanzado desde `ir/infer.py` al
+procesar `for k in allo.range(512, name='twgen')`. `allo.range` no existe
+como tal — el prompt del Generador solo autorizaba `allo.grid` y el
+`range()` nativo de Python, pero no lo dejaba lo bastante explícito como
+para impedir que el modelo alucinara una variante con un `name=` que no es
+ninguna de las dos formas permitidas.
+
+![Iteración: traceback de Unsupported for loop por allo.range inventado](img/2026-08-05_iteracion2_error_unsupported_for_loop.png)
+*Figura 7 — El type-inferer de Allo rechaza `allo.range(...)`, una API que
+no existe; el prompt del Generador no prohibía explícitamente inventar
+funciones de `allo.*` fuera de la lista permitida.*
+
+**Corrección del prompt del Generador.** Se reescribe
+`SYSTEM_PROMPT_GENERADOR` con tres cambios:
+1. Firma del kernel obligatoriamente in-place (entradas + salidas de la
+   spec como parámetros, sin `-> (...)`), coherente con el arnés de L2 y
+   con el patrón estándar en HLS (los kernels HLS no devuelven arrays).
+2. Lista blanca explícita de construcciones de bucle (`range()` nativo,
+   `allo.grid()`) con prohibición explícita de inventar cualquier otra
+   función de `allo.*`.
+3. Contrato explícito del bloque `### SCHEDULE`: debe empezar por
+   `s = allo.customize(kernel)` y dejar `s` definida.
+
+**Estado al cierre de esta sesión:** prompt corregido, pendiente de
+confirmar una ejecución real completa sin estos dos fallos.
+
+---
+
+## Aislamiento de herramientas del Generador; primera validación real de L1+L2
+
+**Contexto.** Con el prompt corregido, se relanza `orchestrator.py`.
+
+**Fallo inesperado: el Generador intenta usar Bash (Figura 8).** El kernel
+generado esta vez sí respeta la firma in-place y usa solo `range()`, pero
+el texto de salida del Generador empieza con una petición de aprobación
+para ejecutar un comando Bash/Python y "verificar numéricamente" las
+constantes de twiddle antes de redactar el kernel final. Causa raíz:
+`llamar_generador()` construye `ClaudeAgentOptions` sin restringir
+herramientas, a diferencia de `llamar_ejecutor()` (que sí limita con
+`allowed_tools`). El Generador tenía por tanto acceso completo a Bash y
+demás herramientas por defecto — justo lo que la decisión de arquitectura
+del 27 de julio quería evitar: que el Generador "haga trampa" comprobando
+su propio resultado en vez de dejar que lo valide el Ejecutor de forma
+independiente.
+
+![Iteración con el Generador intentando usar Bash](img/2026-08-06_iteracion1_generador_intenta_bash.png)
+*Figura 8 — El Generador, con acceso completo a herramientas por defecto,
+intenta invocar Bash para verificar constantes antes de escribir el
+kernel. El Validador detecta el texto como posible inyección de prompt y
+no actúa sobre él, pero el bloque de código seguía presente más abajo en
+el texto y `_extraer_bloques()` lo localizó igualmente — la ejecución
+"tuvo éxito" pero el `codigo_allo` persistido en el catálogo quedó
+contaminado con esta conversación.*
+
+Se confirma la contaminación inspeccionando directamente
+`results/catalogo/fft_radix2.json`: el campo `codigo_allo` empieza con el
+texto de la petición de aprobación, y solo más abajo aparecen los bloques
+`### KERNEL` / `### SCHEDULE` reales. También se confirma en este mismo
+JSON que las métricas de L4 (`latencia=42, BRAM=4, DSP=8, LUT=1200`)
+coinciden exactamente con los valores hardcodeados del mock en
+`allo_tools.py` — recordatorio de que **L3 y L4 siguen simulados**;
+solo L1 y L2 son validaciones reales contra Allo en este punto.
+
+**Corrección.** Dos cambios en `orchestrator.py`:
+1. `allowed_tools=[]` en `llamar_generador()` y en `llamar_validador()` —
+   ninguno de los dos necesita ejecutar nada, solo producir texto/JSON.
+2. `_limpiar_codigo_para_catalogo()` — recorta cualquier texto anterior al
+   primer `### KERNEL` antes de persistir en el catálogo, como defensa
+   adicional por si el Generador vuelve a añadir narración fuera de los
+   dos bloques permitidos.
+
+**Reejecución: degradación correcta y primera validación real limpia
+(Figura 9).** El Generador vuelve a intentar usar herramientas, pero esta
+vez la llamada queda bloqueada por permisos (`allowed_tools=[]`) y el
+modelo se degrada con elegancia en vez de quedarse pidiendo aprobación:
+continúa razonando sin herramientas y entrega el kernel completo. El
+Ejecutor, además, se autocorrige dentro de su propia llamada — un primer
+intento de invocar `run_l1_parse_types` con el bloque `### SCHEDULE`
+incompleto falla con un `ValueError` legible, y el propio agente reintenta
+con el bloque completo.
+
+![Iteración tras aislar al Generador de herramientas](img/2026-08-06_iteracion_tras_aislar_generador.png)
+*Figura 9 — Con `allowed_tools=[]`, el intento de usar Bash queda
+bloqueado por permisos y el Generador continúa sin herramientas. El
+Validador señala explícitamente, sin que se le pidiera, que las métricas
+de L4 son del modo mock y no deben tomarse como prueba de equivalencia
+formal real.*
+
+**Verificación del catálogo limpio (Figura 10).** Inspección directa de
+`results/catalogo/fft_radix2.json`: el campo `codigo_allo` empieza ya
+directamente en `### KERNEL`, sin contaminación. El kernel de esta
+ejecución además es un diseño distinto y más sofisticado que el de la
+sesión anterior — Stockham autosort (buffers `A`/`B` alternando por etapa
+en vez de permutación bit-reversal + mariposas in-place) — y sufija los
+nombres de variable por etapa (`w_real_0`, `w_real_1`, ...) en vez de
+reutilizar el mismo nombre en cada bloque secuencial, lo que de paso
+descarta una duda abierta sobre si Allo toleraría la re-anotación de tipos
+del mismo nombre de variable en distintos bloques del mismo scope.
+
+![Catálogo limpio tras la corrección](img/2026-08-06_catalogo_limpio_json.png)
+*Figura 10 — `codigo_allo` persistido sin contaminación, empezando
+directamente en `### KERNEL`.*
+
+**Estado al cierre de esta sesión:** L1 (sintaxis/tipos) y L2 (funcional
+contra golden model) quedan confirmados como validaciones **reales**
+contra el toolchain de Allo, en dos ejecuciones consecutivas. El Generador
+queda aislado de cualquier acceso a herramientas. L3 (equivalencia formal)
+y L4 (síntesis HLS) siguen siendo mocks — cualquier métrica de II,
+latencia, BRAM, DSP o LUT vista hasta ahora no proviene de síntesis real.
+
+---
