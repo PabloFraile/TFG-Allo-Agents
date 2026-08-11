@@ -55,6 +55,36 @@ o inventar cualquier función de allo.* que no esté en esta lista. Si no
 estás seguro de que una función existe en Allo, NO la uses -- resuelve el
 problema con range()/allo.grid() y aritmética básica en su lugar.
 
+PROHIBIDO usar variables globales o tablas precomputadas fuera de la
+función 'kernel' (p. ej. una tabla de permutación bit-reversal declarada a
+nivel de módulo y referenciada dentro del kernel). Allo solo reconoce
+identificadores que sean: (a) parámetros de la función, o (b) variables
+declaradas y calculadas DENTRO del propio cuerpo del kernel. Si necesitas
+una tabla de permutación, de constantes twiddle, etc., calcúlala dentro
+del propio kernel con un bucle (aunque sea menos eficiente en esta primera
+versión), usando solo range()/allo.grid().
+
+PROHIBIDO usar una conversión de tipo como llamada inline dentro de una
+expresión aritmética -- p. ej. NUNCA escribas algo como
+"TWO_PI * float32(k) / 1024.0" o "float32(idx) * x". Esta forma de cast
+inline hace fallar el inferenciador de tipos de Allo con un error interno
+(AttributeError: 'Float' object has no attribute '__name__'), detectado
+repetidamente en pruebas. En su lugar, SIEMPRE asigna primero el valor a
+una variable con anotación de tipo explícita, y usa esa variable en la
+expresión:
+
+    # MAL -- provoca un fallo interno de Allo:
+    theta: float32 = TWO_PI * float32(k) / 1024.0
+
+    # BIEN -- convierte primero a una variable tipada, luego úsala:
+    k_f: float32 = k
+    theta: float32 = TWO_PI * k_f / 1024.0
+
+Esta regla aplica a CUALQUIER conversión de tipo dentro de una expresión,
+no solo a float32. Si necesitas convertir un int32 a float32 (o viceversa)
+para una operación aritmética, hazlo siempre en una asignación separada
+antes de usarlo.
+
 Devuelve tu respuesta en dos bloques de código Python claramente separados,
 con estos encabezados exactos:
 
@@ -98,6 +128,21 @@ Reglas OBLIGATORIAS de cada bloque:
 No expliques nada fuera de esos dos bloques.
 """
 
+SYSTEM_PROMPT_EJECUTOR = """\
+Eres un ejecutor mecánico de la cascada de validación de Allo. Tu ÚNICA
+función es llamar, EN ORDEN, a las herramientas run_l1_parse_types,
+run_l2_functional, run_l3_equivalence y run_l4_hls sobre el código que se
+te proporciona, deteniéndote en el primer nivel que falle, y reportar el
+resultado tal cual lo devuelve cada herramienta.
+
+NO tienes acceso a ninguna otra herramienta (Bash, Read, Write, etc.) y no
+debes intentar usarlas bajo ninguna circunstancia -- ni siquiera para
+investigar la causa de un error. Si una herramienta de la cascada falla,
+tu trabajo termina ahí: reporta el resultado crudo de esa herramienta y
+nada más. No expliques, no investigues, no sugieras arreglos -- eso es
+responsabilidad del agente Validador, no la tuya.
+"""
+
 SYSTEM_PROMPT_VALIDADOR = """\
 Eres un analista de resultados de compilación/verificación de hardware.
 Recibes la salida cruda de un nivel de la cascada de validación (L1-L4) y
@@ -134,20 +179,52 @@ async def llamar_generador(spec: dict, historial_errores: list[str]) -> str:
     # (Bash, edición de archivos, etc.). Solo escribe texto. Darle acceso a
     # herramientas de ejecución le permitiría "hacer trampa" comprobando su
     # propio resultado en vez de dejar que lo valide el Ejecutor de forma
-    # independiente -- ver docs/arquitectura.md, decisión #1. Un caso real
-    # de esto: el Generador intentó usar Bash para "verificar" constantes
-    # de twiddle y se quedó pidiendo aprobación de un comando en mitad de
-    # la generación (5 de agosto).
+    # independiente -- ver docs/arquitectura.md, decisión #1.
+    #
+    # allowed_tools=[] por sí solo NO basta para evitar que el modelo
+    # INTENTE pedir otra herramienta -- solo dice qué se aprueba sin
+    # preguntar. Si el modelo pide algo fuera de esa lista y no hay
+    # permission_mode/can_use_tool que lo resuelva, el SDK se queda
+    # esperando una decisión de permiso que nunca llega en un script no
+    # interactivo, y el proceso se cuelga en silencio. Con
+    # permission_mode="dontAsk", cualquier petición fuera de allowed_tools
+    # se DENIEGA directamente en vez de esperar -- ver docs/bitacora.md,
+    # incidente del Generador con Bash (5 de agosto) y el mismo patrón
+    # repetido en el Ejecutor más abajo.
     opciones = ClaudeAgentOptions(
         system_prompt=SYSTEM_PROMPT_GENERADOR,
         allowed_tools=[],
+        permission_mode="dontAsk",
     )
-    texto_completo = ""
-    async for msg in query(prompt=prompt, options=opciones):
-        if isinstance(msg, AssistantMessage):
-            for bloque in msg.content:
-                if isinstance(bloque, TextBlock):
-                    texto_completo += bloque.text
+
+    async def _una_llamada(prompt_actual: str) -> str:
+        texto = ""
+        async for msg in query(prompt=prompt_actual, options=opciones):
+            if isinstance(msg, AssistantMessage):
+                for bloque in msg.content:
+                    if isinstance(bloque, TextBlock):
+                        texto += bloque.text
+        return texto
+
+    texto_completo = await _una_llamada(prompt)
+
+    # Validación local barata: comprobar que estén las dos cabeceras antes
+    # de gastar una vuelta entera de Ejecutor+Validador en un error ya
+    # conocido y repetido (Iteraciones 1 y 6 de la corrida del 6 de agosto
+    # fallaron solo por esto). Si falta alguna, un único reintento con un
+    # recordatorio explícito -- más barato que descubrirlo tres pasos
+    # después en el Validador.
+    if "### KERNEL" not in texto_completo or "### SCHEDULE" not in texto_completo:
+        recordatorio = (
+            prompt
+            + "\n\nIMPORTANTE: tu respuesta anterior no incluía las dos "
+            "cabeceras obligatorias '### KERNEL' y '### SCHEDULE' (ambas, "
+            "exactamente con ese texto). Vuelve a responder incluyendo "
+            "SIEMPRE ambas cabeceras, cada una seguida de su bloque de "
+            "código correspondiente."
+        )
+        texto_completo = await _una_llamada(recordatorio)
+
     return texto_completo
 
 
@@ -155,6 +232,7 @@ async def llamar_ejecutor(codigo_allo: str, spec: dict) -> dict:
     """Ejecuta la cascada L1->L4 llamando a las herramientas reales (o mock).
     Se detiene en el primer nivel que falle."""
     opciones = ClaudeAgentOptions(
+        system_prompt=SYSTEM_PROMPT_EJECUTOR,
         mcp_servers={"allo-tools": allo_tools_server},
         allowed_tools=[
             "mcp__allo-tools__run_l1_parse_types",
@@ -162,6 +240,15 @@ async def llamar_ejecutor(codigo_allo: str, spec: dict) -> dict:
             "mcp__allo-tools__run_l3_equivalence",
             "mcp__allo-tools__run_l4_hls",
         ],
+        # CRÍTICO: sin esto, si el modelo intenta usar CUALQUIER otra
+        # herramienta (p. ej. Read/Bash para "investigar" un error de
+        # Allo, como probablemente ocurrió en la Iteración 2 del 6 de
+        # agosto con el error de BITREV), el proceso se queda colgado
+        # esperando una aprobación de permiso que nunca llega -- el script
+        # no tiene un terminal interactivo real conectado a ese prompt.
+        # "dontAsk" deniega automáticamente cualquier cosa fuera de
+        # allowed_tools en vez de esperar.
+        permission_mode="dontAsk",
     )
     prompt = (
         "Ejecuta la cascada de validación EN ORDEN (L1, L2, L3, L4) sobre el "
@@ -186,7 +273,11 @@ async def llamar_validador(resultado_ejecutor: dict, fallos_l2_seguidos: int) ->
         f"Resultado crudo del ejecutor:\n{resultado_ejecutor['salida_cruda']}\n\n"
         f"Fallos consecutivos en L2 hasta ahora: {fallos_l2_seguidos}"
     )
-    opciones = ClaudeAgentOptions(system_prompt=SYSTEM_PROMPT_VALIDADOR, allowed_tools=[])
+    opciones = ClaudeAgentOptions(
+        system_prompt=SYSTEM_PROMPT_VALIDADOR,
+        allowed_tools=[],
+        permission_mode="dontAsk",
+    )
 
     texto_json = ""
     async for msg in query(prompt=prompt, options=opciones):
@@ -255,8 +346,36 @@ async def main():
         print("--- Código generado ---")
         print(codigo[:400], "..." if len(codigo) > 400 else "")
 
-        resultado = await llamar_ejecutor(codigo, spec)
-        informe = await llamar_validador(resultado, fallos_l2_seguidos)
+        # IMPORTANTE (6 de agosto de 2026, ver docs/bitacora.md): el propio
+        # SDK tiene un bug conocido (issue #1031 en
+        # anthropics/claude-agent-sdk-python) por el que, ante un fallo a
+        # nivel de API (posiblemente un límite de cuota de la suscripción
+        # Pro, dado el volumen de llamadas automatizadas), lanza una
+        # excepción con el mensaje engañoso "Claude Code returned an error
+        # result: success" -- el mensaje humano real queda descartado
+        # internamente por el SDK, así que no podemos recuperarlo aquí.
+        #
+        # Sin este try/except, CUALQUIER hipo de infraestructura (este bug,
+        # un timeout de red, un rate limit) tumba las MAX_ITERACIONES
+        # enteras de golpe, perdiendo todo el progreso de iteraciones
+        # anteriores. Lo tratamos como un fallo transitorio: se registra,
+        # se cuenta como un "continuar" genérico (sin tocar
+        # fallos_l2_seguidos ni el historial más allá de anotar el
+        # incidente), y se pasa a la siguiente iteración en vez de abortar
+        # el proceso completo.
+        try:
+            resultado = await llamar_ejecutor(codigo, spec)
+            informe = await llamar_validador(resultado, fallos_l2_seguidos)
+        except Exception as e:  # noqa: BLE001 -- fallo de infraestructura, no de Allo
+            print(f"⚠️  Fallo de infraestructura en la Iteración {i} (Ejecutor/Validador): "
+                  f"{type(e).__name__}: {e}")
+            print("    Tratado como transitorio -- se reintenta en la siguiente iteración "
+                  "sin descartar el historial de errores acumulado.")
+            historial_errores.append(
+                f"[Iteración {i}] Fallo de infraestructura al validar (no de Allo): "
+                f"{type(e).__name__}. Se reintenta."
+            )
+            continue
 
         print(f"--- Informe del validador: nivel_fallo={informe.nivel_fallo}, "
               f"decision={informe.decision_escalada} ---")
