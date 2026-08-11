@@ -772,3 +772,495 @@ y L4 (síntesis HLS) siguen siendo mocks — cualquier métrica de II,
 latencia, BRAM, DSP o LUT vista hasta ahora no proviene de síntesis real.
 
 ---
+
+## L3: de mock a nivel real y primera convergencia completa del pipeline
+
+**Resumen.** Esta entrada documenta todo el trabajo sobre L3 (equivalencia
+formal de schedule): desde sustituir el mock hasta la primera vez que el
+pipeline completo (Generador → Ejecutor → Validador, con L1-L4 reales)
+converge a un kernel validado. Por el camino aparecieron varios bugs reales
+-- unos de mi propio código, otros de la librería Allo, y uno del propio
+Claude Agent SDK -- que merece la pena dejar documentados porque cada uno
+cambió algo permanente en `allo_tools.py` u `orchestrator.py`.
+
+---
+
+### Parte 1 — Conectar L3 a Allo real
+
+**Localizar la API real.** El código previo tenía un `TODO` pidiendo no dar
+por buena ninguna firma sin comprobarla. El paper de Allo (PLDI'24, §5.2,
+Fig. 6a) muestra el patrón de uso (`s_orig = allo.customize(kernel)`, `s =
+allo.customize(kernel)` + primitivas, `allo.verify(s, s_orig)`), pero no
+documentaba el contrato del valor de retorno. Se confirmó contra la
+instalación real:
+
+**Figura 1.** `help(allo.verify)` en el entorno instalado: confirma que la
+función devuelve un booleano y que, si la equivalencia falla, Allo mismo
+escribe un diff del código generado para ayudar a diagnosticar.
+
+![help(allo.verify)](img/l3-01-help-allo-verify.png)
+
+`run_l3_equivalence` se implementó construyendo `s_orig =
+allo.customize(kernel_fn)` (sin transformar) y `s =
+_construir_schedule(kernel_fn, schedule_src)` (con las primitivas del
+Generador), llamando a `allo.verify(s, s_orig)`, con el mismo patrón
+defensivo de L1/L2 (`try/except` traduciendo cualquier fallo a `ok=False`).
+
+---
+
+### Parte 2 — Validación en tres niveles (antes de tocar el pipeline real)
+
+Se definió un plan de tres niveles de prueba, cada uno aislando una capa
+distinta, para no depurar los tres problemas a la vez si algo fallaba:
+(1) `allo.verify()` aislado, (2) el wrapper `run_l3_equivalence` aislado,
+(3) `orchestrator.py` completo.
+
+**Nivel 1 — `allo.verify()` aislado (`test_l3_directo.py`).** Dos casos:
+mismo kernel comparado consigo mismo (equivalente) y dos kernels con
+semántica distinta (no equivalente).
+
+**Bug nº 1:** el Caso A falló con `AssertionError` aunque la comparación
+era correcta.
+
+**Figura 2.** `allo.verify()` devuelve `1`, no el booleano `True` de
+Python; la aserción original usaba `is True` (identidad, no valor).
+
+![Bug: assert ok is True falla con 1](img/l3-02-bug-assertion-ok1.png)
+
+Causa: `1 is True` es `False` en Python. El wrapper real ya usaba
+`bool(allo.verify(...))`, así que el bug era solo del script de prueba.
+Corregido a `bool(ok) is True`/`False`.
+
+**Nivel 2 — el wrapper aislado (`test_l3_wrapper.py`).**
+
+**Bug nº 2:**
+
+```
+TypeError: 'SdkMcpTool' object is not callable
+```
+
+**Figura 3.** El decorador `@tool(...)` del SDK envuelve la función en un
+objeto `SdkMcpTool`; la función real vive en `.handler`.
+
+![Bug: SdkMcpTool no es invocable](img/l3-03-bug-sdkmcptool-not-callable.png)
+
+Corregido llamando a `run_l3_equivalence.handler({...})`. Con el fix, dos
+casos (schedule trivial y con `s.unroll("i", 2)`) pasaron:
+
+**Figura 4.** `test_l3_directo.py`: Caso A pasando tras el fix.
+
+![test_l3_directo.py pasando](img/l3-04-directo-passing-1.png)
+
+**Figura 5.** El Caso B (no-equivalente) reveló algo no documentado en
+`help()`: PAST imprime automáticamente un diff en formato unificado del
+código generado al detectar el mismatch.
+
+![Diff de PAST en caso no equivalente](img/l3-05-directo-diff-past.png)
+
+**Figura 6.** Confirmación final de `test_l3_directo.py`: ambos casos
+pasan.
+
+![test_l3_directo.py: éxito final](img/l3-06-directo-caso-b-ok.png)
+
+**Figura 7.** `test_l3_wrapper.py`: primer caso (trivial) pasando.
+
+![Wrapper trivial pasando](img/l3-07-wrapper-trivial-ok.png)
+
+**Figura 8.** Confirmación final: ambos casos (trivial y con `unroll`) dan
+`ok=True`.
+
+![test_l3_wrapper.py: éxito final](img/l3-08-wrapper-passing-final.png)
+
+---
+
+### Parte 3 — Mejora: capturar el diagnóstico de PAST en `salida_cruda`
+
+La Figura 5 reveló que PAST imprime su diagnóstico por **stdout durante la
+llamada**, no en el valor de retorno. Se envolvió `allo.verify()` con
+`contextlib.redirect_stdout()`, adjuntando el log (recortado a ~4000
+caracteres) a `salida_cruda` cuando `ok=False`, para que el Validador
+tuviera contexto real del mismatch en vez de un `ok=False` mudo.
+
+**Validando la mejora (`test_l3_captura_diff.py`).**
+
+**Bug nº 3 (de diseño de la prueba):** el primer intento comparaba un
+kernel "roto" contra **sí mismo**, dando `ok=True` -- resultado correcto,
+no un bug del wrapper.
+
+**Figura 9.** `ok=True` cuando se esperaba `False`: el kernel se comparaba
+consigo mismo.
+
+![Bug de diseño: comparación trivial](img/l3-09-bug-comparacion-trivial.png)
+
+Causa conceptual, importante para la memoria: **L3 protege contra
+transformaciones de *schedule* que rompen semántica, no contra que el
+*kernel* sea "incorrecto"** respecto a una referencia externa (eso es
+responsabilidad exclusiva de L2 contra el golden model).
+
+**Bug nº 4 (técnico):** el segundo intento definía la función "rota"
+dentro del string `SCHEDULE` (ejecutado con `exec()` en memoria):
+
+```
+OSError: could not get source code
+```
+
+**Figura 10.** `allo.customize()` no puede obtener el código fuente de una
+función definida vía `exec()` -- la misma restricción ya documentada para
+`_cargar_kernel_desde_disco`, pasada por alto en el test.
+
+![Bug: OSError could not get source code](img/l3-10-bug-oserror-getsource.png)
+
+Corregido escribiendo el kernel "roto" a un archivo temporal real e
+importándolo con `importlib.util`, igual que hace `_cargar_kernel_desde_disco`.
+
+**Figura 11.** Con el fix: inicio del diagnóstico de PAST capturado.
+
+![Captura del diff, inicio](img/l3-11-captura-diff-inicio.png)
+
+**Figura 12.** Resultado final: `ok=False` con `salida_cruda` conteniendo
+el diff completo generado por PAST.
+
+![Captura del diff, éxito](img/l3-12-captura-diff-exito.png)
+
+Con esto, L1, L2 y L3 quedaron conectados a Allo real y validados en capas.
+Solo faltaba probarlo dentro de `orchestrator.py` -- ahí aparecieron los
+bugs más interesantes de toda la sesión.
+
+---
+
+### Parte 4 — Primera corrida real de `orchestrator.py`: bug de Allo (BITREV)
+
+**Iteración 1** de la primera corrida real reveló un fallo genuino y
+correctamente manejado: L2 detectó que 31 de 1024 índices excedían la
+tolerancia por precisión insuficiente en las constantes de twiddle
+codificadas a mano -- la primera vez que el lazo de corrección reacciona a
+un error *real* del compilador/simulador, no a un mock. El Validador dio
+un diagnóstico correcto con causa raíz identificada.
+
+**Bug nº 5 (real, de Allo, en L1):** en la Iteración 2, un nuevo kernel usaba
+una tabla `BITREV` declarada como variable global fuera de la función
+`kernel`.
+
+**Figura 13.** `RuntimeError: Unsupported global variable 'BITREV'` --
+Allo no soporta referencias a variables globales dentro del kernel.
+
+![BITREV: RuntimeError en Allo](img/l3-13-orchestrator-bitrev-1.png)
+
+**Figura 14.** Continuación del traceback y el panel de diagnóstico
+enriquecido de Allo, con el código fuente resaltado en la línea del error.
+
+![BITREV: panel de diagnóstico completo](img/l3-14-orchestrator-bitrev-2.png)
+
+Fix: se añadió una regla explícita a `SYSTEM_PROMPT_GENERADOR` prohibiendo
+variables globales/tablas precomputadas fuera de `kernel`, exigiendo que
+cualquier tabla se calcule dentro del propio cuerpo de la función.
+
+---
+
+### Parte 5 — El cuelgue silencioso: permisos mal configurados
+
+Tras el fix de BITREV, una corrida se quedó completamente colgada -- sin
+traceback, sin volver al prompt, sin poder escribir en la terminal.
+
+**Diagnóstico (sin captura directa, por inspección de código y
+documentación del SDK):** a diferencia de `llamar_generador()` y
+`llamar_validador()`, `llamar_ejecutor()` no tenía ningún `system_prompt`
+propio -- corría con la persona por defecto de Claude Code, restringida
+solo en *qué herramientas MCP* podía usar sin pedir permiso, pero sin
+prohibirle *intentar* otras (Bash, Read...). Según la documentación del
+SDK: una petición de herramienta fuera de `allowed_tools` sin
+`permission_mode`/`can_use_tool` configurado cae en un paso de aprobación
+que, en un script no interactivo, espera una decisión que nunca llega.
+
+Fix: se añadió `SYSTEM_PROMPT_EJECUTOR` (persona restringida, "ejecutor
+mecánico" que solo llama a las 4 herramientas de la cascada) y
+`permission_mode="dontAsk"` en los tres agentes -- deniega automáticamente
+cualquier petición fuera de `allowed_tools` en vez de esperar.
+
+---
+
+### Parte 6 — `SystemExit` no capturado: el pipeline muere sin traceback
+
+Con el fix de permisos aplicado, una nueva corrida avanzó más lejos (llegó
+a L3) pero la terminal volvió al prompt de golpe, sin ningún traceback de
+Python visible.
+
+**Figura 15.** `PASTFULLPARSER| Line 145: syntax error, unexpected '=',
+expecting ',' or ';'` -- sin traceback de Python alrededor, la terminal
+vuelve directamente al prompt tras esta línea.
+
+![PASTFULLPARSER: crash sin traceback](img/l3-15-pastfullparser-crash.png)
+
+**Bug nº 6 (real, de infraestructura):** se pidió confirmar `echo $?`.
+
+**Figura 16.** Código de salida `1`, sin traceback de Python -- la firma
+clásica de un `SystemExit` no capturado.
+
+![echo $? = 1](img/l3-16-echo-exit-code-1.png)
+
+Diagnóstico: `SystemExit` hereda de `BaseException`, no de `Exception`. El
+`except Exception as e:` de las tres funciones de la cascada lo deja pasar
+de largo, matando todo el proceso. Probablemente PAST, ante un error fatal
+de parseo del código C generado, llama internamente a algo como
+`sys.exit(1)` en vez de lanzar una excepción Python normal -- y ese
+mensaje de PAST se escribe aparentemente a nivel de file descriptor
+nativo (C++), no vía `sys.stdout` de Python, por lo que tampoco quedaba
+capturado por el `contextlib.redirect_stdout` de la Parte 3.
+
+Fix: nueva constante compartida `ERRORES_CAPTURABLES = (Exception,
+SystemExit)`, usada en los `except` de L1, L2 y L3 -- deliberadamente
+**sin** capturar `BaseException` a secas, para no absorber también
+`KeyboardInterrupt` (Ctrl+C debe seguir pudiendo parar el proceso a mano).
+
+---
+
+### Parte 7 — Un bug de Allo y un bug del SDK, en la misma iteración
+
+La siguiente corrida reveló dos problemas distintos y no relacionados en
+la misma iteración.
+
+**Bug nº 7 (real, de la librería Allo):**
+
+**Figura 17.** `TypeError: RuntimeError() takes no keyword arguments` --
+Allo intenta construir un `RuntimeError(...)` con argumentos de palabra
+clave para reportar una operación binaria no soportada, pero su propio
+código de manejo de errores está roto (`RuntimeError()` no acepta kwargs
+en Python estándar), enmascarando el mensaje real que quería dar.
+
+![Bug de Allo: RuntimeError con kwargs](img/l3-17-allo-runtimeerror-kwargs.png)
+
+Este `TypeError` sí hereda de `Exception`, así que `ERRORES_CAPTURABLES`
+lo capturó correctamente -- sin crash. El problema real apareció justo
+después, en la llamada al Validador:
+
+**Bug nº 8 (real, del propio Claude Agent SDK -- issue conocido):**
+
+**Figura 18.** `Exception: Claude Code returned an error result: success`
+-- un crash sin relación con Allo, esta vez en `llamar_validador()`, sin
+ningún `try/except` de `orchestrator.py` alrededor para contenerlo.
+
+![Bug del SDK: error result success](img/l3-18-sdk-error-result-success.png)
+
+Se localizó el issue exacto en el repositorio del SDK
+(`anthropics/claude-agent-sdk-python#1031`): cuando la CLI sale con
+`is_error=true` pero `errors` viene vacío, el SDK cae al campo `subtype`
+como mensaje de fallback -- que en un cierre "limpio" a nivel de protocolo
+vale `"success"`, produciendo el mensaje contradictorio. El mensaje humano
+real vive en el campo `result` del JSON, descartado silenciosamente por el
+SDK. Causa más probable: un límite de la cuota de la suscripción Pro dado
+el volumen de llamadas automatizadas.
+
+Fix: se envolvió `llamar_ejecutor()` + `llamar_validador()` dentro del
+bucle de `main()` en un `try/except` que trata cualquier fallo de
+infraestructura como transitorio -- se registra, se anota en
+`historial_errores`, y se pasa a la siguiente iteración con `continue` en
+vez de abortar las `MAX_ITERACIONES` completas.
+
+---
+
+### Parte 8 — Primera corrida sin ningún crash (pero sin converger)
+
+Con los 8 bugs anteriores corregidos, una corrida completó **las 6
+iteraciones sin colgarse ni crashear una sola vez** -- confirmación de que
+`permission_mode="dontAsk"`, `ERRORES_CAPTURABLES` y el `try/except` del
+bucle principal funcionan. No convergió a un kernel validado, pero reveló
+un noveno bug real y sistemático, más dos hallazgos de proceso.
+
+**Bug nº 9 (real, de Allo, recurrente -- 3 de 6 iteraciones):**
+
+```
+AttributeError: 'Float' object has no attribute '__name__'. 
+Did you mean: '__ne__'?
+```
+
+**Figura 19.** Iteración 2: el error aparece al procesar un cast inline
+`float32(k)` dentro de una expresión aritmética (`TWO_PI * float32(k) /
+1024.0`).
+
+![Bug recurrente: float32() inline, iteración 2](img/l3-19-float-cast-bug-iter2.png)
+
+**Figura 20.** Iteración 3: el mismo patrón exacto de error, con otra
+variable (`TWO_PI * float32(m) / 1024.0`).
+
+![Bug recurrente: float32() inline, iteración 3](img/l3-20-float-cast-bug-iter3.png)
+
+**Figura 21.** Iteración 5: tercera repetición del mismo patrón
+(`TWOPI * float32(idx) / 1024.0`).
+
+![Bug recurrente: float32() inline, iteración 5](img/l3-21-float-cast-bug-iter5.png)
+
+El inferenciador de tipos de Allo (`infer.py`, `visit_Call`) no maneja
+bien un cast de tipo usado como llamada inline dentro de una expresión
+aritmética -- no es casualidad aislada, es un patrón sistemático del
+Generador chocando con una limitación real de Allo, repetido con kernels
+distintos.
+
+**Hallazgo de proceso, señalado por el propio Validador:** su mensaje pedía
+explícitamente *"considera capturar stdout/stderr completos del parser ya
+que la salida actual no aporta detalle diagnóstico"* -- la captura de
+stdout de la Parte 3 solo se había aplicado a L3, no a L1/L2, así que estos
+`SystemExit` llegaban al Validador como un `SystemExit: 1` mudo.
+
+**Figura 22.** Iteración 6 (última del presupuesto): el Generador volvió a
+omitir la cabecera `### SCHEDULE` -- el mismo error de las Iteraciones 1 y
+6 de corridas anteriores, agotando el presupuesto de 6 iteraciones sin
+converger.
+
+![Iteración 6: falta SCHEDULE, presupuesto agotado](img/l3-22-iter6-schedule-header-agotado.png)
+
+**Tres fixes aplicados tras esta corrida:**
+
+1. Nueva regla en `SYSTEM_PROMPT_GENERADOR` prohibiendo casts inline
+   (`float32(k)` dentro de una expresión), con ejemplo MAL/BIEN explícito:
+   asignar primero a una variable tipada, usarla después.
+2. Nuevo helper `_formatear_error()` en `allo_tools.py` + captura de stdout
+   con `contextlib.redirect_stdout` generalizada a L1 (`allo.customize()`)
+   y L2 (`_construir_schedule`/`s.build()`), no solo L3. Cuando el error es
+   `SystemExit`, deja explícito si el log de Python capturó algo o si Allo
+   probablemente escribió a nivel de file descriptor nativo.
+3. `llamar_generador()` ahora valida localmente que la respuesta traiga
+   ambas cabeceras (`### KERNEL` y `### SCHEDULE`) antes de pasarla al
+   Ejecutor -- si falta alguna, un único reintento automático con un
+   recordatorio explícito, más barato que descubrirlo tres pasos después.
+
+---
+
+### Parte 9 — Primera convergencia completa
+
+Con los tres fixes de la Parte 8 aplicados, la siguiente corrida produjo el
+primer kernel que pasa **las cuatro barreras de la cascada** y queda
+persistido en el catálogo. A continuación, una explicación figura a figura
+de qué construye el kernel ganador y qué está verificando PAST en cada
+paso.
+
+**Figura 23.** Cálculo de las constantes de twiddle mediante una serie de
+Taylor manual para coseno y seno, usando variables tipadas intermedias
+(`k_f`, `n_f`, `theta`, `cos_term`, `cos_sum`...) en vez de casts inline --
+exactamente el patrón "BIEN" añadido al prompt en la Parte 8. `PAST`
+empieza a interpretar el "Programa P1" (el schedule *sin* transformar,
+`s_orig`) para la comparación de equivalencia de L3.
+
+![Constantes de twiddle: código generado](img/l3-23-exito-twiddle-1.png)
+
+**Figura 24.** Continuación del cálculo de la serie de Taylor: los
+términos sucesivos de la serie (`v34`...`v70`) acumulándose en `cos_sum` /
+`sin_sum` mediante la recurrencia término a término, hasta escribir el
+resultado final en `tw_real[k]` / `tw_imag[k]`.
+
+![Constantes de twiddle: acumulación de la serie](img/l3-24-exito-twiddle-2.png)
+
+**Figura 25.** La permutación bit-reversal: por cada índice `i` de 0 a
+1023, invierte sus 10 bits (`b` de 0 a 9) mediante desplazamientos (`<<`)
+y acumulación en `rev`, para reordenar las muestras de entrada antes de la
+mariposa iterativa -- el paso clásico de preparación de una FFT
+Cooley-Tukey decimada en tiempo (DIT).
+
+![Bit-reversal permutation](img/l3-25-exito-bitreversal.png)
+
+**Figura 26.** El núcleo de la mariposa Cooley-Tukey iterativa: para cada
+etapa `s` (0 a 9), duplica el tamaño de grupo `m`, recorre los
+`num_groups` grupos y, dentro de cada uno, combina pares de índices
+(`idx1`, `idx2`) separados por `half` usando el factor de twiddle
+correspondiente (`tw_index = j * step`) -- la estructura estándar de una
+FFT radix-2 in-place.
+
+![Mariposa Cooley-Tukey](img/l3-26-exito-mariposa-ct.png)
+
+**Figura 27.** `[PAST] Program P2`: PAST reconstruye el "Programa P2" (el
+schedule real, aunque en este caso trivial -- ver nota más abajo) a partir
+del código C generado, como paso previo a la interpretación simbólica.
+
+![PAST: Program P2](img/l3-27-exito-past-program-p2.png)
+
+**Figura 28.** `[PAST][AI][Equivalence] Interpret program P1...`: PAST
+empieza la interpretación abstracta del Programa P1 (constantes
+sustituidas por marcadores simbólicos `_past_fp_value_...` para el análisis
+de equivalencia).
+
+![PAST: interpretando P1](img/l3-28-exito-past-interpret-p1.png)
+
+**Figura 29.** `[PAST][AI][Equivalence] Interpret program P2...`: mismo
+proceso para el Programa P2. Como el `SCHEDULE` de este kernel es trivial
+(`s = allo.customize(kernel)`, sin primitivas), P1 y P2 son estructuralmente
+casi idénticos -- la equivalencia era, en este caso concreto, la más
+sencilla de verificar posible.
+
+![PAST: interpretando P2](img/l3-29-exito-past-interpret-p2.png)
+
+**Figura 30.** Resultado final: `[PAST][AI][Equivalence] Success: P1 and P2
+are equivalent`, y el informe completo del Validador confirmando que L1,
+L2, L3 y L4 (mock) pasaron, con el kernel guardado en
+`results/catalogo/fft_radix2.json`.
+
+![Éxito: catálogo guardado](img/l3-30-exito-catalogo-guardado.png)
+
+---
+
+### Aviso importante: qué parte de este éxito es real y qué parte es mock
+
+**L1, L2 y L3 son un resultado genuino y verificado contra Allo real** --
+el kernel es una FFT radix-2 Cooley-Tukey completa (permutación
+bit-reversal + mariposa iterativa + twiddle factors por serie de Taylor),
+pasó L2 contra el golden model de NumPy de verdad, y L3 verificó
+formalmente con PAST que el schedule (trivial, en este caso) preserva la
+semántica del kernel.
+
+**L4 sigue siendo el mock.** El `II=1` y la `latencia de 42 ciclos` que
+aparecen en el informe final son los valores hardcodeados de
+`run_l4_hls` (`ii_conseguido = objetivo_ii # MOCK`), no una síntesis HLS
+real contra Vitis. Además, como el `SCHEDULE` de este kernel es trivial
+(sin ninguna primitiva de Allo aplicada), es muy probable que este mismo
+kernel **no** alcance `II=1` en una síntesis real sin añadir pipelining al
+bucle interno de la mariposa -- buen primer caso de prueba para cuando se
+implemente L4 de verdad.
+
+### Estado de la cascada L1–L4 al cierre de esta entrada
+
+| Nivel | Estado |
+|---|---|
+| L1 — sintaxis/tipos | Conectado a Allo real, validado en capas y en pipeline completo |
+| L2 — funcional (golden model) | Conectado a Allo real, validado en capas y en pipeline completo |
+| L3 — equivalencia formal de schedule | Conectado a Allo real, validado en capas y en pipeline completo (9 bugs encontrados y corregidos en el proceso) |
+| L4 — síntesis HLS | Todavía mockeado -- pendiente de implementación real |
+
+### Aprendizajes para la memoria del TFG
+
+- De los 9 bugs encontrados en esta fase, se reparten en tres categorías
+  claramente distintas, útil para la sección de metodología de la memoria:
+  **bugs del propio código del proyecto** (comparación `is True` en vez de
+  `bool()`, llamada directa a `SdkMcpTool` en vez de `.handler`, diseño de
+  test con `exec()` en memoria), **bugs/limitaciones reales de Allo**
+  (variables globales no soportadas, `RuntimeError()` con kwargs roto,
+  `AttributeError` en el inferenciador de tipos con casts inline,
+  `SystemExit` en vez de excepciones Python normales ante errores fatales
+  de PAST), y **un bug del propio Claude Agent SDK** (mensaje de error
+  engañoso ante fallos de API, issue #1031 ya reportado).
+- La metodología de validación en capas (directo → wrapper aislado →
+  pipeline completo) permitió aislar cada fallo a su capa correcta en vez
+  de mezclar diagnósticos -- especialmente valioso cuando el mismo síntoma
+  (`SystemExit`, un crash sin traceback) podía venir de fuentes tan
+  distintas como Allo o el SDK.
+- Distinción de arquitectura importante: L3 no valida que el kernel sea
+  "correcto" -- valida que las transformaciones del *schedule* preserven
+  lo que el kernel *ya* calcula. La corrección del kernel frente a una
+  referencia es responsabilidad exclusiva de L2.
+- `SystemExit` hereda de `BaseException`, no de `Exception`: cualquier
+  `except Exception` en un proyecto que envuelva herramientas externas con
+  manejo de errores propio (como Allo/PAST) debe considerar explícitamente
+  si esa herramienta puede llamar a `sys.exit()` internamente.
+- Un resultado de "éxito" en el informe del Validador no es
+  automáticamente evidencia completa si parte de la cascada sigue
+  mockeada -- important dejarlo explícito en cualquier documento que cite
+  este resultado, para no sobrerrepresentar el alcance real del sistema en
+  este punto del desarrollo.
+
+### Pendiente para la siguiente sesión
+
+- Implementar L4 real (`s.build(target="vitis_hls", mode="csyn")`),
+  reutilizando `ERRORES_CAPTURABLES` y el patrón de captura de stdout ya
+  validado en L1-L3.
+- Confirmar si el kernel de `fft_radix2.json` alcanza `II=1` con una
+  síntesis real, o si hace falta añadir pipelining al bucle interno de la
+  mariposa.
+- Revisar si el bug del SDK (issue #1031) está corregido en versiones más
+  recientes de `claude-agent-sdk-python`.
