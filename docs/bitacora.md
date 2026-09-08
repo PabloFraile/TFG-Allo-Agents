@@ -1264,3 +1264,449 @@ implemente L4 de verdad.
   mariposa.
 - Revisar si el bug del SDK (issue #1031) está corregido en versiones más
   recientes de `claude-agent-sdk-python`.
+
+---
+
+## L4 real: instalación de Vitis HLS y primera síntesis genuina
+
+**Contexto.** Con L1-L3 conectados a Allo real, se aborda la pieza que
+faltaba: L4 (síntesis HLS), que seguía devolviendo los números fijos del
+mock. Antes de escribir código, primera duda a resolver: ¿hace falta
+licencia de pago de Xilinx/AMD para esto?
+
+**Descubrimiento clave: la síntesis C (`csyn`) no requiere licencia.**
+Solo hace falta licencia de Vivado si se quiere llegar a implementación de
+RTL/bitstream — fuera del alcance de este TFG. Esto despeja el camino para
+instalar Vitis HLS sin coste.
+
+**Decisión de versión: Vitis HLS 2023.1, no la última.** El propio paper
+de Allo (PLDI'24) y su artifact de reproducción usan 2022.1 con el flujo
+"classic" (`vitis_hls` + `run.tcl`). Desde 2023.1+ AMD migra hacia el
+nuevo Vitis Unified IDE y el modo classic empieza a deprecarse. Se
+descarta 2022.1 (solo soporte oficial hasta Ubuntu 20.04; el equipo de
+desarrollo corre Ubuntu 24.04.4 LTS) y se elige 2023.1 como compromiso:
+primera versión con soporte oficial de 22.04+ que conserva el flujo
+classic accesible.
+
+**Instalación:** documentada en detalle aparte, en `docs/SETUP_VITIS.md`
+(dependencias `libtinfo5`/`libncurses5`/`libncursesw5` retiradas de los
+repos de Ubuntu 22.04+, resueltas mezclando paquetes de Launchpad y de
+Debian con cuidado de mantener todas en la misma versión exacta;
+instalador gráfico de Xilinx; bache del locale `en_US.UTF-8` no generado
+por defecto en instalaciones en español). Ver ese documento para el
+procedimiento completo si hay que reproducir el entorno en otra máquina.
+
+**Bug real: el binario `vivado_hls` está discontinuado desde Vitis
+2020.2+.** El target legacy `"vivado_hls"` de Allo (el único que soporta
+`mode="csyn"` con métricas completas) genera un Makefile que invoca
+literalmente un binario llamado `vivado_hls` — que ya no existe en
+instalaciones modernas de Vitis (se llama `vitis_hls`, con una estructura
+interna de directorios distinta). Un symlink `vivado_hls -> vitis_hls`
+hace que Allo *detecte* la herramienta (pasa la comprobación
+`is_available()` en `s.build()`), pero al ejecutarse revienta:
+
+```
+ERROR: Could not find 64-bit executable.
+ERROR: .../bin/unwrapped/lnx64.o/vivado_hls does not exist
+```
+
+`vitis_hls`, al ser invocado bajo el nombre `vivado_hls` (dispatch por
+`argv[0]`), intenta localizar un ejecutable "unwrapped" en una subcarpeta
+que existía en la estructura antigua de Vivado HLS pero que ya no existe
+en el árbol de instalación de Vitis 2023.1.
+
+**Solución adoptada:** dejar que `s.build(target="vivado_hls",
+mode="csyn", project=...)` genere el proyecto en disco (esto **no**
+requiere `vivado_hls`/`vitis_hls` todavía -- solo escribe archivos), y
+**no llamar a `mod()`** (que es lo que dispara el Makefile roto). En su
+lugar, se invoca `vitis_hls -f run.tcl` directamente por subprocess,
+saltándose el Makefile de Allo por completo. Confirmado a mano en
+terminal antes de integrarlo: la síntesis corre limpia y genera el informe
+real (`II=1`, latencia 34 ciclos, 0 BRAM/DSP, 106 LUT, 15 FF, Fmax 438.98
+MHz para un kernel de prueba trivial de suma de vectores).
+
+**Hallazgo de estructura del proyecto:** el proyecto real de Vitis queda
+anidado en `<project_dir>/out.prj/` -- Allo usa ese nombre fijo
+internamente sin importar qué se pase en `project=`. El informe de
+síntesis vive en
+`<project_dir>/out.prj/solution1/syn/report/kernel_csynth.xml`.
+
+**`run_l4_hls` real, integrado en `allo_tools.py`:**
+1. `_extraer_bloques` + `_cargar_kernel_desde_disco` + `_construir_schedule`
+   (mismas utilidades ya usadas en L1-L3).
+2. `s.build(target="vivado_hls", mode="csyn", project=<tmp dir>)`.
+3. `subprocess.run(["vitis_hls", "-f", "run.tcl"], cwd=<tmp dir>, timeout=...)`.
+4. Parseo del XML con `xml.etree.ElementTree`, extrayendo:
+   `PipelineII` (mínimo de todos los bucles bajo `SummaryOfLoopLatency`),
+   `Worst-caseLatency`, `EstimatedClockPeriod`, y recursos
+   (`BRAM_18K`/`DSP`/`LUT`/`FF`).
+
+**Primera corrida real completa del pipeline con L4 real** (FFT completa,
+no el kernel de prueba): llegó hasta L4 con métricas genuinas
+(`latencia_peor_caso=72865 ciclos`, `periodo_reloj≈4.669 ns`) — primera
+vez que el lazo se cierra de principio a fin contra hardware real. No
+convergió a la primera (falló el objetivo `II=1`), pero es la prueba de
+concepto real que hacía falta para la memoria.
+
+---
+
+## Robustecer la infraestructura: tres bugs de aislamiento de procesos
+
+Tras la primera corrida con L4 real, aparecieron tres clases de fallo de
+infraestructura completamente distintas al contenido generado por el LLM
+-- merece la pena documentarlas por separado porque cada una es un
+patrón general reutilizable, no un detalle de esta FFT en concreto.
+
+### 1. El issue #1031 del SDK también salta dentro de `llamar_generador()`
+
+El `try/except` que envolvía el bug conocido del SDK (mensaje engañoso
+"Claude Code returned an error result: success" ante fallos de API, ver
+entrada del 6 de agosto) solo cubría `llamar_ejecutor`/`llamar_validador`.
+Al saltar dentro de `llamar_generador()` en una corrida real, tumbó todo
+el proceso sin control. **Fix:** las tres llamadas de la iteración
+(Generador, Ejecutor, Validador) viven ahora dentro del mismo bloque
+`try/except`, tratando un fallo de infraestructura en cualquiera de las
+tres como transitorio.
+
+### 2. Crash nativo (SIGABRT) del verificador PAST
+
+El parser de PAST tiene reglas gramaticales sin implementar
+(`[PAST][Parser] Rule 7 not implemented!`) que, con ciertos kernels, no
+solo producen un árbol incompleto sino que disparan un `assert()` de C++
+real:
+
+```
+core/past.c:2489: set_parent_pref: Assertion `n->rhs' failed.
+```
+
+Esto termina en `abort()` -- `SIGABRT` mata el proceso Python **entero**,
+algo que ningún `except Exception`/`except SystemExit` puede capturar (no
+es una excepción de Python en absoluto). Esto explica retroactivamente
+algunos "cuelgues" inexplicados de sesiones anteriores.
+
+**Solución: aislar `allo.verify()` en un subproceso separado**
+(`l3_subproceso.py`, nuevo archivo). `run_l3_equivalence` en
+`allo_tools.py` ya no llama a `allo.verify()` directamente -- lanza el
+subproceso vía `subprocess.run()` y comprueba el `returncode`: si es
+negativo (terminado por señal, p.ej. `-6` = SIGABRT en la convención de
+Python, o `134` en la convención de exit code de bash), lo reporta como
+fallo L3 controlado sin que el proceso principal muera. Confirmado
+empíricamente: el mismo crash de PAST ocurre dentro del subproceso, pero
+`orchestrator.py` sigue vivo después.
+
+**Efecto colateral encontrado y corregido:** al capturar
+`stdout`/`stderr` del subproceso con `text=True`, el panel de diagnóstico
+nativo de PAST a veces escribe bytes que no son UTF-8 válido, y
+`subprocess.run()` lanzaba `UnicodeDecodeError` directamente. Se cambió a
+capturar en bytes y decodificar con `errors="replace"`.
+
+**Segundo efecto colateral, más sutil:** incluso decodificando bien, el
+panel nativo de PAST podía mezclarse con el `print(json.dumps(...))` de
+Python en el mismo stream, corrompiendo el JSON aunque la verificación
+hubiera tenido éxito de verdad (`[PAST][AI][Equivalence] Success` visible
+en el log crudo, pero `json.loads()` fallando igualmente). **Solución
+definitiva:** `l3_subproceso.py` ya no imprime el resultado por stdout --
+lo escribe a un **archivo dedicado** cuya ruta se pasa como argumento, y
+`run_l3_equivalence` lee ese archivo directamente, completamente aislado
+de cualquier ruido en stdout/stderr.
+
+### 3. Vallas de markdown sueltas en el `.py` escrito a disco
+
+`_extraer_bloques()`/`_limpiar()` solo comprobaba la primera y última
+línea del bloque en busca de fences ` ``` `. Un caso real: el Generador
+dejó una valla suelta en medio del texto, que no se eliminó y rompió la
+sintaxis del `.py` guardado en disco (fallo en L1). **Fix:** se sustituyó
+por una limpieza basada en regex que elimina **cualquier línea** que sea
+puramente una valla de markdown (con o sin especificador de lenguaje),
+esté donde esté en el bloque.
+
+---
+
+## El candado del kernel no era un candado de verdad
+
+**Bug de arquitectura, no de Allo ni del SDK.** Cuando el Validador
+decidía `SOLO_TOCAR_SCHEDULE`, `orchestrator.py` solo le decía al
+Generador **en texto** "el kernel es correcto, no lo toques" -- pero sin
+pasarle el código real, el modelo simplemente escribía un kernel nuevo
+desde cero en cada intento (confirmado comparando los `debug_iteraciones/
+*.txt` de intentos consecutivos: usaban algoritmos distintos -- DFT
+directa O(N²) en uno, mariposas radix-2 en otro). El "candado" no
+restringía nada de verdad.
+
+**Fix:** cuando la decisión es `SOLO_TOCAR_SCHEDULE`, se extrae el bloque
+`### KERNEL` real de esa iteración (con `_extraer_bloques`, la misma
+utilidad de `allo_tools.py`) y se reenvía **literalmente** en el siguiente
+prompt del Generador, con instrucciones explícitas de copiarlo carácter
+por carácter y limitarse a escribir un `### SCHEDULE` nuevo. El estado es
+"pegajoso": si un ajuste de schedule rompe algo en L1/L2 en vez de fallar
+limpiamente en L4, se sigue reutilizando el mismo kernel verificado en vez
+de perderlo.
+
+## Presupuestos de iteración separados: generar kernel vs. ajustar schedule
+
+**Problema observado:** con el candado ya arreglado, cada ajuste de
+schedule seguía consumiendo una de las `MAX_ITERACIONES` totales, igual
+que una regeneración completa de kernel -- pero afinar `pipeline`/
+`partition` sobre un diseño ya verificado en L1-L3 es mucho más barato y
+necesita más intentos que generar un kernel desde cero.
+
+**Fix:** `main()` se reescribió como un `while True` con dos contadores
+independientes:
+- `MAX_ITERACIONES = 6` -- generación completa de kernel+schedule.
+- `MAX_INTENTOS_SCHEDULE = 8` -- ajustes de schedule sobre un kernel ya
+  congelado.
+- `MAX_ITERACIONES_TOTAL = 25` -- tope de seguridad absoluto combinado.
+
+Cada tipo de intento se imprime diferenciado (`=== Iteración de kernel
+N/6 ===` vs. `=== Intento de ajuste de schedule M/8 (kernel congelado)
+===`). Si se agotan los 8 intentos de schedule sin cerrar el II, el propio
+orquestador decide regenerar el kernel desde cero automáticamente. Los
+archivos de depuración pasaron a numerarse por intento global
+(`debug_iteraciones/intento_N.txt`) en vez de por iteración, para no
+perder la traza al mezclar los dos contadores.
+
+**De paso:** se añadió el guardado del código **completo** generado en
+cada intento a ese archivo -- el `print(codigo[:400], ...)` que había
+hasta entonces solo mostraba el bloque `KERNEL` (más largo que el
+`SCHEDULE`), así que el `SCHEDULE` -- justo donde ocurrían la mayoría de
+los bugs recientes -- nunca llegaba a verse ni en pantalla ni en el log.
+
+## Timeout de síntesis L4: una subida progresiva basada en evidencia
+
+300s (valor inicial) resultó insuficiente casi de inmediato con la FFT
+completa (frente al kernel trivial de prueba). Subido a 600s, y más
+adelante a 1200s tras confirmar que 600s seguían sin bastar en el
+hardware disponible (portátil de gama media) para cerrar síntesis con
+`objetivo_ii=1`. Nota para la memoria: cada subida se documentó con el
+razonamiento en el propio comentario de la constante en
+`allo_tools.py`, no solo aquí.
+
+**Aviso importante detectado en paralelo:** una racha de 5 fallos
+idénticos y consecutivos del issue #1031 del SDK, justo después de
+encadenar tres síntesis reales de 20 minutos cada una, resultó ser
+**agotamiento de la cuota de la suscripción Pro**, no un bug -- confirma
+empíricamente la sospecha que ya se había dejado apuntada en la decisión
+#6 de `arquitectura.md` el 28 de julio. Lección práctica: si el issue
+#1031 aparece de forma repetida y consecutiva tras una sesión larga de
+uso intensivo, sospechar primero de la cuota antes de seguir depurando
+código.
+
+---
+
+## Tres bugs reales de la API de Allo, encontrados por ensayo empírico
+
+Igual que con `vivado_hls`/`vitis_hls`, la documentación pública y el
+`help()` de Allo no bastaron por sí solos -- hizo falta reproducir cada
+fallo de forma aislada y leer tracebacks/código fuente de Allo para
+encontrar la causa real. Tres casos, cada uno cronológicamente posterior
+al anterior:
+
+### 1. El formato real de `target` en `s.partition()`
+
+`help(s.partition)` documentaba `target: allo.ir.utils.MockBuffer | str`
+pero no detallaba el formato exacto del string. El Generador escribía
+`s.partition("x_real", ...)`, fallando repetidamente con:
+
+```
+ValueError: not enough values to unpack (expected 2, got 1)
+```
+
+Reproducido en aislado, el traceback completo señaló la causa real dentro
+del propio código de Allo:
+
+```python
+# allo/customize.py:308, dentro de partition()
+func_name, buf_name = target.split(":")
+```
+
+El string de `target` debe tener el formato `"nombre_funcion:nombre_array"`
+-- como el kernel se llama siempre `kernel`, en la práctica esto es
+siempre `"kernel:nombre_array"`. Confirmado con una prueba positiva
+(`s.partition("kernel:x_real", ...)` funciona). Añadido al prompt con un
+ejemplo explícito y la advertencia de que el formato sin prefijo "NUNCA"
+debe usarse.
+
+### 2. Recurrencia secuencial en el cálculo de tablas de twiddle
+
+Con un kernel ya congelado, 5 intentos de schedule consecutivos fallaron
+con `II=null` pese a variar las directivas de pipeline/partition sin
+éxito. El kernel en cuestión calculaba la tabla de twiddles así:
+
+```python
+for tw_j in range(1, half):
+    prev_r: float32 = tw_real[tw_j - 1]   # <- depende del resultado anterior
+    tw_real[tw_j] = prev_r * wr_step - prev_i * wi_step
+```
+
+Una recurrencia real (`tabla[k] = f(tabla[k-1])`) crea una dependencia
+secuencial genuina que **ningún** pragma de `pipeline`/`partition` puede
+romper, porque no es una limitación de recursos sino del propio cálculo.
+Ningún ajuste de schedule iba a arreglar esto -- hacía falta cambiar el
+**kernel**. Solución: calcular cada elemento de la tabla de forma
+independiente a partir de su índice (`angle = ANGULO_BASE * k`, con la
+misma serie de Taylor de siempre), sin encadenar al elemento anterior.
+Añadida como regla explícita y prohibición en el prompt, con ejemplo
+MAL/BIEN.
+
+### 3. Bucles exteriores con bounds dependientes de la variable de bucle
+
+Otro patrón distinto de `II=null` (y una `latencia_peor_caso` con un
+número absurdo, del orden de 10^14 ciclos -- confirmado como un valor
+centinela real de Vitis cuando no puede determinar un trip count, no un
+dato de hardware genuino): un bucle exterior de pocas iteraciones (`for
+stage in range(10)`) cuyo cuerpo define `half`/`num_groups` que acotan
+los bucles internos. Sin desenrollar `stage`, esos límites son variables
+en tiempo de ejecución en el C++ generado, y HLS no puede acotar el trip
+count de los bucles internos.
+
+**Primer intento de solución (fallido de forma intermitente):**
+`s.unroll("stage", factor=0)` en el `SCHEDULE`. Aunque el nombre de la
+variable coincidía exactamente con el del kernel, esto falló en más de
+una generación distinta con un crash real del compilador de Allo:
+
+```
+error: Cannot find Stage S_stage_2
+error: failed to legalize operation 'allo.unroll'
+error: cannot be converted to LLVM IR: missing LLVMTranslationDialectInterface...
+```
+
+Al repetirse con nombres de variable distintos (`stage`, `s`) en
+generaciones completamente independientes, se descarta que sea un
+problema de nombrado -- es una fragilidad real de cómo Allo genera
+identificadores internos de "Stage" en MLIR para `unroll()` sobre este
+tipo de bucle, no depurable sin tocar el código fuente de Allo.
+
+**Solución adoptada, más robusta:** prohibir `s.unroll()` sobre este
+patrón por completo y exigir el desenrollado **manual, en el propio
+código del KERNEL** -- escribir las 10 iteraciones como 10 bloques de
+Python literales y separados, con `half`/`num_groups`/etc. ya como
+constantes fijas en cada bloque (patrón que las corridas de convergencia
+real de mediados de agosto ya usaban con éxito, con `allo.grid(p0, q0)`
+por etapa). Es más código para el Generador, pero no depende en absoluto
+de la API de scheduling de Allo que ha demostrado ser frágil en este
+punto concreto.
+
+### Consecuencia sobre partición: `Complete` en vez de `Cyclic`/`Block` para arrays de stride variable
+
+Con el bucle de etapas desenrollado (manual o vía `unroll`, cuando
+funcionaba), cada copia desenrollada tiene un `half` distinto (1, 2,
+4...512), así que el patrón de acceso a `y_real`/`y_imag` cambia de
+"stride" en cada etapa. Un único `Partition.Cyclic`/`Block` con factor
+fijo no puede garantizar accesos libres de conflicto de banco para 10
+patrones de stride distintos a la vez -- 7 intentos de schedule
+consecutivos oscilaron entre timeout e `II=null` variando ese factor sin
+éxito. **Solución:** usar `Partition.Complete` en los arrays afectados por
+este patrón -- más caro en recursos (registros en vez de BRAM), pero
+elimina la ambigüedad de conflicto de banco sin importar el patrón de
+índices; para arrays de 1024 elementos float32 cabe sobradamente dentro
+de los recursos disponibles de la FPGA objetivo (UltraScale+, según los
+informes de síntesis ya vistos).
+
+---
+
+## Housekeeping de git: artefactos de Vitis colados en el repositorio
+
+**Problema.** Un `git add . && git commit` capturó por descuido el
+proyecto completo de un test aislado de Vitis HLS
+(`src/agentes/test_l4.prj/`, con cientos de archivos binarios internos de
+`.autopilot` -- `.bc`, RTL generado, logs de compilador), varios
+`salida_*.log` de corridas del orquestador, y los scripts de inspección
+puntual (`inspeccionar_*.py`, `reproducir_fallo_partition.py`) que ya
+habían cumplido su función diagnóstica. Nada de esto debería versionarse.
+
+**Solución:**
+```bash
+git rm -r --cached src/agentes/test_l4.prj
+git rm -r --cached src/agentes/debug_iteraciones
+git rm --cached src/agentes/salida_*.log
+```
+más reglas nuevas en `.gitignore`:
+```gitignore
+*.prj/
+vitis_hls.log
+vivado_hls.log
+installLibs.sh_*
+src/agentes/salida_*.log
+src/agentes/debug_iteraciones/
+```
+
+**Nota pendiente:** estos archivos ya quedaron en el *historial* del
+commit en cuestión antes de sacarlos del tracking -- el repositorio pesa
+lo que pesaba ese commit aunque ya no aparezcan en el árbol actual. Para
+un TFG esto normalmente no es grave; se decidió no reescribir el
+historial con `git filter-repo` salvo que el tamaño del repo se vuelva un
+problema real al clonar.
+
+**También:** un `git push` fue rechazado (`! [rejected] main -> main
+(fetch first)`) por haber commits en el remoto no presentes en local --
+resuelto con `git pull` (fusión limpia, sin conflictos) antes de
+reintentar el push. Precaución recomendada para la próxima vez que esto
+pase: `git branch respaldo-antes-de-pull` antes de cualquier `pull` sobre
+un commit local no empujado todavía, como red de seguridad barata.
+
+---
+
+## Estado de la cascada L1–L4 al cierre de esta entrada
+
+| Nivel | Estado |
+|---|---|
+| L1 — sintaxis/tipos | Conectado a Allo real |
+| L2 — funcional (golden model) | Conectado a Allo real |
+| L3 — equivalencia formal de schedule | Conectado a Allo real, aislado en subproceso (`l3_subproceso.py`) tras el crash SIGABRT de PAST |
+| L4 — síntesis HLS | Conectado a Vitis HLS 2023.1 real, vía invocación directa de `vitis_hls -f run.tcl` (bypass del Makefile roto de Allo) |
+
+**El pipeline completo ha llegado a fase de ajuste de schedule con un
+kernel FFT radix-2 real, correcto y verificado (L1-L3), pendiente de
+cerrar `objetivo_ii` en síntesis real.** No hay constancia todavía de una
+convergencia completa L1→L4 **real** (no mockeada) guardada en el
+catálogo -- el único resultado en `results/catalogo/fft_radix2.json` a
+día de hoy sigue siendo el de la Parte 9 (L4 mockeado). Confirmar esto es
+la primera tarea de la siguiente sesión.
+
+## Aprendizajes para la memoria del TFG (ampliación)
+
+- Tres episodios distintos de "la documentación pública/el `help()` no
+  basta, hay que reproducir el fallo y leer el código fuente/traceback
+  real": el binario `vivado_hls` discontinuado, el formato
+  `"funcion:array"` de `target` en `partition()`, y la fragilidad de
+  `s.unroll()` sobre bucles con bounds dependientes de la variable de
+  bucle. Los tres se resolvieron con el mismo método empírico
+  (reproducir en aislado con un script mínimo, leer el traceback completo
+  hasta la línea real de Allo), no adivinando por prueba y error a ciegas.
+- Nueva categoría de fallo de infraestructura, distinta de las
+  excepciones de Python ya documentadas: un **crash nativo real**
+  (`SIGABRT` desde un `assert()` de C++) que mata el proceso entero y no
+  es capturable desde Python de ninguna forma -- la única defensa posible
+  es el aislamiento en subproceso, no un `try/except` más agresivo.
+- Un "candado" de arquitectura expresado solo como instrucción en prosa a
+  un LLM (sin pasarle el artefacto real a preservar) no es un candado --
+  es una sugerencia que el modelo puede ignorar sin darse cuenta. Cualquier
+  restricción de "no cambies X" necesita ir acompañada del propio X
+  literal en el contexto, no solo de la orden de no tocarlo.
+- Presupuestos de iteración monolíticos (un único contador para tareas de
+  coste y granularidad muy distintas -- generar un kernel completo vs.
+  afinar un pragma) desperdician presupuesto de forma sistemática; separar
+  contadores por tipo de tarea es una mejora de arquitectura simple con
+  impacto directo en la tasa de convergencia observada.
+- Evidencia empírica real de agotamiento de cuota de la suscripción Pro
+  bajo uso intensivo automatizado -- relevante para la decisión de
+  arquitectura #6 (`arquitectura.md`, 28 de julio), que ya dejaba la
+  puerta abierta a revisar esto si el volumen de llamadas lo justificaba.
+
+## Pendiente para la siguiente sesión
+
+- Confirmar si el kernel FFT actual (bit-reversal + mariposas + twiddles
+  por índice directo, con las 10 etapas desenrolladas a mano en el
+  kernel) converge de verdad hasta L4 con `Partition.Complete` en los
+  arrays de mariposa y `objetivo_ii=2`.
+- Si converge, actualizar `results/catalogo/fft_radix2.json` con el
+  resultado real (sustituyendo el registro mockeado de la Parte 9) y
+  dejarlo explícito en la bitácora como el primer cierre de lazo L1→L4
+  genuino del proyecto.
+- Revisar si el tamaño del repositorio de git es un problema real tras el
+  incidente de `test_l4.prj/` en el historial; decidir si compensa
+  reescribir el historial con `git filter-repo`.
+- Confirmar con el tutor el estado de las dos preguntas abiertas seguidas
+  arrastrando desde julio: privacidad del repositorio, y si la síntesis
+  HLS real (ya resuelta técnicamente) encaja con el alcance esperado del
+  TFG.
