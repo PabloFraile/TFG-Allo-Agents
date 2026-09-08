@@ -129,23 +129,60 @@ normal (correcto, no debe correr como root).
 /home/pablo/tools/Xilinx
 ```
 
-## 6. Post-instalación (pendiente de confirmar en la próxima sesión)
+## 6. Post-instalación
+
+**Nota sobre la ruta real:** aunque en el paso 5 se pidió instalar bajo
+`/home/pablo/tools/Xilinx`, el instalador terminó colocando Vitis HLS en
+`~/tools/Vitis_HLS/2023.1` (sin la carpeta intermedia `Xilinx/Vitis` que
+cabría esperar por el nombre del producto elegido). Verificar siempre la
+ruta real tras la instalación en vez de asumirla por convención.
 
 ```bash
 # Instalar librerías de sistema que pide el propio instalador al terminar
-sudo bash /home/pablo/tools/Xilinx/Vitis/2023.1/scripts/installLibs.sh
+sudo bash ~/tools/Vitis_HLS/2023.1/scripts/installLibs.sh
 
 # Cargar el entorno
-source /home/pablo/tools/Xilinx/Vitis/2023.1/settings64.sh
+source ~/tools/Vitis_HLS/2023.1/settings64.sh
 
 # Verificar
 which vitis_hls
+vitis_hls -version
+```
+
+### Bache: locale `en_US.UTF-8` no generado
+
+Primer arranque de `vitis_hls` tras el `source` falló con:
+
+```
+aviso: setlocale: LC_ALL: no se puede cambiar el local (en_US.UTF-8)
+terminate called after throwing an instance of 'std::runtime_error'
+  what():  locale::facet::_S_create_c_locale name not valid
+```
+
+Vitis HLS asume que el locale `en_US.UTF-8` está generado en el sistema, algo
+que Ubuntu no trae por defecto en instalaciones en español. Solución:
+
+```bash
+sudo locale-gen en_US.UTF-8
+sudo update-locale LANG=en_US.UTF-8
+```
+
+(reabrir la terminal, o `exec bash`, para que el nuevo locale se cargue).
+
+### Dejarlo persistente
+
+```bash
+echo 'source ~/tools/Vitis_HLS/2023.1/settings64.sh' >> ~/.bashrc
+```
+
+## Estado: ✅ Vitis HLS 2023.1 instalado y verificado
+
+```
+Vitis HLS - High-Level Synthesis from C, C++ and OpenCL v2023.1 (64-bit)
 ```
 
 ## Pendiente
 
-- Confirmar que `which vitis_hls` resuelve correctamente tras el `source`.
-- Añadir el `source` al `~/.bashrc` para no repetirlo cada sesión.
 - Sustituir el mock de `run_l4_hls` en `allo_tools.py` por la llamada real
   (`allo.customize(...).build(target="vivado_hls", mode="csyn", project=...)`)
   y confirmar la ruta exacta del informe `*_csynth.xml` generado por esta
