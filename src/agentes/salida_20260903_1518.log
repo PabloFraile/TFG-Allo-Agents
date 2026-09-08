@@ -1,0 +1,57 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    for i in range(1024):
+        rev: int32 = 0
+        idx: int32 = i
+        for b in range(10):
+            half_idx: int32 = idx / 2
+            bit: int32 = idx - ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+L1 (parse/tipos) OK. L2 (verificación funcional) falló: 555 de 1024 índices discrepantes contra la referencia 'fft_radix2_numpy_reference' (máx|diff_real|=0.09971, máx|diff_imag|=0.09169, tolerancia=0.001). Primeros índices afectados: [7,13,14,15,23,26,28,29,30,31], patrón sugiere error en una etapa de mariposa (butterfly) o en la tabla de twiddle factors, no un simple redondeo (el error supera ~100x la tolerancia). Revisar la implementación del kernel antes de reintentar; no se ejecutaron L3 ni L4.
+
+=== Iteración de kernel 2/6 (intento global #2) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # Step 1: bit-reversal permutation (each output index computed
+    # independently from its own index i, no recurrence across i)
+    for i in range(1024):
+        bi: int32 = 0
+        xi: int32 = i
+        ...
+    (código completo guardado en debug_iteraciones/intento_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (sintaxis, equivalencia funcional contra golden model y equivalencia formal de schedule OK). La síntesis HLS falla en L4: no se alcanzó el II objetivo (objetivo_ii=2, II reportado=null, es decir, el pipelining no convergió). El kernel es funcionalmente correcto; el problema es de scheduling/pipelining en la síntesis. Ajustar directivas de pipeline/unroll o resolver dependencias que impiden alcanzar II=2 (revisar dependencias de memoria/recurrencias en el bucle mariposa de la FFT), sin necesidad de regenerar el kernel.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 1/8 (kernel congelado, intento global #3) ===
+--- Código generado ---
+### KERNEL
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # Step 1: bit-reversal permutation (each output index computed
+    # independently from its own index i, no recurrence across i)
+    for i in range(1024):
+        bi: int32 = 0
+        xi: int32 = i
+        for b in  ...
+    (código completo guardado en debug_iteraciones/intento_3.txt)

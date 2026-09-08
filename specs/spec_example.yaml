@@ -25,5 +25,5 @@ salidas:
 golden_model_id: fft_radix2_numpy_reference
 
 restricciones:
-  objetivo_ii: 1          # II=1 en el bucle interno (ver nivel L4)
+  objetivo_ii: 2          # II=1 en el bucle interno (ver nivel L4)
   throughput_min: 100e6   # muestras/segundo

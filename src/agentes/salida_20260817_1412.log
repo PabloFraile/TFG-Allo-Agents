@@ -1,0 +1,128 @@
+
+=== Iteración 1/6 ===
+--- Código generado ---
+No necesito ejecutar nada, puedo razonar directamente sobre la construcción del kernel. Aquí está la solución:
+
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    for i in range(512):
+        i_f: float32 = i
+      ...
+    (código completo guardado en debug_iteraciones/iteracion_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El kernel generado no coincide funcionalmente con la referencia 'fft_radix2_numpy_reference': los 1024 índices de salida difieren (max|diff_real|=113.9, max|diff_imag|=99.75 frente a tol=0.001). Esto indica un error estructural en el kernel (p. ej. bit-reversal, factores twiddle, orden de mariposas o normalización), no un problema de precisión menor. Revisar la implementación del radix-2 antes de reintentar L2; no tiene sentido avanzar a L3/L4 hasta corregirlo. Aún no hay fallos consecutivos registrados en L2, así que se recomienda un ajuste dirigido en lugar de regenerar desde cero.
+
+=== Iteración 2/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    buf_real: float32[1024] = 0.0
+    buf_imag: float32[1024] = 0.0
+
+    # --- Bit-reversal permutation (10 bits, since N=1024) ---
+    for i in range(1024):
+        t ...
+    (código completo guardado en debug_iteraciones/iteracion_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El kernel falla la validación funcional en L2: 32 de 1024 índices discrepan frente a la referencia numpy 'fft_radix2_numpy_reference' (max|diff_real|=0.004503, max|diff_imag|=0.004113, superando la tolerancia de 0.001). Los índices discrepantes (63, 127, 249, 251, 252, 255, 319, 382, 503, 504, ...) sugieren un patrón periódico/estructural (posibles errores de acumulación en etapas de mariposa o bit-reversal cerca de límites de bloque), no ruido numérico aleatorio. Revisar la implementación de la etapa de butterfly/twiddle factors antes de reintentar; con 1 fallo consecutivo en L2 aún no se recomienda regenerar el kernel completo, pero si vuelve a fallar en el siguiente intento se debe considerar regeneración. No se ejecutaron L3 ni L4.
+
+=== Iteración 3/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, float64, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # ---- Stage 0: bit-reversal permutation (N=1024, log2(N)=10) ----
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = idx  ...
+    (código completo guardado en debug_iteraciones/iteracion_3.txt)
+[PAST] Verify equivalence of programs by abstract interpretation.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+[PAST][Parser] Rule 7 not implemented! Tree will be incomplete/inconsistent.
+python3: core/past.c:2489: set_parent_pref: Assertion `n->rhs' failed.
+Stack dump without symbol names (ensure you have llvm-symbolizer in your PATH or set the environment var `LLVM_SYMBOLIZER_PATH` to point to it):
+0  libAlloMLIRAggregateCAPI.so.22.0git      0x00007d001c87b6e2 llvm::sys::PrintStackTrace(llvm::raw_ostream&, int) + 66
+1  libAlloMLIRAggregateCAPI.so.22.0git      0x00007d001c8783df llvm::sys::RunSignalHandlers() + 47
+2  libAlloMLIRAggregateCAPI.so.22.0git      0x00007d001c87852c
+3  libc.so.6                                0x00007d002ba45330
+4  libc.so.6                                0x00007d002ba9ec0c pthread_kill + 284
+5  libc.so.6                                0x00007d002ba4527e gsignal + 30
+6  libc.so.6                                0x00007d002ba288ff abort + 223
+7  libc.so.6                                0x00007d002ba2881b
+8  libc.so.6                                0x00007d002ba3b517
+9  libpast.so.0                             0x00007d001643a326
+10 libpast.so.0                             0x00007d001643e54c past_visitor + 108
+11 libpast.so.0                             0x00007d001643e525 past_visitor + 69
+12 libpast.so.0                             0x00007d001643e525 past_visitor + 69
+13 libpast.so.0                             0x00007d001643e525 past_visitor + 69
+14 libpast.so.0                             0x00007d001643e525 past_visitor + 69
+15 libpast.so.0                             0x00007d001643e525 past_visitor + 69
+16 libpast.so.0                             0x00007d001643e525 past_visitor + 69
+17 libpast.so.0                             0x00007d001643e525 past_visitor + 69
+18 libpast.so.0                             0x00007d001643e525 past_visitor + 69
+19 libpast.so.0                             0x00007d001643e525 past_visitor + 69
+20 libpast.so.0                             0x00007d001643e525 past_visitor + 69
+21 libpast.so.0                             0x00007d001643e525 past_visitor + 69
+22 libpast.so.0                             0x00007d0016432eb2 past_full_parser + 178
+23 past.cpython-312-x86_64-linux-gnu.so     0x00007d001647aef9 verify(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int) + 201
+24 past.cpython-312-x86_64-linux-gnu.so     0x00007d001648ef17
+25 past.cpython-312-x86_64-linux-gnu.so     0x00007d001648b975
+26 python3                                  0x0000000000581c5f
+27 python3                                  0x0000000000548f35 _PyObject_MakeTpCall + 117
+28 python3                                  0x00000000005d6f09 _PyEval_EvalFrameDefault + 2697
+29 python3                                  0x000000000066c1c9
+30 _asyncio.cpython-312-x86_64-linux-gnu.so 0x00007d002bf16d44
+31 _asyncio.cpython-312-x86_64-linux-gnu.so 0x00007d002bf16b5b
+32 python3                                  0x0000000000548f35 _PyObject_MakeTpCall + 117
+33 python3                                  0x00000000006a4abc
+34 python3                                  0x0000000000581add
+35 python3                                  0x00000000005db13e _PyEval_EvalFrameDefault + 19646
+36 python3                                  0x00000000005d544b PyEval_EvalCode + 347
+37 python3                                  0x00000000006085a2
+38 python3                                  0x00000000006b5033
+39 python3                                  0x00000000006b4d9a _PyRun_SimpleFileObject + 426
+40 python3                                  0x00000000006b4bcf _PyRun_AnyFileObject + 79
+41 python3                                  0x00000000006bcc35 Py_RunMain + 949
+42 python3                                  0x00000000006bc71d Py_BytesMain + 45
+43 libc.so.6                                0x00007d002ba2a1ca
+44 libc.so.6                                0x00007d002ba2a28b __libc_start_main + 139
+45 python3                                  0x0000000000657bc5 _start + 37
+PLEASE submit a bug report to https://github.com/llvm/llvm-project/issues/ and include the crash backtrace and instructions to reproduce the bug.

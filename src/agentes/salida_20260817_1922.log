@@ -1,0 +1,91 @@
+
+=== Iteración 1/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    buf_real: float32[1024] = 0.0
+    buf_imag: float32[1024] = 0.0
+
+    # Bit-reversal permutation (N = 1024, log2(N) = 10)
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for  ...
+    (código completo guardado en debug_iteraciones/iteracion_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L3_EQUIVALENCIA, decision=DecisionEscalada.CONTINUAR ---
+El verificador L3 de equivalencia formal reporta internamente 'Success: P1 and P2 are equivalent', pero el subproceso no emitió un JSON válido en stdout (probablemente por los caracteres corruptos/no-UTF8 en los nombres de programa 'ᅲᅲRᅲᅲ' o por salida mezclada del código C generado antes del bloque JSON). Esto es un fallo de la herramienta de wrapping/parsing, no una inequivalencia real detectada por el motor de verificación. Acción recomendada: revisar el script `run_l3_equivalence` para asegurar que capture solo el bloque JSON final (aislar stdout del comparador del código C volcado), sanear los nombres de programa antes de invocar el verificador, y relanzar L3 sin tocar el kernel ni el schedule.
+
+=== Iteración 2/6 ===
+--- Código generado ---
+This kernel and schedule already pasaron L1 y L2 (equivalencia funcional OK contra `fft_radix2_numpy_reference`) y en L3 el motor de verificación reportó internamente **'Success: P1 and P2 are equivalent'** — el único fallo fue del wrapper de parsing del subproceso (JSON no capturado limpio, nombres de programa corruptos). Tal como indica la acción recomendada, no toco el kernel ni el schedule: lo ...
+    (código completo guardado en debug_iteraciones/iteracion_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L1_SINTAXIS, decision=DecisionEscalada.CONTINUAR ---
+El Generador no produjo la cabecera '### SCHEDULE' requerida en su salida, por lo que el parser de L1 no pudo extraer los bloques de kernel y schedule (ValueError en _extraer_bloques, allo_tools.py:163). Revisa el prompt/plantilla del Generador para asegurar que siempre emita ambas cabeceras ('### KERNEL' y '### SCHEDULE') con el formato esperado antes de reintentar la cascada. Nota adicional: el panel de diagnóstico de Allo no se capturó en sys.stdout; si necesitas verlo, revisa la consola nativa donde corre orchestrator.py.
+
+=== Iteración 3/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # --- Bit-reversal permutation (sin modulo/division: se calcula
+    # idx y rev como suma de productos de los bits, via un grid de 10
+    # dimensiones binarias) ---
+    for b0, b1, b2, b3, b4, b5, b6, b7,  ...
+    (código completo guardado en debug_iteraciones/iteracion_3.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L3_EQUIVALENCIA, decision=DecisionEscalada.CONTINUAR ---
+L1 (parse/tipos) y L2 (funcional vs golden model) pasaron OK. La cascada marca L3 (equivalencia formal del schedule) como fallo, pero es un fallo de *tooling*, no de equivalencia real: el subproceso L3 terminó con código de salida 0 y el log crudo muestra explícitamente '[PAST][AI][Equivalence] Success: P1 and P2 are equivalent' y 'YES => Programs ... are equivalent'. El problema es que el wrapper de L3 no serializó ese resultado como JSON válido (el stdout mezcla trazas de HLS/IR del kernel con el log del verificador de equivalencia, más bytes corruptos al final de la línea 'YES =>'). Acción recomendada: no tocar el kernel ni el schedule; revisar/arreglar el parser de salida del harness L3 para que capture el JSON estructurado del verificador de equivalencia en lugar de stdout mezclado (posible problema de encoding/buffer truncado). Repetir la ejecución de L3 una vez corregido el parseo antes de decidir si hay un fallo real.
+
+=== Iteración 4/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # ---- Stage 0: bit-reversal permutation into the output buffers ----
+    for i in range(1024):
+        cur: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            rev = rev * 2
+          ...
+    (código completo guardado en debug_iteraciones/iteracion_4.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L3_EQUIVALENCIA, decision=DecisionEscalada.CONTINUAR ---
+L1 y L2 pasaron correctamente. L3 (equivalencia formal) se marca como fallo no por una divergencia real detectada, sino porque el subproceso terminó con código 0 sin emitir JSON válido en stdout — el parser de la cascada no pudo interpretar la salida. Revisando el log crudo, el verificador de equivalencia formal SÍ completó su chequeo y reportó '[PAST][AI][Equivalence] Success: P1 and P2 are equivalentes', pero el mensaje final está corrupto (caracteres mojibake/binarios: 'Programs P�0��� and p�0���'), lo que probablemente causó el fallo de parseo JSON aguas abajo. Acción recomendada: no es un fallo de equivalencia del kernel (probable positivo), sino un problema de encoding/serialización en el wrapper que envuelve la herramienta de equivalencia formal (revisar codificación de caracteres, posible corrupción de buffer o mezcla de stdout binario con texto). Corregir el wrapper para emitir JSON limpio en UTF-8 y re-ejecutar L3 antes de decidir si se continúa a L4.
+
+=== Iteración 5/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # ---- twiddle-factor rotation constants (compile-time literals) ----
+    # C = cos(2*pi/1024), S = sin(-2*pi/1024)  (forward DFT convention)
+    C: float32 = 0.9999811752826011
+    S: float32 = -0.0061358 ...
+    (código completo guardado en debug_iteraciones/iteracion_5.txt)
+⚠️  Fallo de infraestructura en la Iteración 5: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta en la siguiente iteración sin descartar el historial de errores acumulado.
+
+=== Iteración 6/6 ===
+⚠️  Fallo de infraestructura en la Iteración 6: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta en la siguiente iteración sin descartar el historial de errores acumulado.
+
+⚠️ Se agotó el presupuesto de 6 iteraciones sin converger.

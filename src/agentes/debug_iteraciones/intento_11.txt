@@ -1,0 +1,102 @@
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    revidx: int32[1024]
+    for i in range(1024):
+        tmp: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = tmp % 2
+            rev = rev * 2 + bit
+            tmp = tmp // 2
+        revidx[i] = rev
+
+    w_real: float32[512]
+    w_imag: float32[512]
+    for i in range(512):
+        idx: float32 = i
+        angle: float32 = -2.0 * PI * idx / 1024.0
+        x2: float32 = angle * angle
+        x3: float32 = x2 * angle
+        x4: float32 = x2 * x2
+        x5: float32 = x4 * angle
+        x6: float32 = x4 * x2
+        x7: float32 = x6 * angle
+        x8: float32 = x4 * x4
+        x9: float32 = x8 * angle
+        x10: float32 = x8 * x2
+        x11: float32 = x10 * angle
+        x12: float32 = x8 * x4
+        x13: float32 = x12 * angle
+        x14: float32 = x8 * x6
+        x15: float32 = x14 * angle
+        cos_v: float32 = 1.0 - x2 / 2.0 + x4 / 24.0 - x6 / 720.0 + x8 / 40320.0 - x10 / 3628800.0 + x12 / 479001600.0 - x14 / 87178291200.0
+        sin_v: float32 = angle - x3 / 6.0 + x5 / 120.0 - x7 / 5040.0 + x9 / 362880.0 - x11 / 39916800.0 + x13 / 6227020800.0 - x15 / 1307674368000.0
+        w_real[i] = cos_v
+        w_imag[i] = sin_v
+
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+    for i in range(1024):
+        src: int32 = revidx[i]
+        buf_real[i] = x_real[src]
+        buf_imag[i] = x_imag[src]
+
+    half: int32 = 1
+    stride: int32 = 512
+    for stage in range(10):
+        m: int32 = half * 2
+        for j in range(512):
+            block: int32 = j // half
+            k: int32 = j % half
+            start: int32 = block * m
+            i1: int32 = start + k
+            i2: int32 = i1 + half
+            tw_idx: int32 = k * stride
+            wr: float32 = w_real[tw_idx]
+            wi: float32 = w_imag[tw_idx]
+            br1: float32 = buf_real[i1]
+            bi1: float32 = buf_imag[i1]
+            br2: float32 = buf_real[i2]
+            bi2: float32 = buf_imag[i2]
+            tr: float32 = br2 * wr - bi2 * wi
+            ti: float32 = br2 * wi + bi2 * wr
+            buf_real[i1] = br1 + tr
+            buf_imag[i1] = bi1 + ti
+            buf_real[i2] = br1 - tr
+            buf_imag[i2] = bi1 - ti
+        half = half * 2
+        stride = stride // 2
+
+    for i in range(1024):
+        y_real[i] = buf_real[i]
+        y_imag[i] = buf_imag[i]
+```
+
+### SCHEDULE
+```python
+from allo.customize import Partition
+
+s = allo.customize(kernel)
+
+# El bucle "i" aparece en varias bandas independientes del kernel
+# (revidx, w_real/w_imag, buf_real/buf_imag, y_real/y_imag), por lo que
+# referenciarlo por ese nombre es ambiguo para Allo ("Find multiple bands
+# containing loop i"). La banda crítica para el objetivo_ii es la del
+# bucle "j" dentro de "stage" (la mariposa FFT en sí), y ese nombre de
+# bucle es único en todo el kernel, así que se referencia directamente.
+
+s.partition("kernel:buf_real", partition_type=Partition.Complete)
+s.partition("kernel:buf_imag", partition_type=Partition.Complete)
+s.partition("kernel:w_real", partition_type=Partition.Complete)
+s.partition("kernel:w_imag", partition_type=Partition.Complete)
+
+s.pipeline("j", initiation_interval=1)
+```

@@ -1,0 +1,87 @@
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    N: int32 = 1024
+    LOGN: int32 = 10
+    PI: float32 = 3.14159265358979323846
+
+    # --- Bit-reversal permutation (each i computed independently) ---
+    for i in range(N):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(LOGN):
+            half_idx: int32 = idx / 2
+            bit: int32 = idx - half_idx * 2
+            idx = half_idx
+            rev = rev * 2 + bit
+        y_real[i] = x_real[rev]
+        y_imag[i] = x_imag[rev]
+
+    # --- Iterative Cooley-Tukey butterfly stages ---
+    m: int32 = 1
+    for s in range(LOGN):
+        m = m * 2
+        half: int32 = m / 2
+        num_groups: int32 = N / m
+        for g in range(num_groups):
+            base: int32 = g * m
+            for j in range(half):
+                j_f: float32 = j
+                m_f: float32 = m
+                angle: float32 = -2.0 * PI * j_f / m_f
+
+                x2: float32 = angle * angle
+                x3: float32 = x2 * angle
+                x4: float32 = x2 * x2
+                x5: float32 = x4 * angle
+                x6: float32 = x4 * x2
+                x7: float32 = x6 * angle
+                x8: float32 = x4 * x4
+                x9: float32 = x8 * angle
+
+                c: float32 = 1.0 - x2 / 2.0 + x4 / 24.0 - x6 / 720.0 + x8 / 40320.0
+                si: float32 = angle - x3 / 6.0 + x5 / 120.0 - x7 / 5040.0 + x9 / 362880.0
+
+                idx1: int32 = base + j
+                idx2: int32 = base + j + half
+
+                tr: float32 = y_real[idx2] * c - y_imag[idx2] * si
+                ti: float32 = y_real[idx2] * si + y_imag[idx2] * c
+
+                ur: float32 = y_real[idx1]
+                ui: float32 = y_imag[idx1]
+
+                y_real[idx1] = ur + tr
+                y_imag[idx1] = ui + ti
+                y_real[idx2] = ur - tr
+                y_imag[idx2] = ui - ti
+```
+
+### SCHEDULE
+```python
+from allo.customize import Partition
+
+s = allo.customize(kernel)
+
+# Desenrollar completamente el bucle exterior de etapas (pocas iteraciones,
+# 10, con 'half'/'num_groups' dependientes de 's') para que se conviertan
+# en constantes de compilación dentro de cada copia desenrollada.
+s.unroll("s", factor=0)
+
+# Particionado completo: patrón de acceso con stride variable entre etapas
+# (idx1 = base+j, idx2 = base+j+half, con 'half' distinto en cada copia)
+# y acceso indexado por 'rev' (arbitrario) en la permutación bit-reversal.
+s.partition("kernel:x_real", partition_type=Partition.Complete)
+s.partition("kernel:x_imag", partition_type=Partition.Complete)
+s.partition("kernel:y_real", partition_type=Partition.Complete)
+s.partition("kernel:y_imag", partition_type=Partition.Complete)
+
+# Pipeline de los bucles críticos para alcanzar el II objetivo.
+s.pipeline("i", initiation_interval=2)
+s.pipeline("j", initiation_interval=2)
+```

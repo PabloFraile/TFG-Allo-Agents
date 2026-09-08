@@ -1,0 +1,78 @@
+==============================================================
+Vitis HLS - High-Level Synthesis from C, C++ and OpenCL v2023.1 (64-bit)
+Tool Version Limit: 2023.05
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+
+==============================================================
+INFO: [HLS 200-1505] Using flow_target 'vivado'
+INFO: [HLS 200-1510] Running: set_top kernel 
+INFO: [HLS 200-1510] Running: add_files kernel.cpp 
+INFO: [HLS 200-10] Adding design file 'kernel.cpp' to the project
+INFO: [HLS 200-1510] Running: add_files -tb host.cpp -cflags -std=gnu++0x 
+WARNING: [HLS 200-40] Cannot find test bench file 'host.cpp'
+INFO: [HLS 200-1510] Running: open_solution solution1 
+==============================================================
+Vitis HLS - High-Level Synthesis from C, C++ and OpenCL v2023.1 (64-bit)
+Tool Version Limit: 2023.05
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+
+==============================================================
+INFO: [HLS 200-1505] Using flow_target 'vivado'
+INFO: [HLS 200-1510] Running: set_part xcu280-fsvh2892-2L-e 
+INFO: [HLS 200-1611] Setting target device to 'xcu280-fsvh2892-2L-e'
+INFO: [HLS 200-1510] Running: create_clock -period 3.33 
+INFO: [SYN 201-201] Setting up clock 'default' with a period of 3.33ns.
+INFO: [HLS 200-1510] Running: csynth_design 
+WARNING: [HLS 200-1998] cannot find relative file path '../../host.cpp' in directory(s): /home/pablo/TFG/src/agentes/test_l4.prj/out.prj/solution /home/pablo/TFG/src/agentes/test_l4.prj
+INFO: [HLS 200-111] Finished File checks and directory preparation: CPU user time: 0.08 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.1 seconds; current allocated memory: 188.484 MB.
+INFO: [HLS 200-10] Analyzing design file 'kernel.cpp' ... 
+INFO: [HLS 200-111] Finished Source Code Analysis and Preprocessing: CPU user time: 21.98 seconds. CPU system time: 1.67 seconds. Elapsed time: 30.15 seconds; current allocated memory: 194.598 MB.
+INFO: [HLS 200-777] Using interface defaults for 'Vivado' flow target.
+INFO: [HLS 200-1995] There were 205 instructions in the design after the 'Compile/Link' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/src/agentes/test_l4.prj/out.prj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 25 instructions in the design after the 'Unroll/Inline' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/src/agentes/test_l4.prj/out.prj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 20 instructions in the design after the 'Performance/Pipeline' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/src/agentes/test_l4.prj/out.prj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 32 instructions in the design after the 'Optimizations' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/src/agentes/test_l4.prj/out.prj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-111] Finished Compiling Optimization and Transform: CPU user time: 2.93 seconds. CPU system time: 0.55 seconds. Elapsed time: 10.25 seconds; current allocated memory: 194.953 MB.
+INFO: [HLS 200-111] Finished Checking Pragmas: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.01 seconds; current allocated memory: 194.953 MB.
+INFO: [HLS 200-10] Starting code transformations ...
+INFO: [HLS 200-111] Finished Standard Transforms: CPU user time: 0.02 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.33 seconds; current allocated memory: 195.098 MB.
+INFO: [HLS 200-10] Checking synthesizability ...
+INFO: [HLS 200-111] Finished Checking Synthesizability: CPU user time: 0.02 seconds. CPU system time: 0 seconds. Elapsed time: 0.02 seconds; current allocated memory: 195.160 MB.
+INFO: [XFORM 203-510] Pipelining loop 'l_S_i_0_i' (kernel.cpp:23) in function 'kernel' automatically.
+INFO: [HLS 200-111] Finished Loop, function and other optimizations: CPU user time: 0.04 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.05 seconds; current allocated memory: 215.930 MB.
+INFO: [HLS 200-111] Finished Architecture Synthesis: CPU user time: 0.03 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.04 seconds; current allocated memory: 206.430 MB.
+INFO: [HLS 200-10] Starting hardware synthesis ...
+INFO: [HLS 200-10] Synthesizing 'kernel' ...
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'kernel' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'l_S_i_0_i'.
+INFO: [HLS 200-1470] Pipelining result : Target II = NA, Final II = 1, Depth = 2, loop 'l_S_i_0_i'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 0.11 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.24 seconds; current allocated memory: 207.441 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.05 seconds. CPU system time: 0 seconds. Elapsed time: 0.05 seconds; current allocated memory: 207.441 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'kernel' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-500] Setting interface mode on port 'kernel/v0' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'kernel/v1' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'kernel/v2' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on function 'kernel' to 'ap_ctrl_hs'.
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'kernel' pipeline 'l_S_i_0_i' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Finished creating RTL model for 'kernel'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.02 seconds. CPU system time: 0 seconds. Elapsed time: 0.02 seconds; current allocated memory: 207.441 MB.
+INFO: [HLS 200-111] Finished Generating all RTL models: CPU user time: 0.25 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.36 seconds; current allocated memory: 210.309 MB.
+INFO: [HLS 200-111] Finished Updating report files: CPU user time: 0.32 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.39 seconds; current allocated memory: 212.082 MB.
+INFO: [VHDL 208-304] Generating VHDL RTL for kernel.
+INFO: [VLOG 209-307] Generating Verilog RTL for kernel.
+INFO: [HLS 200-790] **** Loop Constraint Status: All loop constraints were satisfied.
+INFO: [HLS 200-789] **** Estimated Fmax: 438.98 MHz
+INFO: [HLS 200-111] Finished Command csynth_design CPU user time: 25.86 seconds. CPU system time: 2.33 seconds. Elapsed time: 42.01 seconds; current allocated memory: 23.645 MB.

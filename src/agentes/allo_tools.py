@@ -21,7 +21,21 @@ Estado actual:
                             en vez de una excepción Python normal -- ver
                             ERRORES_CAPTURABLES más abajo y el manejo
                             especial de SystemExit dentro de esta función.
-  - run_l4_hls          -> todavía MOCKEADO
+  - run_l4_hls          -> CONECTADO A VITIS HLS REAL (síntesis csyn).
+                            OJO (12 de agosto de 2026, ver docs/bitacora.md
+                            y docs/SETUP_VITIS.md): NO se usa mod() tal cual
+                            lo genera s.build(target="vivado_hls", ...) --
+                            ese Makefile invoca un binario llamado
+                            'vivado_hls', discontinuado por Xilinx desde
+                            Vitis 2020.2+ (ahora se llama 'vitis_hls', con
+                            una estructura interna distinta). En vez de eso,
+                            se deja que s.build() genere el proyecto HLS en
+                            disco (que NO requiere vitis_hls todavía) y
+                            luego se lanza `vitis_hls -f run.tcl` nosotros
+                            mismos con subprocess, saltándonos el Makefile
+                            roto. Confirmado empíricamente contra una
+                            síntesis real (kernel trivial de suma de
+                            vectores) en Vitis HLS 2023.1.
 
 Para las que siguen mockeadas: sustituye el cuerpo de cada función `MOCK_*`
 por la llamada real (se indica con un comentario "# TODO: reemplazar por").
@@ -29,13 +43,20 @@ La firma (nombre, descripción, parámetros) puede quedarse igual.
 """
 
 import json
+import re
 import os
+import shutil
+import subprocess
 import tempfile
 import traceback
 import uuid
 import importlib.util
 import io
 import contextlib
+import xml.etree.ElementTree as ET
+import subprocess
+import sys
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -63,6 +84,24 @@ from golden_models import GOLDEN_MODELS, generar_vectores_test
 # interrumpiendo el proceso si hace falta pararlo a mano.
 # ---------------------------------------------------------------------------
 ERRORES_CAPTURABLES = (Exception, SystemExit)
+
+
+# ---------------------------------------------------------------------------
+# Constantes de L4 (ver docs/SETUP_VITIS.md para el detalle completo de la
+# instalación y el bache del binario 'vivado_hls' discontinuado)
+# ---------------------------------------------------------------------------
+NOMBRE_PROYECTO_VITIS = "out.prj"  # fijo -- así lo nombra Allo internamente,
+                                     # independientemente del project= que le pasemos
+TIMEOUT_SINTESIS_L4_SEGUNDOS = 600  # 20 min; subido de nuevo el 20 de agosto
+                                      # de 2026 tras confirmar que 600s seguían
+                                      # siendo insuficientes en el hardware
+                                      # disponible (portátil de gama media) para
+                                      # la síntesis completa de la FFT de 1024
+                                      # puntos con objetivo_ii=1 -- ver
+                                      # docs/bitacora.md. Si esto sigue sin
+                                      # bastar, valorar relajar objetivo_ii a 2
+                                      # como decisión de ingeniería documentada
+                                      # en vez de seguir subiendo el timeout.
 
 
 def _formatear_error(e: BaseException, log_stdout: str = "") -> str:
@@ -128,7 +167,16 @@ def _formatear_error(e: BaseException, log_stdout: str = "") -> str:
 def _extraer_bloques(codigo_texto: str) -> tuple[str, str]:
     """Separa el texto crudo del Generador en dos fragmentos de código Python
     ejecutables: (código del kernel, código del schedule). Quita fences de
-    markdown (```python ... ```) si el modelo los ha metido."""
+    markdown (```python ... ```) si el modelo los ha metido.
+
+    NUEVO (20 de agosto de 2026, ver docs/bitacora.md): _limpiar() ya no
+    asume que las vallas de markdown están SOLO al principio/final del
+    bloque -- se vio un caso real donde el Generador dejó una valla suelta
+    en medio del archivo (probablemente narración o un fence adicional que
+    no se depuró), lo que colaba una línea "```" literal en el .py escrito
+    a disco y rompía la sintaxis Python en L1. Ahora se elimina CUALQUIER
+    línea que sea puramente una valla de markdown (con o sin especificador
+    de lenguaje, p.ej. "```" o "```python"), esté donde esté en el bloque."""
     if "### SCHEDULE" not in codigo_texto:
         raise ValueError("Falta la cabecera '### SCHEDULE' en la salida del Generador")
     antes, schedule_src = codigo_texto.split("### SCHEDULE", 1)
@@ -136,13 +184,12 @@ def _extraer_bloques(codigo_texto: str) -> tuple[str, str]:
         raise ValueError("Falta la cabecera '### KERNEL' en la salida del Generador")
     kernel_src = antes.split("### KERNEL", 1)[1]
 
+    _PATRON_VALLA = re.compile(r"^```[a-zA-Z]*\s*$")
+
     def _limpiar(bloque: str) -> str:
-        bloque = bloque.strip()
-        if bloque.startswith("```"):
-            bloque = bloque.split("\n", 1)[1]
-        if bloque.endswith("```"):
-            bloque = bloque.rsplit("```", 1)[0]
-        return bloque.strip()
+        lineas = bloque.split("\n")
+        lineas_limpias = [ln for ln in lineas if not _PATRON_VALLA.match(ln.strip())]
+        return "\n".join(lineas_limpias).strip()
 
     return _limpiar(kernel_src), _limpiar(schedule_src)
 
@@ -294,124 +341,231 @@ async def run_l2_functional(args: dict[str, Any]) -> dict[str, Any]:
 )
 async def run_l3_equivalence(args: dict[str, Any]) -> dict[str, Any]:
     """
-    API real -- confirmada contra `help(allo.verify)` en el entorno instalado
-    (5 de agosto de 2026), no solo contra el ejemplo del paper PLDI'24:
+    IMPORTANTE (15 de agosto de 2026, ver docs/bitacora.md): esta función
+    YA NO llama a allo.verify() directamente en este proceso. El
+    verificador PAST tiene reglas gramaticales sin implementar
+    ("[PAST][Parser] Rule 7 not implemented!") que en ciertos kernels no
+    solo producen un árbol incompleto, sino que además disparan un
+    assert() de C++ ("core/past.c:2489: set_parent_pref: Assertion
+    'n->rhs' failed.") que termina en abort() -- SIGABRT. Un SIGABRT mata
+    el proceso Python ENTERO, no es capturable con try/except (ni con
+    ERRORES_CAPTURABLES, que solo cubre excepciones de Python +
+    SystemExit -- un abort() ni siquiera pasa por ahí). Sin aislamiento,
+    un crash de PAST se llevaba por delante todo orchestrator.py y el
+    progreso de las 6 iteraciones de golpe.
 
-        verify(schedule_a, schedule_b)
-            Run PAST verifier on the two schedules, returning whether they
-            are equivalent. If equivalence fails, output a diff of the
-            generated code files to help diagnose the source of the mismatch.
+    Por eso allo.verify() se ejecuta ahora en un SUBPROCESO separado
+    (l3_subproceso.py, en esta misma carpeta) vía subprocess.run(). Si el
+    subproceso muere por señal (returncode negativo), se reporta como un
+    fallo L3 controlado -- el proceso principal (y con él, el estado del
+    orquestador) sigue vivo, y se puede decidir continuar/regenerar con
+    normalidad en vez de morir con él.
 
-    Es decir: allo.verify() devuelve directamente un booleano, y si la
-    equivalencia falla, Allo mismo escribe/imprime un diff del código
-    generado para ayudar a localizar el mismatch. Confirmado empíricamente
-    (5 de agosto de 2026): ese diagnóstico sale por stdout DURANTE la
-    llamada, no como parte del valor de retorno -- por eso este wrapper
-    captura stdout con contextlib.redirect_stdout mientras se ejecuta
-    allo.verify() y mete el log (recortado) en salida_cruda, en vez de
-    dejar que se pierda en la consola del proceso.
-
-    Uso (mismo patrón que Fig. 6a del paper de Allo):
-        s_orig = allo.customize(kernel)   # schedule "antes" -- SIN transformaciones
-        s = allo.customize(kernel)
-        s.<primitivas...>                 # schedule "después" -- lo que trae el Generador
-        ok = allo.verify(s, s_orig)
-
-    Restricción documentada por Allo (SICF -- Statically Interpretable
-    Control-Flow): el tamaño del problema debe ser conocido en tiempo de
-    compilación; no soporta análisis paramétrico de bucles. Para la FFT
-    radix-2 de spec_example.yaml (N=1024 fijo) esto se cumple.
+    API real de fondo (confirmada contra `help(allo.verify)` el 5 de
+    agosto de 2026): verify(schedule_a, schedule_b) -> bool. Ver
+    l3_subproceso.py para el uso exacto.
     """
     codigo = args["codigo_allo"]
-    log_verify = io.StringIO()  # captura el stdout que PAST imprime durante allo.verify()
+
+    directorio_tmp = Path(tempfile.mkdtemp(prefix="allo_l3_"))
+    ruta_resultado = directorio_tmp / "resultado.json"
 
     try:
-        kernel_src, schedule_src = _extraer_bloques(codigo)
-        kernel_fn = _cargar_kernel_desde_disco(kernel_src)
+        resultado_bytes = subprocess.run(
+            [sys.executable, "l3_subproceso.py", str(ruta_resultado)],
+            input=codigo.encode("utf-8"),
+            capture_output=True,
+            timeout=180,  # ajustar si kernels reales tardan más en verificar
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            "content": [{"type": "text", "text": json.dumps(
+                {"nivel": "L3", "ok": False,
+                 "salida_cruda": "allo.verify() excedió el timeout de 180s en el subproceso aislado."})}]
+        }
 
-        # Schedule "antes": el kernel base, sin ninguna primitiva aplicada.
-        s_orig = allo.customize(kernel_fn)
+    # NUEVO (16 de agosto de 2026, ver docs/bitacora.md): ya NO se
+    # intenta parsear el JSON desde stdout del subproceso -- el panel de
+    # diagnóstico nativo de PAST (C++) puede mezclarse de forma
+    # impredecible con cualquier salida de Python en el mismo stream,
+    # produciendo JSON corrupto incluso cuando la verificación en sí tuvo
+    # éxito (visto el 15/16 de agosto: el log crudo mostraba
+    # "[PAST][AI][Equivalence] Success" pero el parseo fallaba igualmente
+    # por bytes intercalados). l3_subproceso.py ahora escribe su
+    # resultado a un ARCHIVO dedicado (ruta_resultado), completamente
+    # aislado de stdout/stderr.
+    stdout_str = resultado_bytes.stdout.decode("utf-8", errors="replace")
+    stderr_str = resultado_bytes.stderr.decode("utf-8", errors="replace")
 
-        # Schedule "después": el mismo kernel con las transformaciones que
-        # trae el bloque SCHEDULE del Generador.
-        s = _construir_schedule(kernel_fn, schedule_src)
+    if resultado_bytes.returncode != 0:
+        # returncode negativo == terminado por señal (p.ej. -6 == SIGABRT,
+        # el crash de PAST ya documentado). positivo != 0 == excepción no
+        # capturada dentro del propio l3_subproceso.py.
+        salida = (
+            f"El subproceso de verificación L3 terminó de forma anómala "
+            f"(returncode={resultado_bytes.returncode}"
+            f"{' -- probablemente SIGABRT, crash nativo de PAST, ver docs/bitacora.md 15 de agosto' if resultado_bytes.returncode < 0 else ''}"
+            f").\nstderr (últimas líneas):\n{stderr_str[-2000:]}"
+        )
+        return {
+            "content": [{"type": "text", "text": json.dumps(
+                {"nivel": "L3", "ok": False, "salida_cruda": salida})}]
+        }
 
-        # PAST (el verificador formal de Allo) imprime su diagnóstico por
-        # stdout durante la propia llamada -- confirmado empíricamente el
-        # 5 de agosto de 2026 (ver docs/bitacora.md): al fallar, imprime en
-        # qué nodo del árbol de cómputo difieren los programas y un diff
-        # unificado del código generado para cada schedule. Lo capturamos
-        # aquí en vez de dejar que se pierda en la consola del proceso.
-        with contextlib.redirect_stdout(log_verify):
-            ok = bool(allo.verify(s, s_orig))
+    if not ruta_resultado.exists():
+        return {
+            "content": [{"type": "text", "text": json.dumps(
+                {"nivel": "L3", "ok": False,
+                 "salida_cruda": f"El subproceso L3 terminó con código 0 pero no escribió "
+                                  f"{ruta_resultado}. stdout:\n{stdout_str[-2000:]}\nstderr:\n{stderr_str[-2000:]}"})}]
+        }
 
-        if ok:
-            salida = "Equivalencia de schedule verificada por allo.verify(s, s_orig)"
-        else:
-            # Recortamos a los últimos ~4000 caracteres: es donde PAST
-            # imprime su diagnóstico final ("First difference...",
-            # "Mismatch...", el diff unificado del código generado). Un log
-            # completo sin recortar podría acercarse al límite de salida de
-            # las herramientas MCP (~25K tokens por defecto).
-            salida = (
-                "allo.verify(s, s_orig) devolvió False -- NO equivalente.\n"
-                "Diagnóstico de PAST (verificador formal de Allo):\n"
-                f"{log_verify.getvalue()[-4000:]}"
-            )
-
-    except ERRORES_CAPTURABLES as e:  # noqa: BLE001 -- mismo patrón que L1/L2, incluye SystemExit
-        ok = False
-        if isinstance(e, SystemExit):
-            # Caso observado el 6 de agosto de 2026: algún componente
-            # interno invocado por allo.verify() (aparentemente PAST, el
-            # verificador formal) puede abortar con SystemExit ante un
-            # error fatal de parseo, en vez de lanzar una excepción Python
-            # normal. El diagnóstico detallado de PAST (p. ej.
-            # "PASTFULLPARSER| Line N: syntax error...") se imprime
-            # aparentemente a nivel de file descriptor nativo (C++), NO a
-            # través de sys.stdout de Python -- por eso NO aparece en
-            # log_verify (que solo captura sys.stdout) aunque sí sea
-            # visible en la consola real del proceso. Se deja constancia
-            # explícita de esta limitación en vez de fingir que se capturó
-            # el detalle.
-            salida = (
-                f"SystemExit(code={e.code}) durante allo.verify(s, s_orig) -- "
-                "probablemente un error fatal de parseo interno de PAST sobre "
-                "el código C generado (no de Python). El mensaje detallado NO "
-                "se pudo capturar aquí porque PAST parece escribir a stdout a "
-                "nivel de proceso nativo, no a través de sys.stdout de Python "
-                "-- revisa la consola donde corre orchestrator.py para verlo."
-            )
-        else:
-            salida = f"{type(e).__name__}: {e}\n{traceback.format_exc(limit=3)}"
-        log_parcial = log_verify.getvalue()
-        if log_parcial:
-            salida += f"\n\nLog parcial de PAST antes del error:\n{log_parcial[-2000:]}"
+    with open(ruta_resultado, "r", encoding="utf-8") as f:
+        datos = json.load(f)
 
     return {
-        "content": [{"type": "text", "text": json.dumps({"nivel": "L3", "ok": ok, "salida_cruda": salida})}]
+        "content": [{"type": "text", "text": json.dumps(
+            {"nivel": "L3", "ok": datos["ok"], "salida_cruda": datos["salida_cruda"]})}]
+    }
+
+
+def _vitis_hls_disponible() -> bool:
+    return shutil.which("vitis_hls") is not None
+
+
+def _parsear_reporte_csynth(ruta_xml: Path) -> dict:
+    """Parsea el informe XML de síntesis (<project>/out.prj/solution1/syn/
+    report/kernel_csynth.xml). Etiquetas confirmadas contra una síntesis
+    real en Vitis HLS 2023.1 el 12 de agosto de 2026 (ver docs/bitacora.md)
+    -- NO son las que trae la documentación oficial para otras versiones,
+    que puede variar ligeramente."""
+    root = ET.parse(ruta_xml).getroot()
+
+    def _texto(path, default=None):
+        el = root.find(path)
+        return el.text if el is not None else default
+
+    # Puede haber varios bucles con su propio PipelineII bajo
+    # SummaryOfLoopLatency (uno por cada <nombre_de_bucle> anidado como
+    # etiqueta dinámica) -- cogemos el mínimo, asumiendo que el bucle
+    # crítico/interno es el que nos interesa para objetivo_ii.
+    iis = [int(el.text) for el in root.findall(".//SummaryOfLoopLatency//PipelineII")
+           if el.text is not None]
+    ii_minimo = min(iis) if iis else None
+
+    return {
+        "II": ii_minimo,
+        "latencia_peor_caso": _texto(".//SummaryOfOverallLatency/Worst-caseLatency"),
+        "periodo_reloj_estimado_ns": _texto(".//SummaryOfTimingAnalysis/EstimatedClockPeriod"),
+        "BRAM": _texto(".//AreaEstimates/Resources/BRAM_18K"),
+        "DSP": _texto(".//AreaEstimates/Resources/DSP"),
+        "LUT": _texto(".//AreaEstimates/Resources/LUT"),
+        "FF": _texto(".//AreaEstimates/Resources/FF"),
     }
 
 
 @tool(
     "run_l4_hls",
-    "Nivel L4: sintetiza con s.build(target='vitis_hls', mode='csyn') y "
-    "extrae II, latencia, BRAM/DSP/LUT del informe de síntesis.",
+    "Nivel L4: sintetiza con Vitis HLS (target='vivado_hls', mode='csyn') y "
+    "extrae II, latencia, BRAM/DSP/LUT del informe de síntesis real.",
     {"codigo_allo": str, "objetivo_ii": int},
 )
 async def run_l4_hls(args: dict[str, Any]) -> dict[str, Any]:
+    """
+    OJO (12 de agosto de 2026, ver docs/bitacora.md y docs/SETUP_VITIS.md
+    para el detalle completo): esta función NO llama a mod() tal cual lo
+    devuelve s.build(target="vivado_hls", mode="csyn", ...). Ese mod()
+    dispara un Makefile generado por Allo que invoca literalmente el
+    binario 'vivado_hls' -- discontinuado por Xilinx desde Vitis 2020.2+ (el
+    binario actual se llama 'vitis_hls' y tiene una estructura interna de
+    instalación distinta; un symlink vivado_hls -> vitis_hls NO basta,
+    porque vitis_hls intenta localizar un ejecutable "unwrapped" en una
+    subcarpeta que ya no existe en su propio árbol de instalación).
+
+    En vez de eso:
+      1. Se deja que s.build() genere el proyecto HLS en disco (run.tcl,
+         kernel.cpp, etc.) -- este paso NO requiere vitis_hls todavía.
+      2. Se lanza `vitis_hls -f run.tcl` nosotros mismos con subprocess,
+         saltándonos el Makefile roto.
+      3. El proyecto real de Vitis queda anidado en
+         <project_dir>/out.prj/ -- Allo usa ese nombre fijo internamente,
+         independientemente del project= que le pasemos.
+      4. El informe de síntesis está en
+         <project_dir>/out.prj/solution1/syn/report/kernel_csynth.xml
+
+    Confirmado empíricamente contra una síntesis real (kernel trivial de
+    suma de vectores) en Vitis HLS 2023.1 antes de integrarlo aquí.
+    """
     codigo = args["codigo_allo"]
     objetivo_ii = args["objetivo_ii"]
 
-    # TODO: reemplazar por:
-    #   kernel_src, schedule_src = _extraer_bloques(codigo)
-    #   kernel_fn = _cargar_kernel_desde_disco(kernel_src)
-    #   s = _construir_schedule(kernel_fn, schedule_src)
-    #   mod = s.build(target="vitis_hls", mode="csyn")
-    #   parsear el informe de síntesis -> II, latencia, BRAM, DSP, LUT
-    ii_conseguido = objetivo_ii  # MOCK: asumimos que se cumple el objetivo
-    ok = ii_conseguido <= objetivo_ii
-    metricas = {"II": ii_conseguido, "latencia": 42, "BRAM": 4, "DSP": 8, "LUT": 1200}
+    if not _vitis_hls_disponible():
+        salida = (
+            "vitis_hls no está en el PATH. ¿Has hecho 'source "
+            "~/tools/Vitis_HLS/2023.1/settings64.sh' antes de arrancar "
+            "el orquestador? (ver docs/SETUP_VITIS.md)"
+        )
+        return {
+            "content": [{"type": "text", "text": json.dumps({"nivel": "L4", "ok": False, "salida_cruda": salida})}]
+        }
+
+    # --- Paso 1: generar el proyecto HLS (no requiere vitis_hls todavía) ---
+    try:
+        kernel_src, schedule_src = _extraer_bloques(codigo)
+        kernel_fn = _cargar_kernel_desde_disco(kernel_src)
+        s = _construir_schedule(kernel_fn, schedule_src)
+
+        directorio_proyecto = Path(tempfile.mkdtemp(prefix="allo_l4_"))
+        s.build(target="vivado_hls", mode="csyn", project=str(directorio_proyecto))
+    except ERRORES_CAPTURABLES as e:  # noqa: BLE001 -- mismo patrón que L1-L3
+        salida = _formatear_error(e)
+        return {
+            "content": [{"type": "text", "text": json.dumps({"nivel": "L4", "ok": False, "salida_cruda": salida})}]
+        }
+
+    run_tcl = directorio_proyecto / "run.tcl"
+    if not run_tcl.exists():
+        salida = f"s.build() no generó run.tcl en {directorio_proyecto}"
+        return {
+            "content": [{"type": "text", "text": json.dumps({"nivel": "L4", "ok": False, "salida_cruda": salida})}]
+        }
+
+    # --- Paso 2: lanzar vitis_hls directamente sobre run.tcl, saltándonos
+    #             el Makefile roto de Allo (ver docstring de esta función) ---
+    try:
+        resultado = subprocess.run(
+            ["vitis_hls", "-f", "run.tcl"],
+            cwd=directorio_proyecto,
+            capture_output=True,
+            text=True,
+            timeout=TIMEOUT_SINTESIS_L4_SEGUNDOS,
+        )
+    except subprocess.TimeoutExpired:
+        salida = f"Síntesis excedió el timeout de {TIMEOUT_SINTESIS_L4_SEGUNDOS}s"
+        return {
+            "content": [{"type": "text", "text": json.dumps({"nivel": "L4", "ok": False, "salida_cruda": salida})}]
+        }
+
+    if resultado.returncode != 0:
+        salida = (
+            f"vitis_hls devolvió código {resultado.returncode}:\n"
+            f"{resultado.stdout[-2000:]}\n{resultado.stderr[-2000:]}"
+        )
+        return {
+            "content": [{"type": "text", "text": json.dumps({"nivel": "L4", "ok": False, "salida_cruda": salida})}]
+        }
+
+    # --- Paso 3: parsear el informe real de síntesis ---
+    ruta_xml = directorio_proyecto / NOMBRE_PROYECTO_VITIS / "solution1" / "syn" / "report" / "kernel_csynth.xml"
+    if not ruta_xml.exists():
+        salida = f"vitis_hls terminó (código 0) pero no se encontró el informe en {ruta_xml}"
+        return {
+            "content": [{"type": "text", "text": json.dumps({"nivel": "L4", "ok": False, "salida_cruda": salida})}]
+        }
+
+    metricas = _parsear_reporte_csynth(ruta_xml)
+    ii_conseguido = metricas["II"]
+    ok = ii_conseguido is not None and ii_conseguido <= objetivo_ii
     salida = json.dumps(metricas)
 
     return {

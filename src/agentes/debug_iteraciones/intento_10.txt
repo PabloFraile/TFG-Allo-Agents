@@ -1,0 +1,107 @@
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # ---- Bit-reversal permutation copy: y[i] = x[bitreverse(i)] ----
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = idx % 2
+            idx = idx / 2
+            rev = rev * 2 + bit
+        y_real[i] = x_real[rev]
+        y_imag[i] = x_imag[rev]
+
+    # ---- Iterative Cooley-Tukey radix-2 DIT butterflies ----
+    m: int32 = 1
+    for stage in range(10):
+        m = m * 2
+        half: int32 = m / 2
+        num_groups: int32 = 1024 / m
+        for g in range(num_groups):
+            for j in range(half):
+                j_f: float32 = j
+                half_f: float32 = half
+                angle: float32 = -3.141592653589793 * j_f / half_f
+
+                x2: float32 = angle * angle
+
+                c0: float32 = 1.0
+                c1: float32 = -0.5
+                c2: float32 = 0.041666666666666664
+                c3: float32 = -0.001388888888888889
+                c4: float32 = 0.0000248015873015873
+                c5: float32 = -0.0000002755731922398589
+                c6: float32 = 0.0000000020876756987868
+                c7: float32 = -0.0000000000114707455977
+                c8: float32 = 0.0000000000000477947733
+
+                cos_val: float32 = c0 + x2 * (c1 + x2 * (c2 + x2 * (c3 + x2 * (c4 + x2 * (c5 + x2 * (c6 + x2 * (c7 + x2 * c8)))))))
+
+                s0: float32 = 1.0
+                s1: float32 = -0.16666666666666666
+                s2: float32 = 0.008333333333333333
+                s3: float32 = -0.0001984126984126984
+                s4: float32 = 0.0000027557319223986
+                s5: float32 = -0.0000000250521083854
+                s6: float32 = 0.0000000001605904384
+                s7: float32 = -0.0000000000007647164
+                s8: float32 = 0.0000000000000028114
+
+                sin_poly: float32 = s0 + x2 * (s1 + x2 * (s2 + x2 * (s3 + x2 * (s4 + x2 * (s5 + x2 * (s6 + x2 * (s7 + x2 * s8)))))))
+                sin_val: float32 = angle * sin_poly
+
+                wr: float32 = cos_val
+                wi: float32 = sin_val
+
+                idx_top: int32 = g * m + j
+                idx_bot: int32 = idx_top + half
+
+                top_r: float32 = y_real[idx_top]
+                top_i: float32 = y_imag[idx_top]
+                bot_r: float32 = y_real[idx_bot]
+                bot_i: float32 = y_imag[idx_bot]
+
+                tr: float32 = wr * bot_r - wi * bot_i
+                ti: float32 = wr * bot_i + wi * bot_r
+
+                y_real[idx_top] = top_r + tr
+                y_imag[idx_top] = top_i + ti
+                y_real[idx_bot] = top_r - tr
+                y_imag[idx_bot] = top_i - ti
+```
+
+### SCHEDULE
+```python
+from allo.customize import Partition
+
+s = allo.customize(kernel)
+
+# Los accesos a x_real/x_imag (indexados por 'rev') y a y_real/y_imag
+# (indexados por idx_top/idx_bot) son de patron variable dependiente de
+# datos calculados en tiempo de ejecucion, no accesos afines simples.
+# Particionamos completamente estos cuatro arrays para eliminar la
+# contencion de puertos de BRAM que impide alcanzar un II finito.
+s.partition("kernel:x_real", partition_type=Partition.Complete)
+s.partition("kernel:x_imag", partition_type=Partition.Complete)
+s.partition("kernel:y_real", partition_type=Partition.Complete)
+s.partition("kernel:y_imag", partition_type=Partition.Complete)
+
+# El bucle exterior 'stage' tiene pocas iteraciones (10) y su cuerpo
+# define 'half' y 'num_groups', que acotan los bucles internos 'g' y
+# 'j'. Sin desenrollar 'stage', esos limites son variables en tiempo de
+# ejecucion para HLS, lo que impide resolver un II finito (II=null).
+# Lo desenrollamos completamente para que 'half'/'num_groups' queden
+# resueltos como constantes en cada copia.
+s.unroll("stage", factor=0)
+
+# Pipelineamos los bucles internos que quedan tras el desenrollado de
+# 'stage', para cumplir el objetivo_ii=2.
+s.pipeline("i", initiation_interval=2)
+s.pipeline("j", initiation_interval=2)
+```

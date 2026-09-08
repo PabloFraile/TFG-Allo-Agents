@@ -1,0 +1,22 @@
+{
+    "0": {
+        "name": "kernel",
+        "file": "kernel.cpp",
+        "fileloc": "18",
+        "instructions": "28",
+        "total_instructions": "28",
+        "calls": "",
+        "basicblocks": "4",
+        "loads": {
+            "L": "1",
+            "T": "2"
+        },
+        "stores": {
+            "L": "2",
+            "T": "1"
+        },
+        "loops": {
+            "L": "1"
+        }
+    }
+}

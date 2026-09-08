@@ -1,0 +1,90 @@
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # --- Bit-reversal permutation (computed inside the kernel, no external tables) ---
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            half_temp: int32 = idx / 2
+            bit: int32 = idx - half_temp * 2
+            rev = rev * 2 + bit
+            idx = half_temp
+        y_real[rev] = x_real[i]
+        y_imag[rev] = x_imag[i]
+
+    # --- Iterative Cooley-Tukey radix-2 FFT (decimation in time) ---
+    m: int32 = 1
+    for stage in range(10):
+        m = m * 2
+        half: int32 = m / 2
+        num_groups: int32 = 1024 / m
+        for grp in range(num_groups):
+            for j in range(half):
+                # Twiddle factor computed independently from j and m
+                # (no recurrence across iterations), via Taylor series.
+                j_f: float32 = j
+                m_f: float32 = m
+                angle: float32 = -6.283185307179586 * j_f / m_f
+
+                angle2: float32 = angle * angle
+                angle3: float32 = angle2 * angle
+                angle4: float32 = angle2 * angle2
+                angle5: float32 = angle4 * angle
+                angle6: float32 = angle4 * angle2
+                angle7: float32 = angle6 * angle
+                angle8: float32 = angle4 * angle4
+                angle9: float32 = angle8 * angle
+
+                sin_a: float32 = angle - angle3 / 6.0 + angle5 / 120.0 - angle7 / 5040.0 + angle9 / 362880.0
+                cos_a: float32 = 1.0 - angle2 / 2.0 + angle4 / 24.0 - angle6 / 720.0 + angle8 / 40320.0
+
+                idx1: int32 = grp * m + j
+                idx2: int32 = idx1 + half
+
+                y2_real: float32 = y_real[idx2]
+                y2_imag: float32 = y_imag[idx2]
+                y1_real: float32 = y_real[idx1]
+                y1_imag: float32 = y_imag[idx1]
+
+                t_real: float32 = y2_real * cos_a - y2_imag * sin_a
+                t_imag: float32 = y2_real * sin_a + y2_imag * cos_a
+
+                y_real[idx1] = y1_real + t_real
+                y_imag[idx1] = y1_imag + t_imag
+                y_real[idx2] = y1_real - t_real
+                y_imag[idx2] = y1_imag - t_imag
+```
+
+### SCHEDULE
+```python
+s = allo.customize(kernel)
+
+from allo.customize import Partition
+
+# Outer FFT stage loop has only 10 iterations and its body defines
+# 'half'/'num_groups', which bound the inner loops -> must be fully
+# unrolled so those bounds become compile-time constants per copy.
+s.unroll("stage", factor=0)
+
+# Inner bit-extraction loop of the bit-reversal permutation is tiny
+# (10 iterations) and sits inside the pipelined 'i' loop -> unroll it
+# fully so it doesn't block pipelining of 'i'.
+s.unroll("b", factor=0)
+
+# Access pattern into y_real/y_imag varies its stride ('half') across
+# the unrolled stage copies (1, 2, 4, ... 512) -> a fixed Cyclic/Block
+# factor cannot avoid bank conflicts for all of them at once.
+s.partition("kernel:y_real", partition_type=Partition.Complete)
+s.partition("kernel:y_imag", partition_type=Partition.Complete)
+
+# Pipeline the group loop of each (now constant-bounded) FFT stage,
+# and the bit-reversal permutation loop, targeting II=2 as required.
+s.pipeline("grp", initiation_interval=2)
+s.pipeline("i", initiation_interval=2)
+```

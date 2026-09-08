@@ -1,0 +1,96 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- powers of two table: pow2[t] = 2^t, t = 0..10 ----
+    pow2: int32[11]
+    pow2[0] = 1
+    for t in range(10):
+        pow2[t + 1] = pow2[t] * 2
+
+    # ---- bit-reversal permutation table (10-bit re ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+La construcción del schedule falla en Allo con RuntimeError: 'Find multiple bands containing loop i'. Esto indica que el bucle 'i' referenciado en el script de schedule (línea 9) aparece en más de un band/loop-nest del kernel generado por L1, así que Allo no puede resolver de forma unívoca a qué band aplicar la primitiva de scheduling (p.ej. split/reorder/pipeline sobre 'i'). Revisa el kernel: si hay bucles anidados o consecutivos reutilizando el mismo nombre de variable de iteración 'i' en distintos bands, renómbralos de forma única, o bien cualifica la referencia en el schedule (usar s.get_loops('nombre_función')['band_x']['i'] en vez de un identificador ambiguo 'i'). No se ha llegado a ejecutar L3 ni L4 al detenerse en L2.
+
+=== Iteración de kernel 2/6 (intento global #2) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # base twiddle factor W_1024^1 = exp(-i*2*pi/1024)
+    w1_real: float32 = 0.9999811752826011
+    w1_imag: float32 = -0.0061358846491544753
+
+    wr: float32[1024]
+    wi: float32[1024]
+
+    wr[0] = 1.0
+    w ...
+    (código completo guardado en debug_iteraciones/intento_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+L1 (parse/tipos) OK, pero la verificación funcional L2 falla contra la referencia 'fft_radix2_numpy_reference': 31 de 1024 índices discrepantes (primeros: [63, 99, 111, 118, 175, 251, 255, 415, 430, 500]), con max|diff_real|=0.001762 y max|diff_imag|=0.001831 superando la tolerancia de 0.001. La discrepancia es pequeña y localizada (~3% de los índices), compatible con acumulación de error numérico (p. ej. redondeo/precisión fija en etapas de mariposa o tabla de twiddle factors) más que con un error estructural del algoritmo. Revisar precisión aritmética (ancho de bits, truncamiento vs. redondeo) en las etapas del radix-2 antes de tocar el schedule; no se llegó a ejecutar L3/L4. Este es el primer fallo consecutivo de L2, así que se recomienda ajustar y reintentar en lugar de regenerar el kernel.
+
+=== Iteración de kernel 3/6 (intento global #3) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    # Twiddle factor tables: w[t] = exp(-2*pi*j*t/1024) = cos(...) + i*sin(...)
+    w_real: float32[512]
+    w_imag: float32[512]
+
+    for t in range(512):
+        t_f: flo ...
+    (código completo guardado en debug_iteraciones/intento_3.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El diseño falla en verificación funcional (L2) contra la referencia 'fft_radix2_numpy_reference': 31/1024 índices discrepantes (2.9%), concentrados en índices altos (63, 127, 249, 251, 252, 255, 319, 382, 503, 504,...), con max|diff_real|=0.004477 y max|diff_imag|=0.004109 frente a tol=0.001 (~4.5x sobre tolerancia). El patrón de índices sugiere acumulación de error numérico en las últimas etapas de la mariposa radix-2 (posible truncamiento/redondeo de punto fijo o falta de bit growth en twiddle factors), no un fallo aleatorio de lógica. Este es el 2º fallo consecutivo en L2: si el próximo intento vuelve a fallar en L2, se debe regenerar el kernel en lugar de seguir ajustando parámetros. L3 y L4 no se ejecutaron.
+
+=== Iteración de kernel 4/6 (intento global #4) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+    cos_table: float32[512]
+    sin_table: float32[512]
+
+    # ---- Bit-reversal permutation load (computed inside the kernel, no external tables) ----
+  ...
+    (código completo guardado en debug_iteraciones/intento_4.txt)
+⚠️  Fallo de infraestructura en el intento global #4: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Iteración de kernel 5/6 (intento global #5) ===
+⚠️  Fallo de infraestructura en el intento global #5: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Iteración de kernel 6/6 (intento global #6) ===
+⚠️  Fallo de infraestructura en el intento global #6: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+⚠️ Se agotó el presupuesto de 6 iteraciones de generación de kernel sin converger.

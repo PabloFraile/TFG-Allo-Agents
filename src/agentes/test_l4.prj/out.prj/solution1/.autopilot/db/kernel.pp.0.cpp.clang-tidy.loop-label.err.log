@@ -1,0 +1,5 @@
+26 errors generated.
+Error while processing /home/pablo/TFG/src/agentes/test_l4.prj/out.prj/solution1/.autopilot/db/kernel.pp.0.cpp.
+clang-tidy applied 155 of 155 suggested fixes.
+Suppressed 155 warnings (155 in non-user code).
+Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.

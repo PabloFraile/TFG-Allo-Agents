@@ -1,0 +1,151 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    N: int32 = 1024
+    LOG2N: int32 = 10
+    PI: float32 = 3.141592653589793
+
+    # Bit-reversal permutation, calculado dentro del propio kernel
+    for i in range(N):
+        idx: int32 = i
+        rev: int32 ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+loc("/tmp/allo_kernel_j0ax_1et/kernel_289c2c3923ec4d22a1efce8e9a761c6c.py":4:0): error: Cannot find Stage S_stage_2
+loc("/tmp/allo_kernel_j0ax_1et/kernel_289c2c3923ec4d22a1efce8e9a761c6c.py":4:0): error: Cannot find Stage S_stage_2
+loc("/tmp/allo_kernel_j0ax_1et/kernel_289c2c3923ec4d22a1efce8e9a761c6c.py":4:0): error: Cannot find Stage S_stage_2
+loc("/tmp/allo_kernel_j0ax_1et/kernel_289c2c3923ec4d22a1efce8e9a761c6c.py":4:0): error: Cannot find Stage S_stage_2
+loc("/tmp/allo_kernel_j0ax_1et/kernel_289c2c3923ec4d22a1efce8e9a761c6c.py":4:0): error: Cannot find Stage S_stage_2
+loc("/tmp/allo_kernel_j0ax_1et/kernel_289c2c3923ec4d22a1efce8e9a761c6c.py":4:0): error: Cannot find Stage S_stage_2
+loc("/tmp/allo_kernel_j0ax_1et/kernel_289c2c3923ec4d22a1efce8e9a761c6c.py":4:0): error: Cannot find Stage S_stage_2
+loc("-":2:3): error: Cannot find Stage S_stage_2
+loc("-":292:5): error: failed to legalize operation 'allo.unroll'
+loc("-":2:3): error: cannot be converted to LLVM IR: missing `LLVMTranslationDialectInterface` registration for dialect for op: func.func
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El backend LLVM de Allo no pudo crear el ExecutionEngine durante allo.customize.build(target='llvm') (RuntimeError: Failure while creating the ExecutionEngine). L1 pasó, así que el kernel es sintácticamente válido y tipado correctamente, pero la codegen/JIT de LLVM está fallando -- posible incompatibilidad de la MLIR/LLVM toolchain, target triple no soportado, o falta de inicialización de targets nativos en el proceso del orchestrator. El panel de diagnóstico de Allo puede haberse escrito directamente a un file descriptor nativo (stdout/stderr del proceso), no capturado por redirect_stdout de Python: revisa la consola real donde corre orchestrator.py para ver el mensaje completo de LLVM antes de decidir si es un problema de entorno o del kernel generado. No se ejecutaron L3 ni L4.
+
+=== Iteración de kernel 2/6 (intento global #2) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # --- Bit-reversal permutation (computed inside the kernel, no external tables) ---
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            half_temp ...
+    (código completo guardado en debug_iteraciones/intento_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El kernel generado difiere sustancialmente del modelo golden 'fft_radix2_numpy_reference': 995 de 1024 índices no coinciden (97% de discrepancia), con errores máximos de 5.146 (parte real) y 5.553 (parte imaginaria), muy por encima de la tolerancia de 0.001. Esta magnitud de error, junto con el patrón de índices afectados (casi todos excepto los primeros: 0,1,2,4,8...), sugiere un problema estructural en la implementación (posible bit-reversal incorrecto, mala indexación de mariposas FFT, o normalización/escala errónea) y no un simple error de redondeo. Revisar la lógica de permutación bit-reversal y las etapas de mariposa (butterfly) del radix-2 antes de reintentar.
+
+=== Iteración de kernel 3/6 (intento global #3) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+
+    # Bit-reversal permutation (10 bits, since N = 1024 = 2^10)
+    for i in range(1024):
+        rev: int32 = 0
+        idx: int32 = i
+        for b in ...
+    (código completo guardado en debug_iteraciones/intento_3.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El kernel generado no es funcionalmente equivalente a la referencia 'fft_radix2_numpy_reference': 229 de 1024 índices discrepan (22.4%), concentrados en patrones periódicos (15,31,47,59-63,94,95,...) que sugieren un error sistemático en el manejo de mariposas (butterflies) en los límites de etapa/bloque de la FFT radix-2, o en el bit-reversal/twiddle factors, no ruido numérico aleatorio. El error máximo (real=0.02025, imag=0.02203) excede en ~20x la tolerancia (0.001). Este es el 2º fallo consecutivo en L2: revisar la lógica de indexación de etapas antes de reintentar ajustes menores; si un tercer intento vuelve a fallar en L2, se recomienda regenerar el kernel desde cero en lugar de parchear.
+
+=== Iteración de kernel 4/6 (intento global #4) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # --- Bit-reversal permutation (computed on the fly, no precomputed table) ---
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = id ...
+    (código completo guardado en debug_iteraciones/intento_4.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.REGENERAR_DESDE_CERO ---
+El kernel FFT radix-2 diverge de la referencia numpy en 30/1024 índices (max|diff_real|=0.004433, max|diff_imag|=0.004045 frente a tol=0.001). Los índices discrepantes agrupados (63,127,248,251,252,255,319,382,503,504,...) sugieren acumulación de error de redondeo en etapas de butterfly cerca de fronteras de bloque (potencias de 2 y cercanías), probablemente por precisión insuficiente en los twiddle factors o truncamiento intermedio en punto fijo. Este es el 3er fallo consecutivo en L2: no ajustar parámetros del mismo kernel — regenerar el kernel desde el HLS/RTL con mayor precisión intermedia (ampliar bitwidth de acumuladores/twiddles o usar redondeo simétrico en vez de truncamiento) antes de reintentar la cascada.
+↻ Regenerando desde cero (se descarta el historial de errores).
+
+=== Iteración de kernel 5/6 (intento global #5) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    two_pi: float32 = 6.283185307179586
+
+    # Bit-reversal permutation: y[i] = x[bitreverse10(i)]
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+           ...
+    (código completo guardado en debug_iteraciones/intento_5.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.REGENERAR_DESDE_CERO ---
+El kernel generado no coincide funcionalmente con la referencia numpy 'fft_radix2_numpy_reference': 811 de 1024 índices discrepantes (79%), con error máximo muy por encima de tolerancia (max|diff_real|=0.3864, max|diff_imag|=0.4192 vs tol=0.001). La magnitud y extensión del error (no son diferencias de redondeo, sino ~79% de los índices) sugiere un fallo estructural del algoritmo (p.ej. orden bit-reversal incorrecto, mapeo de twiddle factors erróneo, o etapa de mariposa mal formulada) y no un ajuste de schedule/pipeline. Además, este es el 4º fallo consecutivo en L2, lo que indica que iterar sobre el mismo kernel no está convergiendo: se recomienda regenerar el kernel desde cero (posiblemente con una estrategia de descomposición distinta) en lugar de seguir parcheando. L1 (sintaxis y tipos) sigue pasando, así que el problema es puramente de lógica funcional, no de forma.
+↻ Regenerando desde cero (se descarta el historial de errores).
+
+=== Iteración de kernel 6/6 (intento global #6) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    N: int32 = 1024
+    LOGN: int32 = 10
+    PI: float32 = 3.14159265358979323846
+
+    # --- Bit-reversal permutation (each i computed independently) ---
+    for i in range(N):
+        idx: int32 = i
+        r ...
+    (código completo guardado en debug_iteraciones/intento_6.txt)
+loc("/tmp/allo_kernel_n_6gvt4c/kernel_a43fa0cfe7aa46c9b647c91c58848551.py":5:0): error: Cannot find Stage S_s_2
+loc("/tmp/allo_kernel_n_6gvt4c/kernel_a43fa0cfe7aa46c9b647c91c58848551.py":5:0): error: Cannot find Stage S_s_2
+loc("/tmp/allo_kernel_n_6gvt4c/kernel_a43fa0cfe7aa46c9b647c91c58848551.py":5:0): error: Cannot find Stage S_s_2
+loc("/tmp/allo_kernel_n_6gvt4c/kernel_a43fa0cfe7aa46c9b647c91c58848551.py":5:0): error: Cannot find Stage S_s_2
+loc("/tmp/allo_kernel_n_6gvt4c/kernel_a43fa0cfe7aa46c9b647c91c58848551.py":5:0): error: Cannot find Stage S_s_2
+loc("/tmp/allo_kernel_n_6gvt4c/kernel_a43fa0cfe7aa46c9b647c91c58848551.py":5:0): error: Cannot find Stage S_s_2
+loc("/tmp/allo_kernel_n_6gvt4c/kernel_a43fa0cfe7aa46c9b647c91c58848551.py":5:0): error: Cannot find Stage S_s_2
+loc("-":2:3): error: Cannot find Stage S_s_2
+loc("-":268:5): error: failed to legalize operation 'allo.unroll'
+loc("-":2:3): error: cannot be converted to LLVM IR: missing `LLVMTranslationDialectInterface` registration for dialect for op: func.func
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.REGENERAR_DESDE_CERO ---
+L2 (funcional) sigue fallando de forma repetida (5 fallos consecutivos), ahora con un error distinto al de contenido/semántica: Allo no logra crear el ExecutionEngine de LLVM al hacer s.build(target="llvm") en allo/backend/llvm.py:118. Esto no es un problema del kernel HLS en sí, sino del entorno/backend de compilación JIT (posible incompatibilidad de LLVM/MLIR, target machine no inicializado, o símbolos no resueltos). El panel de diagnóstico de Allo no se capturó porque probablemente escribe directo a un file descriptor nativo (stderr del proceso), fuera del alcance de contextlib.redirect_stdout en allo_tools.py:296 — revisar la consola real de orchestrator.py para ver el mensaje nativo de LLVM/MLIR antes de decidir el siguiente paso. Dado el patrón de fallos consecutivos en L2, se recomienda regenerar el kernel/estrategia en lugar de seguir reintentando el mismo build.
+↻ Regenerando desde cero (se descarta el historial de errores).
+
+⚠️ Se agotó el presupuesto de 6 iteraciones de generación de kernel sin converger.

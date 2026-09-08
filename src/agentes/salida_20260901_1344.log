@@ -1,0 +1,342 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    N: int32 = 1024
+    LOGN: int32 = 10
+    COS_BASE: float32 = 0.9999811752826011
+    SIN_BASE: float32 = 0.0061358846491544753
+
+    # --- Permutación bit-reversal: coloca x en y en el orden bit-invertido -- ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El kernel generado no coincide funcionalmente con la referencia 'fft_radix2_numpy_reference'. 1022 de 1024 índices discrepan (prácticamente todos), con desviaciones muy grandes (max|diff_real|=157.4, max|diff_imag|=167.9) frente a la tolerancia de 0.001. Esto no es un problema de precisión numérica, sino de lógica del kernel (bit-reversal incorrecto, orden de mariposas, factores twiddle mal calculados, o normalización/escala ausente). Revisar la implementación del radix-2 antes de reintentar; L1 pasó, así que el problema es puramente funcional, no de sintaxis/tipos. No se ejecutaron L3 ni L4.
+
+=== Iteración de kernel 2/6 (intento global #2) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    a_real: float32[1024]
+    a_imag: float32[1024]
+    wr: float32[512]
+    wi: float32[512]
+
+    # ---- bit-reversal permutation ----
+    for bi in range(1024):
+        br_idx: int32 = bi
+        br_rev: in ...
+    (código completo guardado en debug_iteraciones/intento_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+L1 (sintaxis/tipos) pasó, pero L2 (verificación funcional) falló: 31 de 1024 índices discrepan frente a la referencia 'fft_radix2_numpy_reference' (primeros índices: 63, 99, 111, 118, 175, 251, 255, 415, 430, 500). El error máximo (max|diff_real|=0.001762, max|diff_imag|=0.001831) excede la tolerancia tol=0.001 en ~76% y ~83% respectivamente. Este es el primer fallo consecutivo en L2, así que revisa la lógica de bit-reversal/twiddle factors o el manejo de precisión fija/punto flotante en las etapas de mariposa antes de reintentar; aún no amerita regenerar el kernel completo. No se ejecutaron L3 ni L4.
+
+=== Iteración de kernel 3/6 (intento global #3) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    revidx: int32[1024]
+    for i in range(1024):
+        tmp: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = tmp % 2
+           ...
+    (código completo guardado en debug_iteraciones/intento_3.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+El kernel es funcionalmente correcto y su schedule es equivalente al original (L1-L3 OK), pero la síntesis HLS con objetivo_ii=1 excedió el timeout de 600s. No es necesario regenerar el kernel: hay que relajar/ajustar el schedule (p. ej. aumentar el II objetivo, introducir pipelining por etapas, o simplificar el bucle crítico) para que la síntesis converja dentro del tiempo límite.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 1/8 (kernel congelado, intento global #4) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    revidx: int32[1024]
+    for i in range(1024):
+        tmp: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = tmp % 2
+           ...
+    (código completo guardado en debug_iteraciones/intento_4.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1, L2 y L3 pasaron correctamente (sintaxis/tipos OK, equivalencia funcional contra golden model OK, equivalencia de schedule verificada). El fallo ocurre en la síntesis HLS: II=null, lo que indica que la herramienta no logró resolver un Initiation Interval válido para el pipeline (probablemente por una dependencia de recursos o de datos no resuelta en el schedule, p.ej. contención de BRAM con solo 1 puerto/banco disponible). Latencia de peor caso 73753 ciclos a 4.405 ns/ciclo (~325 µs), uso de recursos modesto (BRAM=1, DSP=12, LUT=14019, FF=5147), por lo que no es un problema de área sino de schedule/pipelining. Como el kernel ya es funcional y equivalente, ajustar el schedule (pipeline/partición de BRAM, relajar dependencias, incrementar bancos de memoria) sin regenerar el kernel.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 2/8 (kernel congelado, intento global #5) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    revidx: int32[1024]
+    for i in range(1024):
+        tmp: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = tmp % 2
+           ...
+    (código completo guardado en debug_iteraciones/intento_5.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (kernel válido, semántica correcta). El fallo ocurre en L4: la síntesis con Vitis HLS excedió el timeout de 600s intentando alcanzar objetivo_ii=1. El kernel en sí es correcto; el problema es de exploración de schedule/pipelining. Recomendado: relajar la restricción de II (probar objetivo_ii=2 o superior), aumentar el timeout de síntesis, o simplificar directivas de pipeline/unroll que puedan estar explotando el espacio de búsqueda del scheduler.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 3/8 (kernel congelado, intento global #6) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    revidx: int32[1024]
+    for i in range(1024):
+        tmp: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = tmp % 2
+           ...
+    (código completo guardado en debug_iteraciones/intento_6.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (sintaxis/tipos, funcional y equivalencia de schedule OK). L4 (síntesis HLS) falló: el reporte no reporta un II (Initiative Interval) válido (II=null), lo que indica que la herramienta de síntesis no pudo determinar o cumplir el pipelining solicitado (objetivo_ii=1). El kernel es funcionalmente correcto; el problema está en las directivas de schedule/pipeline aplicadas antes de la síntesis. Se recomienda ajustar las directivas de pipelining (p.ej. revisar dependencias que impiden II=1, añadir pragmas de partición de arrays para las BRAM implicadas, o relajar el objetivo_ii) y volver a lanzar solo la etapa de schedule, sin regenerar el kernel.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 4/8 (kernel congelado, intento global #7) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    revidx: int32[1024]
+    for i in range(1024):
+        tmp: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = tmp % 2
+           ...
+    (código completo guardado en debug_iteraciones/intento_7.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1, L2 y L3 pasaron correctamente: el kernel FFT radix-2 es sintáctica, funcional y formalmente correcto (verificado contra golden model 'fft_radix2_numpy_reference' y equivalencia de schedule con allo.verify). El fallo está en L4: la síntesis HLS con objetivo II=1 excedió el timeout de 600s. Esto indica que el schedule actual es demasiado agresivo para el solver de síntesis o genera un espacio de diseño demasiado grande. Recomendación: relajar el objetivo de II (probar II=2 o superior), simplificar directivas de pipeline/unroll, revisar particionado de arrays para reducir la complejidad de scheduling en HLS, o aumentar el timeout si el diseño es válido pero solo lento de sintetizar. No es necesario regenerar el kernel ni el schedule desde cero — únicamente ajustar los parámetros de síntesis.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 5/8 (kernel congelado, intento global #8) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    revidx: int32[1024]
+    for i in range(1024):
+        tmp: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = tmp % 2
+           ...
+    (código completo guardado en debug_iteraciones/intento_8.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (sintaxis, ejecución funcional contra golden model y equivalencia de schedule verificadas). El fallo está en L4 (síntesis HLS): el reporte indica II=null, lo que sugiere que el pipeline no logró alcanzar un Initiation Interval válido (posible dependencia no resuelta o loop no pipelineable) a pesar de que latencia, timing y uso de recursos (BRAM=7, DSP=12, LUT=3743, FF=3749) se reportaron. El kernel es funcionalmente correcto; el problema es de scheduling/directivas de síntesis. Se recomienda ajustar directivas de pipeline/unroll o resolver dependencias de memoria (BRAM) que impiden el pipelining, sin regenerar el kernel.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 6/8 (kernel congelado, intento global #9) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    revidx: int32[1024]
+    for i in range(1024):
+        tmp: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = tmp % 2
+           ...
+    (código completo guardado en debug_iteraciones/intento_9.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1, L2 y L3 pasaron correctamente (parse/tipos, funcional y equivalencia de schedule verificados). El fallo ocurre en la síntesis HLS: excedió el timeout de 600s con objetivo II=1. El kernel es funcionalmente correcto y equivalente; el problema es de convergencia/tiempo de síntesis del schedule actual. Se recomienda ajustar el schedule (relajar el II objetivo, aumentar el timeout de síntesis, o aplicar pragmas/particionado de memoria para reducir la complejidad de síntesis) sin regenerar el kernel.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 7/8 (kernel congelado, intento global #10) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    revidx: int32[1024]
+    for i in range(1024):
+        tmp: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = tmp % 2
+           ...
+    (código completo guardado en debug_iteraciones/intento_10.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El schedule generado falla al construirse: Allo lanza 'Find multiple bands containing loop i' en la línea 10 del schedule_src, dentro de _construir_schedule (allo_tools.py:224). Esto indica que el bucle 'i' referenciado en la transformación de schedule (probablemente un customize/split/reorder) no identifica una única banda de bucles en el kernel — o bien el kernel tiene varias bandas con un bucle llamado 'i' (por ejemplo, tras fusionar o particionar bucles en una etapa previa) o el kernel fue modificado y el nombre/estructura de bucles ya no coincide con lo que el schedule espera. Revisa la definición de kernel_fn para confirmar cuántas bandas de bucles contienen una variable 'i' y ajusta el schedule para referenciar la banda correcta (usando un identificador más específico, p.ej. loop_name o el path completo de la banda) en vez de 'i' a secas. L3 y L4 no se ejecutaron.
+
+=== Intento de ajuste de schedule 8/8 (kernel congelado, intento global #11) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    revidx: int32[1024]
+    for i in range(1024):
+        tmp: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = tmp % 2
+           ...
+    (código completo guardado en debug_iteraciones/intento_11.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1, L2 y L3 pasaron correctamente: el kernel FFT radix-2 es funcionalmente correcto y su schedule es formalmente equivalente al original. El fallo está en L4 (síntesis HLS con objetivo II=1): la síntesis excedió el timeout de 600s, probablemente por explosión de estados en la herramienta de síntesis al intentar alcanzar II=1 sobre el schedule actual. No es necesario regenerar el kernel; ajustar la estrategia de scheduling (relajar el objetivo de II, introducir pipelining por etapas, o simplificar el bucle crítico) para reducir el tiempo/complejidad de síntesis.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+⚠️ Se agotaron los 8 intentos de ajuste de schedule para este kernel sin cerrar el II objetivo. Regenerando el kernel desde cero.
+
+=== Iteración de kernel 4/6 (intento global #13) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # --- Bit-reversal permutation: y[irev] = x[bitrev(irev)] ---
+    for irev in range(1024):
+        idx: int32 = irev
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = idx - (idx / ...
+    (código completo guardado en debug_iteraciones/intento_13.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron (sintaxis/tipos, equivalencia funcional contra golden model y equivalencia formal de schedule todo OK). La síntesis HLS en L4 excedió el timeout de 600s buscando II=1 para el kernel FFT radix-2. El kernel en sí es correcto y verificado; el problema es de exploración/optimización del schedule (probablemente pipelining o unrolling demasiado agresivo generando un espacio de búsqueda muy grande para el sintetizador). Recomendación: ajustar directivas de schedule (relajar el objetivo II, reducir factor de unroll, o particionar el diseño en submódulos) y relanzar solo la etapa L4 sin regenerar el kernel.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 1/8 (kernel congelado, intento global #14) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # --- Bit-reversal permutation: y[irev] = x[bitrev(irev)] ---
+    for irev in range(1024):
+        idx: int32 = irev
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = idx - (idx / ...
+    (código completo guardado en debug_iteraciones/intento_14.txt)
+⚠️  Fallo de infraestructura en el intento global #14: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 2/8 (kernel congelado, intento global #15) ===
+⚠️  Fallo de infraestructura en el intento global #15: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 3/8 (kernel congelado, intento global #16) ===
+⚠️  Fallo de infraestructura en el intento global #16: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 4/8 (kernel congelado, intento global #17) ===
+⚠️  Fallo de infraestructura en el intento global #17: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 5/8 (kernel congelado, intento global #18) ===
+⚠️  Fallo de infraestructura en el intento global #18: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 6/8 (kernel congelado, intento global #19) ===
+⚠️  Fallo de infraestructura en el intento global #19: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 7/8 (kernel congelado, intento global #20) ===
+⚠️  Fallo de infraestructura en el intento global #20: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 8/8 (kernel congelado, intento global #21) ===
+⚠️  Fallo de infraestructura en el intento global #21: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+⚠️ Se agotaron los 8 intentos de ajuste de schedule para este kernel sin cerrar el II objetivo. Regenerando el kernel desde cero.
+
+=== Iteración de kernel 5/6 (intento global #23) ===
+⚠️  Fallo de infraestructura en el intento global #23: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Iteración de kernel 6/6 (intento global #24) ===
+⚠️  Fallo de infraestructura en el intento global #24: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+⚠️ Se agotó el presupuesto de 6 iteraciones de generación de kernel sin converger.

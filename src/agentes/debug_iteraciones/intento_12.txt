@@ -1,0 +1,83 @@
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # --- Bit-reversal permutation: y[bitrev(i)] = x[i] ---
+    for i in range(1024):
+        rev: int32 = 0
+        idx: int32 = i
+        for b in range(10):
+            bit: int32 = idx % 2
+            idx = idx / 2
+            rev = rev * 2 + bit
+        y_real[rev] = x_real[i]
+        y_imag[rev] = x_imag[i]
+
+    # --- Iterative Cooley-Tukey radix-2 DIT FFT, in place on y_real/y_imag ---
+    m: int32 = 1
+    for stage in range(10):
+        m = m * 2
+        half: int32 = m / 2
+        num_groups: int32 = 1024 / m
+        for g in range(num_groups):
+            for j in range(half):
+                # Twiddle angle depends only on j and half (independent per j,
+                # NOT computed via recurrence from a previous table entry).
+                j_f: float32 = j
+                half_f: float32 = half
+                angle: float32 = -3.14159265358979 * j_f / half_f
+
+                a2: float32 = angle * angle
+                a3: float32 = a2 * angle
+                a4: float32 = a2 * a2
+                a5: float32 = a4 * angle
+                a6: float32 = a4 * a2
+                a7: float32 = a6 * angle
+                a8: float32 = a4 * a4
+                a9: float32 = a8 * angle
+                a10: float32 = a8 * a2
+                a11: float32 = a10 * angle
+
+                sin_val: float32 = angle - a3 / 6.0 + a5 / 120.0 - a7 / 5040.0 + a9 / 362880.0 - a11 / 39916800.0
+                cos_val: float32 = 1.0 - a2 / 2.0 + a4 / 24.0 - a6 / 720.0 + a8 / 40320.0 - a10 / 3628800.0
+
+                idx1: int32 = g * m + j
+                idx2: int32 = idx1 + half
+
+                v2_real: float32 = y_real[idx2]
+                v2_imag: float32 = y_imag[idx2]
+
+                t_real: float32 = v2_real * cos_val - v2_imag * sin_val
+                t_imag: float32 = v2_real * sin_val + v2_imag * cos_val
+
+                u_real: float32 = y_real[idx1]
+                u_imag: float32 = y_imag[idx1]
+
+                y_real[idx1] = u_real + t_real
+                y_imag[idx1] = u_imag + t_imag
+                y_real[idx2] = u_real - t_real
+                y_imag[idx2] = u_imag - t_imag
+```
+
+### SCHEDULE
+```python
+from allo.customize import Partition
+
+s = allo.customize(kernel)
+
+# 'stage' bounds ('half', 'num_groups') depend on the outer stage index,
+# so it must be fully unrolled for HLS to resolve the inner loop trip
+# counts as compile-time constants (avoids II=null).
+s.unroll("stage", factor=0)
+
+# Allow concurrent access to the butterfly arrays across groups/j.
+s.partition("kernel:y_real", partition_type=Partition.Cyclic, factor=4)
+s.partition("kernel:y_imag", partition_type=Partition.Cyclic, factor=4)
+
+# Pipeline the innermost butterfly loop to meet the II=2 target.
+s.pipeline("j", initiation_interval=2)
+```

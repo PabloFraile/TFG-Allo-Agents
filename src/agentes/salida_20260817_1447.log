@@ -1,0 +1,97 @@
+
+=== Iteración 1/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    real_buf: float32[1024]
+    imag_buf: float32[1024]
+    cos_tab: float32[512]
+    sin_tab: float32[512]
+
+    TWO_PI: float32 = 6.283185307179586
+    N_f: float32 = 1024.0
+    neg_two_pi: float32 = 0.0 - T ...
+    (código completo guardado en debug_iteraciones/iteracion_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L3_EQUIVALENCIA, decision=DecisionEscalada.CONTINUAR ---
+L1 y L2 pasaron correctamente (sintaxis/tipos OK y equivalencia funcional OK contra 'fft_radix2_numpy_reference'). L3 no llegó a evaluar equivalencia formal: la herramienta run_l3_equivalence lanzó un UnicodeDecodeError ('utf-8' codec can't decode byte 0xc0 in position 127111: invalid start byte) antes de producir un veredicto. Esto no es un fallo de equivalencia lógica sino un error de lectura/parseo: probablemente el harness de L3 está intentando leer como texto UTF-8 un artefacto binario (p. ej. un waveform, bitstream, .vcd/.fst, netlist compilado o log con bytes no imprimibles) generado en un paso previo. Acción: revisar qué archivo se está leyendo en la posición ~127111 bytes, forzar su apertura en modo binario o con la codificación correcta (o decodificar con errors='replace'/'ignore' si es un log mixto), y relanzar solo L3 sin regenerar el kernel ni el schedule.
+
+=== Iteración 2/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    # ---- Bit-reversal permutation (computed in-kernel, no external tables) ----
+    for p in range(1024):
+        idx: int32 = p
+        rev: int32 = 0
+        for b in r ...
+    (código completo guardado en debug_iteraciones/iteracion_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L3_EQUIVALENCIA, decision=DecisionEscalada.CONTINUAR ---
+L3 no produjo un veredicto de equivalencia: la herramienta run_l3_equivalence falló dos veces consecutivas con errores de decodificación UTF-8 (bytes 0xf0/0xe0 en posición 31117), no un ok=false de verificación. Esto es un fallo de infraestructura/herramienta, probablemente causado por salida binaria o con codificación no-UTF-8 (p.ej. un dump de forma de onda o log del simulador con caracteres no válidos) que el parser de la herramienta intenta leer como texto. Antes de reintentar: revisar el artefacto de entrada a run_l3_equivalence en o cerca de la posición de byte 31117, forzar la lectura con manejo de encoding tolerante (errors='replace' o detectar el encoding real, p.ej. latin-1) o regenerar el artefacto en UTF-8 limpio. No se puede concluir nada sobre la equivalencia formal del kernel/schedule; no se ha ejecutado L4.
+
+=== Iteración 3/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+    rev: int32[1024]
+    w_real: float32[512]
+    w_imag: float32[512]
+
+    # 1. Tabla de bit-reversal (10 bits), calculada dentro del kernel
+    for i_r ...
+    (código completo guardado en debug_iteraciones/iteracion_3.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El kernel falla la validación funcional contra la referencia numpy 'fft_radix2_numpy_reference': 31 de 1024 índices discrepantes (primeros: [63, 99, 111, 118, 175, 251, 255, 415, 430, 500]). El error máximo (max|diff_real|=0.001762, max|diff_imag|=0.001831) excede la tolerancia (tol=0.001) en ~1.76x. No se ejecutaron L3 ni L4. Revisar precisión numérica del kernel (posible acumulación de error de redondeo en etapas de mariposa radix-2, orden de bit-reversal, o formato de punto fijo/flotante) antes de reintentar.
+
+=== Iteración 4/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+
+    # ---------- Bit-reversal permutation (10 bits, 1024 = 2^10) ----------
+    for i in range(1024):
+        n: int32 = i
+        rev: int32 = 0
+        ...
+    (código completo guardado en debug_iteraciones/iteracion_4.txt)
+⚠️  Fallo de infraestructura en la Iteración 4: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta en la siguiente iteración sin descartar el historial de errores acumulado.
+
+=== Iteración 5/6 ===
+⚠️  Fallo de infraestructura en la Iteración 5: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta en la siguiente iteración sin descartar el historial de errores acumulado.
+
+=== Iteración 6/6 ===
+⚠️  Fallo de infraestructura en la Iteración 6: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta en la siguiente iteración sin descartar el historial de errores acumulado.
+
+⚠️ Se agotó el presupuesto de 6 iteraciones sin converger.

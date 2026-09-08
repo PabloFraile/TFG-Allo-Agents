@@ -1,0 +1,140 @@
+
+=== Iteración 1/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    # --- Bit-reversal permutation: y[rev(i)] = x[i] ---
+    for i in range(1024):
+        num: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit ...
+    (código completo guardado en debug_iteraciones/iteracion_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (sintaxis/tipos OK, funcional OK contra golden model, equivalencia de schedule verificada). El fallo está aislado en L4: la síntesis HLS excedió el timeout de 300s. El kernel es funcionalmente correcto; el problema es de tiempo de compilación de la herramienta de síntesis (posible explosión de estados/loops sin acotar, directivas de pipeline/unroll demasiado agresivas, o falta de partición de memoria adecuada). Revisar directivas de síntesis (pipeline II, unroll factors, array_partition) y/o aumentar el timeout antes de reintentar; no es necesario regenerar el kernel ni el schedule funcional.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Iteración 2/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    # --- Bit-reversal permutation: y[rev(i)] = x[i] ---
+    for i in range(1024):
+        num: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit ...
+    (código completo guardado en debug_iteraciones/iteracion_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (sintaxis, funcional y equivalencia de schedule verificados), pero la síntesis HLS en L4 falló: el II (Initiation Interval) es null y la latencia de peor caso es 'undef', lo que indica que el pipelining no converge o el scheduler no pudo cerrar el diseño (probablemente por una dependencia cíclica no resuelta o un recurso limitante). Los recursos estimados (DSP: 16, LUT: 5261, FF: 3399, BRAM: 0, periodo de reloj: 4.664 ns) sí se generaron, por lo que la síntesis llegó a estimar área pero no logró resolver el schedule temporal. Como el kernel ya es funcionalmente correcto y equivalente, no regeneres el kernel: ajusta las directivas de schedule (pragmas de pipeline/unroll, resolución de dependencias de memoria o partición de arrays) y vuelve a lanzar solo L4.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Iteración 3/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    # --- Bit-reversal permutation: y[rev(i)] = x[i] ---
+    for i in range(1024):
+        num: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit ...
+    (código completo guardado en debug_iteraciones/iteracion_3.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (sintaxis, ejecución funcional contra el golden model y equivalencia de schedule verificadas). El fallo ocurre en L4: la síntesis HLS excedió el timeout de 300s. El kernel es funcionalmente correcto; el problema está en el schedule/directivas de síntesis (posible falta de pipelining, unrolling excesivo, o directivas que generan un espacio de diseño demasiado grande para el solver de síntesis). Recomendado: ajustar directivas de schedule (p.ej. reducir unroll factors, añadir pipeline con II explícito, o simplificar partición de arrays) y reintentar la síntesis, posiblemente con un timeout mayor o directivas menos agresivas.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Iteración 4/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    # --- Bit-reversal permutation: y[rev(i)] = x[i] ---
+    for i in range(1024):
+        num: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit ...
+    (código completo guardado en debug_iteraciones/iteracion_4.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+El kernel es funcionalmente correcto (L1, L2 y L3 pasaron: sintaxis/tipos OK, verificación funcional contra 'fft_radix2_numpy_reference' OK, y equivalencia de schedule confirmada por allo.verify). El fallo está en la síntesis HLS: el reporte no reporta II (Initiation Interval = null) ni latencia de peor caso ('undef'), lo que indica que la herramienta de HLS no pudo cerrar el pipeline o el diseño tiene un bucle sin II fijo (posible dependencia no resuelta o directiva de pipeline ausente/incorrecta). Los recursos (BRAM=0, DSP=16, LUT=3889, FF=3239, periodo estimado=4.664ns) sí se generaron, por lo que la síntesis llegó a completarse en recursos pero no en temporización/iteración. Acción recomendada: no regenerar el kernel; ajustar el schedule (directivas de pipeline/unroll, resolver dependencias de memoria que impiden el pipelining, o fijar explícitamente el II objetivo) y reintentar L4.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Iteración 5/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    # --- Bit-reversal permutation: y[rev(i)] = x[i] ---
+    for i in range(1024):
+        num: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit ...
+    (código completo guardado en debug_iteraciones/iteracion_5.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1, L2 y L3 pasaron correctamente (sintaxis/tipos OK, equivalencia funcional contra el golden model 'fft_radix2_numpy_reference' OK, y equivalencia de schedule verificada con allo.verify). El fallo está en L4: la síntesis HLS excedió el timeout de 300s. El kernel es funcionalmente correcto y su schedule está verificado, por lo que no hay que regenerar código ni volver a L1-L3. Se recomienda ajustar el schedule/directivas de síntesis (p.ej. reducir unrolling/pipelining agresivo, revisar directivas de partición de arrays, o aumentar el timeout de síntesis) para que HLS complete dentro del límite.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Iteración 6/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    # --- Bit-reversal permutation: y[rev(i)] = x[i] ---
+    for i in range(1024):
+        num: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit ...
+    (código completo guardado en debug_iteraciones/iteracion_6.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (sintaxis, funcional y equivalencia de schedule verificados). El fallo está en la síntesis HLS: no se pudo cerrar el pipelining (II=null, latencia_peor_caso='undef'), lo que indica que el scheduler HLS no logró determinar un Initiation Interval válido, probablemente por una dependencia de recursos o de datos no resuelta en el diseño actual del schedule (loop-carried dependency, conflicto de puertos de memoria, o directiva de pipeline ausente/mal aplicada). El kernel funcional (FFT radix-2) es correcto; se recomienda ajustar el schedule (allo.schedule) añadiendo/corrigiendo directivas de pipeline/unroll o resolviendo conflictos de acceso a arrays antes de volver a lanzar la síntesis HLS, sin regenerar el kernel.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+⚠️ Se agotó el presupuesto de 6 iteraciones sin converger.

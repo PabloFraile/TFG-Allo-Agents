@@ -1,0 +1,110 @@
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    # --- Bit-reversal permutation: y[rev(i)] = x[i] ---
+    for i in range(1024):
+        num: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = num - (num / 2) * 2
+            rev = rev * 2 + bit
+            num = num / 2
+        y_real[rev] = x_real[i]
+        y_imag[rev] = x_imag[i]
+
+    # --- Iterative Cooley-Tukey radix-2 DIT FFT ---
+    for s in range(10):
+        m: int32 = 1
+        for t in range(s + 1):
+            m = m * 2
+        half: int32 = m / 2
+
+        m_f: float32 = m
+        angle: float32 = -2.0 * PI / m_f
+        x2: float32 = angle * angle
+
+        # cos(angle) via Taylor series
+        cos_val: float32 = 1.0
+        term_c: float32 = 1.0
+        for tk in range(1, 12):
+            tk_f: float32 = tk
+            denom1: float32 = 2.0 * tk_f - 1.0
+            denom2: float32 = 2.0 * tk_f
+            term_c = -term_c * x2 / (denom1 * denom2)
+            cos_val = cos_val + term_c
+
+        # sin(angle) via Taylor series
+        sin_val: float32 = angle
+        term_s: float32 = angle
+        for tk in range(1, 12):
+            tk_f: float32 = tk
+            denom1: float32 = 2.0 * tk_f
+            denom2: float32 = 2.0 * tk_f + 1.0
+            term_s = -term_s * x2 / (denom1 * denom2)
+            sin_val = sin_val + term_s
+
+        wm_real: float32 = cos_val
+        wm_imag: float32 = sin_val
+
+        for k in range(0, 1024, m):
+            w_real: float32 = 1.0
+            w_imag: float32 = 0.0
+            for j in range(half):
+                idx1: int32 = k + j
+                idx2: int32 = k + j + half
+
+                t_real: float32 = w_real * y_real[idx2] - w_imag * y_imag[idx2]
+                t_imag: float32 = w_real * y_imag[idx2] + w_imag * y_real[idx2]
+
+                u_real: float32 = y_real[idx1]
+                u_imag: float32 = y_imag[idx1]
+
+                y_real[idx1] = u_real + t_real
+                y_imag[idx1] = u_imag + t_imag
+                y_real[idx2] = u_real - t_real
+                y_imag[idx2] = u_imag - t_imag
+
+                new_w_real: float32 = w_real * wm_real - w_imag * wm_imag
+                new_w_imag: float32 = w_real * wm_imag + w_imag * wm_real
+                w_real = new_w_real
+                w_imag = new_w_imag
+```
+
+### SCHEDULE
+```python
+from allo.customize import Partition
+
+s = allo.customize(kernel)
+
+# Estrategia conservadora para evitar la explosion de estados/mux que
+# causo el timeout de sintesis (300s) en el intento anterior:
+#   - NO se usa Partition.Complete (genera arboles de mux enormes con
+#     indices dinamicos como rev/idx1/idx2, que es la causa mas probable
+#     del cuelgue de la herramienta de sintesis).
+#   - Se particiona solo con un factor moderado (Cyclic, factor=8) sobre
+#     los dos arrays de salida, lo suficiente para dar puertos extra a
+#     los accesos concurrentes idx1/idx2 del bucle interno "j" sin
+#     disparar el coste combinacional de un particionado completo.
+#   - Se hace pipeline UNICAMENTE del bucle mas interno y caliente ("j"),
+#     que es el que domina el throughput. No se pipelinea "s", "t", "k"
+#     ni los bucles de la serie de Taylor ("tk"), ni el bucle de
+#     bit-reversal ("i"/"b"): pipelinear esos bucles, que contienen
+#     computo secuencial dependiente de estado (calculo de m, angle,
+#     Taylor), multiplica el espacio de estados que el sintetizador
+#     tiene que explorar y fue otra causa probable del timeout.
+#   - No se usa ningun unroll: desenrollar cualquiera de estos bucles
+#     (especialmente los anidados de s/k/j) dispararia el numero de
+#     operaciones en paralelo a sintetizar y es la via mas directa hacia
+#     un timeout de sintesis con este tamano de problema (N=1024).
+s.partition("kernel:y_real", partition_type=Partition.Cyclic, factor=8)
+s.partition("kernel:y_imag", partition_type=Partition.Cyclic, factor=8)
+
+s.pipeline("j", initiation_interval=1)
+```

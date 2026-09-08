@@ -1,0 +1,92 @@
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    N: int32 = 1024
+    LOG2N: int32 = 10
+    PI: float32 = 3.141592653589793
+
+    # Bit-reversal permutation, calculado dentro del propio kernel
+    for i in range(N):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(LOG2N):
+            bit: int32 = idx % 2
+            idx = idx / 2
+            rev = rev * 2 + bit
+        y_real[i] = x_real[rev]
+        y_imag[i] = x_imag[rev]
+
+    # FFT radix-2 Cooley-Tukey iterativa, in-place sobre y_real/y_imag
+    m: int32 = 1
+    for stage in range(LOG2N):
+        m = m * 2
+        half: int32 = m / 2
+        num_groups: int32 = N / m
+        for g in range(num_groups):
+            base: int32 = g * m
+            for j in range(half):
+                j_f: float32 = j
+                m_f: float32 = m
+                angle: float32 = -2.0 * PI * j_f / m_f
+
+                # Twiddle factor calculado de forma independiente por
+                # indice (serie de Taylor), sin recurrencia entre elementos
+                x2: float32 = angle * angle
+                x3: float32 = x2 * angle
+                x4: float32 = x2 * x2
+                x5: float32 = x4 * angle
+                x6: float32 = x4 * x2
+                x7: float32 = x6 * angle
+                x8: float32 = x4 * x4
+                x9: float32 = x8 * angle
+                x10: float32 = x8 * x2
+                x11: float32 = x10 * angle
+                x12: float32 = x8 * x4
+
+                cos_val: float32 = 1.0 - x2 / 2.0 + x4 / 24.0 - x6 / 720.0 + x8 / 40320.0 - x10 / 3628800.0 + x12 / 479001600.0
+                sin_val: float32 = angle - x3 / 6.0 + x5 / 120.0 - x7 / 5040.0 + x9 / 362880.0 - x11 / 39916800.0
+
+                idx_top: int32 = base + j
+                idx_bot: int32 = base + j + half
+
+                bot_real: float32 = y_real[idx_bot]
+                bot_imag: float32 = y_imag[idx_bot]
+
+                t_real: float32 = bot_real * cos_val - bot_imag * sin_val
+                t_imag: float32 = bot_real * sin_val + bot_imag * cos_val
+
+                top_real: float32 = y_real[idx_top]
+                top_imag: float32 = y_imag[idx_top]
+
+                y_real[idx_top] = top_real + t_real
+                y_imag[idx_top] = top_imag + t_imag
+                y_real[idx_bot] = top_real - t_real
+                y_imag[idx_bot] = top_imag - t_imag
+```
+
+### SCHEDULE
+```python
+from allo.customize import Partition
+
+s = allo.customize(kernel)
+
+# 'stage' es un bucle exterior de pocas iteraciones (10) cuyo cuerpo
+# define 'half'/'num_groups', que acotan los bucles internos: se
+# desenrolla completamente para que HLS vea trip counts constantes.
+s.unroll("stage", factor=0)
+
+# 'rev' (bit-reversal) y 'idx_top'/'idx_bot' (mariposa) son patrones de
+# acceso con stride variable entre copias desenrolladas -> particion
+# completa para evitar conflictos de banco de memoria.
+s.partition("kernel:x_real", partition_type=Partition.Complete)
+s.partition("kernel:x_imag", partition_type=Partition.Complete)
+s.partition("kernel:y_real", partition_type=Partition.Complete)
+s.partition("kernel:y_imag", partition_type=Partition.Complete)
+
+s.pipeline("i", initiation_interval=2)
+s.pipeline("j", initiation_interval=2)
+```

@@ -1,0 +1,314 @@
+ubuntu-24 install
+Obj:1 http://es.archive.ubuntu.com/ubuntu noble InRelease
+Des:2 https://cli.github.com/packages stable InRelease [3.917 B]
+Des:3 http://es.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+Des:4 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+Des:5 https://downloads.claude.ai/claude-desktop/apt/stable stable InRelease [3.006 B]
+Des:6 https://ppa.launchpadcontent.net/git-core/ppa/ubuntu noble InRelease [24,3 kB]
+Des:7 http://es.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+Obj:8 http://packages.ros.org/ros2/ubuntu noble InRelease
+Des:9 https://esm.ubuntu.com/apps/ubuntu noble-apps-security InRelease [8.371 B]
+Des:10 https://esm.ubuntu.com/apps/ubuntu noble-apps-updates InRelease [8.220 B]
+Des:11 https://esm.ubuntu.com/infra/ubuntu noble-infra-security InRelease [8.235 B]
+Des:12 https://cli.github.com/packages stable/main amd64 Packages [356 B]
+Des:13 https://esm.ubuntu.com/infra/ubuntu noble-infra-updates InRelease [8.213 B]
+Des:14 https://downloads.claude.ai/claude-desktop/apt/stable stable/main arm64 Packages [3.083 B]
+Des:15 https://downloads.claude.ai/claude-desktop/apt/stable stable/main amd64 Packages [3.076 B]
+Des:16 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1.190 kB]
+Des:17 https://ppa.launchpadcontent.net/git-core/ppa/ubuntu noble/main i386 Packages [3.572 B]
+Des:18 http://es.archive.ubuntu.com/ubuntu noble-updates/main i386 Packages [531 kB]
+Des:19 http://es.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [282 kB]
+Des:20 https://ppa.launchpadcontent.net/git-core/ppa/ubuntu noble/main amd64 Packages [3.576 B]
+Des:21 http://security.ubuntu.com/ubuntu noble-security/main amd64 Packages [930 kB]
+Des:22 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [181 kB]
+Des:23 http://es.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1.424 kB]
+Des:24 http://es.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [323 kB]
+Des:25 http://es.archive.ubuntu.com/ubuntu noble-updates/universe i386 Packages [1.137 kB]
+Des:26 https://esm.ubuntu.com/apps/ubuntu noble-apps-security/main i386 Packages [172 kB]
+Des:27 http://es.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1.683 kB]
+Des:28 http://es.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [335 kB]
+Des:29 http://es.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+Des:30 http://es.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [12,6 kB]
+Des:31 http://es.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+Des:32 http://es.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5.776 B]
+Des:33 http://es.archive.ubuntu.com/ubuntu noble-backports/universe i386 Packages [17,1 kB]
+Des:34 http://es.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages [31,0 kB]
+Des:35 http://security.ubuntu.com/ubuntu noble-security/main i386 Packages [342 kB]
+Des:36 http://es.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12,6 kB]
+Des:37 http://es.archive.ubuntu.com/ubuntu noble-backports/universe Icons (48x48) [27,0 kB]
+Des:38 http://es.archive.ubuntu.com/ubuntu noble-backports/universe Icons (64x64) [37,1 kB]
+Des:39 http://security.ubuntu.com/ubuntu noble-security/main Translation-en [201 kB]
+Des:40 http://security.ubuntu.com/ubuntu noble-security/main amd64 Components [46,3 kB]
+Des:41 http://security.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1.320 kB]
+Des:42 http://security.ubuntu.com/ubuntu noble-security/restricted Translation-en [302 kB]
+Des:43 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1.200 kB]
+Des:44 https://esm.ubuntu.com/apps/ubuntu noble-apps-security/main amd64 Packages [346 kB]
+Des:45 http://security.ubuntu.com/ubuntu noble-security/universe i386 Packages [821 kB]
+Des:46 http://security.ubuntu.com/ubuntu noble-security/universe Translation-en [239 kB]
+Des:47 http://security.ubuntu.com/ubuntu noble-security/universe amd64 Components [76,3 kB]
+Descargados 14,1 MB en 4s (3.513 kB/s)
+Leyendo lista de paquetes...
+Leyendo lista de paquetes...
+Creando árbol de dependencias...
+Leyendo la información de estado...
+Los paquetes indicados a continuación se instalaron de forma automática y ya no son necesarios.
+  libfwupd2 linux-headers-6.8.0-52 linux-headers-6.8.0-52-generic
+  linux-image-6.8.0-52-generic linux-modules-6.8.0-52-generic
+  linux-modules-extra-6.8.0-52-generic linux-tools-6.8.0-52
+  linux-tools-6.8.0-52-generic ros-jazzy-ros2-control-test-assets
+Utilice «sudo apt autoremove» para eliminarlos.
+Se instalarán los siguientes paquetes adicionales:
+  gcc-13-multilib gcc-multilib lib32asan8 lib32atomic1 lib32gcc-13-dev
+  lib32gomp1 lib32itm1 lib32quadmath0 lib32ubsan1 libc6-dev-x32 libc6-x32
+  libx32asan8 libx32atomic1 libx32gcc-13-dev libx32gcc-s1 libx32gomp1
+  libx32itm1 libx32quadmath0 libx32stdc++6 libx32ubsan1
+Se instalarán los siguientes paquetes NUEVOS:
+  gcc-13-multilib gcc-multilib lib32asan8 lib32atomic1 lib32gcc-13-dev
+  lib32gomp1 lib32itm1 lib32quadmath0 lib32ubsan1 libc6-dev-i386 libc6-dev-x32
+  libc6-x32 libx32asan8 libx32atomic1 libx32gcc-13-dev libx32gcc-s1
+  libx32gomp1 libx32itm1 libx32quadmath0 libx32stdc++6 libx32ubsan1 net-tools
+0 actualizados, 22 nuevos se instalarán, 0 para eliminar y 51 no actualizados.
+Se necesita descargar 20,5 MB de archivos.
+Se utilizarán 75,9 MB de espacio de disco adicional después de esta operación.
+Des:1 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 libc6-dev-i386 amd64 2.39-0ubuntu8.8 [1.446 kB]
+Des:2 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 libc6-x32 amd64 2.39-0ubuntu8.8 [2.919 kB]
+Des:3 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 libc6-dev-x32 amd64 2.39-0ubuntu8.8 [1.637 kB]
+Des:4 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 libx32gcc-s1 amd64 14.2.0-4ubuntu2~24.04.1 [78,5 kB]
+Des:5 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 lib32gomp1 amd64 14.2.0-4ubuntu2~24.04.1 [141 kB]
+Des:6 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 libx32gomp1 amd64 14.2.0-4ubuntu2~24.04.1 [144 kB]
+Des:7 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 lib32itm1 amd64 14.2.0-4ubuntu2~24.04.1 [29,5 kB]
+Des:8 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 libx32itm1 amd64 14.2.0-4ubuntu2~24.04.1 [29,8 kB]
+Des:9 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 lib32atomic1 amd64 14.2.0-4ubuntu2~24.04.1 [8.594 B]
+Des:10 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 libx32atomic1 amd64 14.2.0-4ubuntu2~24.04.1 [10,3 kB]
+Des:11 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 lib32asan8 amd64 14.2.0-4ubuntu2~24.04.1 [2.880 kB]
+Des:12 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 libx32asan8 amd64 14.2.0-4ubuntu2~24.04.1 [2.893 kB]
+Des:13 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 lib32ubsan1 amd64 14.2.0-4ubuntu2~24.04.1 [1.150 kB]
+Des:14 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 libx32stdc++6 amd64 14.2.0-4ubuntu2~24.04.1 [778 kB]
+Des:15 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 libx32ubsan1 amd64 14.2.0-4ubuntu2~24.04.1 [1.169 kB]
+Des:16 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 lib32quadmath0 amd64 14.2.0-4ubuntu2~24.04.1 [227 kB]
+Des:17 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 libx32quadmath0 amd64 14.2.0-4ubuntu2~24.04.1 [157 kB]
+Des:18 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 lib32gcc-13-dev amd64 13.3.0-6ubuntu2~24.04.1 [2.380 kB]
+Des:19 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 libx32gcc-13-dev amd64 13.3.0-6ubuntu2~24.04.1 [2.190 kB]
+Des:20 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 gcc-13-multilib amd64 13.3.0-6ubuntu2~24.04.1 [880 B]
+Des:21 http://es.archive.ubuntu.com/ubuntu noble/main amd64 gcc-multilib amd64 4:13.2.0-7ubuntu1 [1.474 B]
+Des:22 http://es.archive.ubuntu.com/ubuntu noble-updates/main amd64 net-tools amd64 2.10-0.1ubuntu4.4 [204 kB]
+Descargados 20,5 MB en 2s (8.841 kB/s)
+Seleccionando el paquete libc6-dev-i386 previamente no seleccionado.
+(Leyendo la base de datos ... (Leyendo la base de datos ... 5%(Leyendo la base de datos ... 10%(Leyendo la base de datos ... 15%(Leyendo la base de datos ... 20%(Leyendo la base de datos ... 25%(Leyendo la base de datos ... 30%(Leyendo la base de datos ... 35%(Leyendo la base de datos ... 40%(Leyendo la base de datos ... 45%(Leyendo la base de datos ... 50%(Leyendo la base de datos ... 55%(Leyendo la base de datos ... 60%(Leyendo la base de datos ... 65%(Leyendo la base de datos ... 70%(Leyendo la base de datos ... 75%(Leyendo la base de datos ... 80%(Leyendo la base de datos ... 85%(Leyendo la base de datos ... 90%(Leyendo la base de datos ... 95%(Leyendo la base de datos ... 100%(Leyendo la base de datos ... 388344 ficheros o directorios instalados actualmente.)
+Preparando para desempaquetar .../00-libc6-dev-i386_2.39-0ubuntu8.8_amd64.deb ...
+Desempaquetando libc6-dev-i386 (2.39-0ubuntu8.8) ...
+Seleccionando el paquete libc6-x32 previamente no seleccionado.
+Preparando para desempaquetar .../01-libc6-x32_2.39-0ubuntu8.8_amd64.deb ...
+Desempaquetando libc6-x32 (2.39-0ubuntu8.8) ...
+Seleccionando el paquete libc6-dev-x32 previamente no seleccionado.
+Preparando para desempaquetar .../02-libc6-dev-x32_2.39-0ubuntu8.8_amd64.deb ...
+Desempaquetando libc6-dev-x32 (2.39-0ubuntu8.8) ...
+Seleccionando el paquete libx32gcc-s1 previamente no seleccionado.
+Preparando para desempaquetar .../03-libx32gcc-s1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando libx32gcc-s1 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete lib32gomp1 previamente no seleccionado.
+Preparando para desempaquetar .../04-lib32gomp1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando lib32gomp1 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete libx32gomp1 previamente no seleccionado.
+Preparando para desempaquetar .../05-libx32gomp1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando libx32gomp1 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete lib32itm1 previamente no seleccionado.
+Preparando para desempaquetar .../06-lib32itm1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando lib32itm1 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete libx32itm1 previamente no seleccionado.
+Preparando para desempaquetar .../07-libx32itm1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando libx32itm1 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete lib32atomic1 previamente no seleccionado.
+Preparando para desempaquetar .../08-lib32atomic1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando lib32atomic1 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete libx32atomic1 previamente no seleccionado.
+Preparando para desempaquetar .../09-libx32atomic1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando libx32atomic1 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete lib32asan8 previamente no seleccionado.
+Preparando para desempaquetar .../10-lib32asan8_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando lib32asan8 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete libx32asan8 previamente no seleccionado.
+Preparando para desempaquetar .../11-libx32asan8_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando libx32asan8 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete lib32ubsan1 previamente no seleccionado.
+Preparando para desempaquetar .../12-lib32ubsan1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando lib32ubsan1 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete libx32stdc++6 previamente no seleccionado.
+Preparando para desempaquetar .../13-libx32stdc++6_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando libx32stdc++6 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete libx32ubsan1 previamente no seleccionado.
+Preparando para desempaquetar .../14-libx32ubsan1_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando libx32ubsan1 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete lib32quadmath0 previamente no seleccionado.
+Preparando para desempaquetar .../15-lib32quadmath0_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando lib32quadmath0 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete libx32quadmath0 previamente no seleccionado.
+Preparando para desempaquetar .../16-libx32quadmath0_14.2.0-4ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando libx32quadmath0 (14.2.0-4ubuntu2~24.04.1) ...
+Seleccionando el paquete lib32gcc-13-dev previamente no seleccionado.
+Preparando para desempaquetar .../17-lib32gcc-13-dev_13.3.0-6ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando lib32gcc-13-dev (13.3.0-6ubuntu2~24.04.1) ...
+Seleccionando el paquete libx32gcc-13-dev previamente no seleccionado.
+Preparando para desempaquetar .../18-libx32gcc-13-dev_13.3.0-6ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando libx32gcc-13-dev (13.3.0-6ubuntu2~24.04.1) ...
+Seleccionando el paquete gcc-13-multilib previamente no seleccionado.
+Preparando para desempaquetar .../19-gcc-13-multilib_13.3.0-6ubuntu2~24.04.1_amd64.deb ...
+Desempaquetando gcc-13-multilib (13.3.0-6ubuntu2~24.04.1) ...
+Seleccionando el paquete gcc-multilib previamente no seleccionado.
+Preparando para desempaquetar .../20-gcc-multilib_4%3a13.2.0-7ubuntu1_amd64.deb ...
+Desempaquetando gcc-multilib (4:13.2.0-7ubuntu1) ...
+Seleccionando el paquete net-tools previamente no seleccionado.
+Preparando para desempaquetar .../21-net-tools_2.10-0.1ubuntu4.4_amd64.deb ...
+Desempaquetando net-tools (2.10-0.1ubuntu4.4) ...
+Configurando net-tools (2.10-0.1ubuntu4.4) ...
+Configurando libc6-dev-i386 (2.39-0ubuntu8.8) ...
+Configurando lib32itm1 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando lib32ubsan1 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando libc6-x32 (2.39-0ubuntu8.8) ...
+Configurando libc6-dev-x32 (2.39-0ubuntu8.8) ...
+Configurando lib32gomp1 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando lib32asan8 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando libx32gomp1 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando lib32quadmath0 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando libx32quadmath0 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando lib32atomic1 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando libx32atomic1 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando libx32gcc-s1 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando libx32itm1 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando libx32asan8 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando libx32stdc++6 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando libx32ubsan1 (14.2.0-4ubuntu2~24.04.1) ...
+Configurando lib32gcc-13-dev (13.3.0-6ubuntu2~24.04.1) ...
+Configurando libx32gcc-13-dev (13.3.0-6ubuntu2~24.04.1) ...
+Configurando gcc-13-multilib (13.3.0-6ubuntu2~24.04.1) ...
+Configurando gcc-multilib (4:13.2.0-7ubuntu1) ...
+Procesando disparadores para man-db (2.12.0-4build2) ...
+Procesando disparadores para libc-bin (2.39-0ubuntu8.8) ...
+Leyendo lista de paquetes...
+Creando árbol de dependencias...
+Leyendo la información de estado...
+graphviz ya está en su versión más reciente (2.42.2-9ubuntu0.1).
+Los paquetes indicados a continuación se instalaron de forma automática y ya no son necesarios.
+  libfwupd2 linux-headers-6.8.0-52 linux-headers-6.8.0-52-generic
+  linux-image-6.8.0-52-generic linux-modules-6.8.0-52-generic
+  linux-modules-extra-6.8.0-52-generic linux-tools-6.8.0-52
+  linux-tools-6.8.0-52-generic ros-jazzy-ros2-control-test-assets
+Utilice «sudo apt autoremove» para eliminarlos.
+0 actualizados, 0 nuevos se instalarán, 0 para eliminar y 51 no actualizados.
+Leyendo lista de paquetes...
+Creando árbol de dependencias...
+Leyendo la información de estado...
+make ya está en su versión más reciente (4.3-4.1build2).
+Los paquetes indicados a continuación se instalaron de forma automática y ya no son necesarios.
+  libfwupd2 linux-headers-6.8.0-52 linux-headers-6.8.0-52-generic
+  linux-image-6.8.0-52-generic linux-modules-6.8.0-52-generic
+  linux-modules-extra-6.8.0-52-generic linux-tools-6.8.0-52
+  linux-tools-6.8.0-52-generic ros-jazzy-ros2-control-test-assets
+Utilice «sudo apt autoremove» para eliminarlos.
+0 actualizados, 0 nuevos se instalarán, 0 para eliminar y 51 no actualizados.
+Leyendo lista de paquetes...
+Creando árbol de dependencias...
+Leyendo la información de estado...
+unzip ya está en su versión más reciente (6.0-28ubuntu4.1).
+Los paquetes indicados a continuación se instalaron de forma automática y ya no son necesarios.
+  libfwupd2 linux-headers-6.8.0-52 linux-headers-6.8.0-52-generic
+  linux-image-6.8.0-52-generic linux-modules-6.8.0-52-generic
+  linux-modules-extra-6.8.0-52-generic linux-tools-6.8.0-52
+  linux-tools-6.8.0-52-generic ros-jazzy-ros2-control-test-assets
+Utilice «sudo apt autoremove» para eliminarlos.
+0 actualizados, 0 nuevos se instalarán, 0 para eliminar y 51 no actualizados.
+Leyendo lista de paquetes...
+Creando árbol de dependencias...
+Leyendo la información de estado...
+g++ ya está en su versión más reciente (4:13.2.0-7ubuntu1).
+Los paquetes indicados a continuación se instalaron de forma automática y ya no son necesarios.
+  libfwupd2 linux-headers-6.8.0-52 linux-headers-6.8.0-52-generic
+  linux-image-6.8.0-52-generic linux-modules-6.8.0-52-generic
+  linux-modules-extra-6.8.0-52-generic linux-tools-6.8.0-52
+  linux-tools-6.8.0-52-generic ros-jazzy-ros2-control-test-assets
+Utilice «sudo apt autoremove» para eliminarlos.
+0 actualizados, 0 nuevos se instalarán, 0 para eliminar y 51 no actualizados.
+Leyendo lista de paquetes...
+Creando árbol de dependencias...
+Leyendo la información de estado...
+libtinfo5 ya está en su versión más reciente (6.4-4).
+Los paquetes indicados a continuación se instalaron de forma automática y ya no son necesarios.
+  libfwupd2 linux-headers-6.8.0-52 linux-headers-6.8.0-52-generic
+  linux-image-6.8.0-52-generic linux-modules-6.8.0-52-generic
+  linux-modules-extra-6.8.0-52-generic linux-tools-6.8.0-52
+  linux-tools-6.8.0-52-generic ros-jazzy-ros2-control-test-assets
+Utilice «sudo apt autoremove» para eliminarlos.
+0 actualizados, 0 nuevos se instalarán, 0 para eliminar y 51 no actualizados.
+Leyendo lista de paquetes...
+Creando árbol de dependencias...
+Leyendo la información de estado...
+Los paquetes indicados a continuación se instalaron de forma automática y ya no son necesarios.
+  libfwupd2 linux-headers-6.8.0-52 linux-headers-6.8.0-52-generic
+  linux-image-6.8.0-52-generic linux-modules-6.8.0-52-generic
+  linux-modules-extra-6.8.0-52-generic linux-tools-6.8.0-52
+  linux-tools-6.8.0-52-generic ros-jazzy-ros2-control-test-assets
+Utilice «sudo apt autoremove» para eliminarlos.
+Se instalarán los siguientes paquetes NUEVOS:
+  xvfb
+0 actualizados, 1 nuevos se instalarán, 0 para eliminar y 51 no actualizados.
+Se necesita descargar 877 kB de archivos.
+Se utilizarán 2.192 kB de espacio de disco adicional después de esta operación.
+Des:1 http://es.archive.ubuntu.com/ubuntu noble-updates/universe amd64 xvfb amd64 2:21.1.12-1ubuntu1.6 [877 kB]
+Descargados 877 kB en 0s (2.067 kB/s)
+Seleccionando el paquete xvfb previamente no seleccionado.
+(Leyendo la base de datos ... (Leyendo la base de datos ... 5%(Leyendo la base de datos ... 10%(Leyendo la base de datos ... 15%(Leyendo la base de datos ... 20%(Leyendo la base de datos ... 25%(Leyendo la base de datos ... 30%(Leyendo la base de datos ... 35%(Leyendo la base de datos ... 40%(Leyendo la base de datos ... 45%(Leyendo la base de datos ... 50%(Leyendo la base de datos ... 55%(Leyendo la base de datos ... 60%(Leyendo la base de datos ... 65%(Leyendo la base de datos ... 70%(Leyendo la base de datos ... 75%(Leyendo la base de datos ... 80%(Leyendo la base de datos ... 85%(Leyendo la base de datos ... 90%(Leyendo la base de datos ... 95%(Leyendo la base de datos ... 100%(Leyendo la base de datos ... 388962 ficheros o directorios instalados actualmente.)
+Preparando para desempaquetar .../xvfb_2%3a21.1.12-1ubuntu1.6_amd64.deb ...
+Desempaquetando xvfb (2:21.1.12-1ubuntu1.6) ...
+Configurando xvfb (2:21.1.12-1ubuntu1.6) ...
+Procesando disparadores para man-db (2.12.0-4build2) ...
+Leyendo lista de paquetes...
+Creando árbol de dependencias...
+Leyendo la información de estado...
+Los paquetes indicados a continuación se instalaron de forma automática y ya no son necesarios.
+  libfwupd2 linux-headers-6.8.0-52 linux-headers-6.8.0-52-generic
+  linux-image-6.8.0-52-generic linux-modules-6.8.0-52-generic
+  linux-modules-extra-6.8.0-52-generic linux-tools-6.8.0-52
+  linux-tools-6.8.0-52-generic ros-jazzy-ros2-control-test-assets
+Utilice «sudo apt autoremove» para eliminarlos.
+Se instalarán los siguientes paquetes adicionales:
+  git-man
+Paquetes sugeridos:
+  git-doc git-email git-gui gitk gitweb git-cvs git-svn
+Se actualizarán los siguientes paquetes:
+  git git-man
+2 actualizados, 0 nuevos se instalarán, 0 para eliminar y 49 no actualizados.
+Se necesita descargar 9.783 kB de archivos.
+Se utilizarán 702 kB de espacio de disco adicional después de esta operación.
+Des:1 https://ppa.launchpadcontent.net/git-core/ppa/ubuntu noble/main amd64 git amd64 1:2.55.0-0ppa1~ubuntu24.04.2 [7.410 kB]
+Des:2 https://ppa.launchpadcontent.net/git-core/ppa/ubuntu noble/main amd64 git-man all 1:2.55.0-0ppa1~ubuntu24.04.2 [2.373 kB]
+Descargados 9.783 kB en 2s (4.021 kB/s)
+(Leyendo la base de datos ... (Leyendo la base de datos ... 5%(Leyendo la base de datos ... 10%(Leyendo la base de datos ... 15%(Leyendo la base de datos ... 20%(Leyendo la base de datos ... 25%(Leyendo la base de datos ... 30%(Leyendo la base de datos ... 35%(Leyendo la base de datos ... 40%(Leyendo la base de datos ... 45%(Leyendo la base de datos ... 50%(Leyendo la base de datos ... 55%(Leyendo la base de datos ... 60%(Leyendo la base de datos ... 65%(Leyendo la base de datos ... 70%(Leyendo la base de datos ... 75%(Leyendo la base de datos ... 80%(Leyendo la base de datos ... 85%(Leyendo la base de datos ... 90%(Leyendo la base de datos ... 95%(Leyendo la base de datos ... 100%(Leyendo la base de datos ... 388969 ficheros o directorios instalados actualmente.)
+Preparando para desempaquetar .../git_1%3a2.55.0-0ppa1~ubuntu24.04.2_amd64.deb ...
+Desempaquetando git (1:2.55.0-0ppa1~ubuntu24.04.2) sobre (1:2.54.0-0ppa1~ubuntu24.04.1) ...
+Preparando para desempaquetar .../git-man_1%3a2.55.0-0ppa1~ubuntu24.04.2_all.deb ...
+Desempaquetando git-man (1:2.55.0-0ppa1~ubuntu24.04.2) sobre (1:2.54.0-0ppa1~ubuntu24.04.1) ...
+Configurando git-man (1:2.55.0-0ppa1~ubuntu24.04.2) ...
+Configurando git (1:2.55.0-0ppa1~ubuntu24.04.2) ...
+Procesando disparadores para man-db (2.12.0-4build2) ...
+Leyendo lista de paquetes...
+Creando árbol de dependencias...
+Leyendo la información de estado...
+libncursesw5 ya está en su versión más reciente (6.4-4).
+Los paquetes indicados a continuación se instalaron de forma automática y ya no son necesarios.
+  libfwupd2 linux-headers-6.8.0-52 linux-headers-6.8.0-52-generic
+  linux-image-6.8.0-52-generic linux-modules-6.8.0-52-generic
+  linux-modules-extra-6.8.0-52-generic linux-tools-6.8.0-52
+  linux-tools-6.8.0-52-generic ros-jazzy-ros2-control-test-assets
+Utilice «sudo apt autoremove» para eliminarlos.
+0 actualizados, 0 nuevos se instalarán, 0 para eliminar y 49 no actualizados.
+Leyendo lista de paquetes...
+Creando árbol de dependencias...
+Leyendo la información de estado...
+libc6-dev-i386 ya está en su versión más reciente (2.39-0ubuntu8.8).
+Los paquetes indicados a continuación se instalaron de forma automática y ya no son necesarios.
+  libfwupd2 linux-headers-6.8.0-52 linux-headers-6.8.0-52-generic
+  linux-image-6.8.0-52-generic linux-modules-6.8.0-52-generic
+  linux-modules-extra-6.8.0-52-generic linux-tools-6.8.0-52
+  linux-tools-6.8.0-52-generic ros-jazzy-ros2-control-test-assets
+Utilice «sudo apt autoremove» para eliminarlos.
+0 actualizados, 0 nuevos se instalarán, 0 para eliminar y 49 no actualizados.

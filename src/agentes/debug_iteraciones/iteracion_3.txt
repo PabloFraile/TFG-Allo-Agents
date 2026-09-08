@@ -1,0 +1,104 @@
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    # --- Bit-reversal permutation: y[rev(i)] = x[i] ---
+    for i in range(1024):
+        num: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = num - (num / 2) * 2
+            rev = rev * 2 + bit
+            num = num / 2
+        y_real[rev] = x_real[i]
+        y_imag[rev] = x_imag[i]
+
+    # --- Iterative Cooley-Tukey radix-2 DIT FFT ---
+    for s in range(10):
+        m: int32 = 1
+        for t in range(s + 1):
+            m = m * 2
+        half: int32 = m / 2
+
+        m_f: float32 = m
+        angle: float32 = -2.0 * PI / m_f
+        x2: float32 = angle * angle
+
+        # cos(angle) via Taylor series
+        cos_val: float32 = 1.0
+        term_c: float32 = 1.0
+        for tk in range(1, 12):
+            tk_f: float32 = tk
+            denom1: float32 = 2.0 * tk_f - 1.0
+            denom2: float32 = 2.0 * tk_f
+            term_c = -term_c * x2 / (denom1 * denom2)
+            cos_val = cos_val + term_c
+
+        # sin(angle) via Taylor series
+        sin_val: float32 = angle
+        term_s: float32 = angle
+        for tk in range(1, 12):
+            tk_f: float32 = tk
+            denom1: float32 = 2.0 * tk_f
+            denom2: float32 = 2.0 * tk_f + 1.0
+            term_s = -term_s * x2 / (denom1 * denom2)
+            sin_val = sin_val + term_s
+
+        wm_real: float32 = cos_val
+        wm_imag: float32 = sin_val
+
+        for k in range(0, 1024, m):
+            w_real: float32 = 1.0
+            w_imag: float32 = 0.0
+            for j in range(half):
+                idx1: int32 = k + j
+                idx2: int32 = k + j + half
+
+                t_real: float32 = w_real * y_real[idx2] - w_imag * y_imag[idx2]
+                t_imag: float32 = w_real * y_imag[idx2] + w_imag * y_real[idx2]
+
+                u_real: float32 = y_real[idx1]
+                u_imag: float32 = y_imag[idx1]
+
+                y_real[idx1] = u_real + t_real
+                y_imag[idx1] = u_imag + t_imag
+                y_real[idx2] = u_real - t_real
+                y_imag[idx2] = u_imag - t_imag
+
+                new_w_real: float32 = w_real * wm_real - w_imag * wm_imag
+                new_w_imag: float32 = w_real * wm_imag + w_imag * wm_real
+                w_real = new_w_real
+                w_imag = new_w_imag
+```
+
+### SCHEDULE
+```python
+s = allo.customize(kernel)
+
+from allo.customize import Partition
+
+# The L4 failure (II=null, latency=undef) points to the butterfly body not
+# converging: each "j" iteration reads y_real[idx2]/y_imag[idx2] and
+# y_real[idx1]/y_imag[idx1] and writes both idx1 and idx2 back into the
+# same two arrays. With y_real/y_imag left as single monolithic memories,
+# that's up to 4 reads + 4 writes per cycle contending for the (typically
+# 2-port) BRAM interface, which blocks the pipeline scheduler from ever
+# closing on II=1. Fully partitioning the arrays turns every element into
+# its own register so idx1/idx2 accesses no longer contend for ports.
+s.partition("kernel:y_real", partition_type=Partition.Complete)
+s.partition("kernel:y_imag", partition_type=Partition.Complete)
+s.partition("kernel:x_real", partition_type=Partition.Complete)
+s.partition("kernel:x_imag", partition_type=Partition.Complete)
+
+# Pipeline the innermost loops that dominate throughput:
+#  - "b": fixed 10-iteration bit-reversal inner loop
+#  - "j": the butterfly loop, executed most often across all FFT stages
+s.pipeline("b", initiation_interval=1)
+s.pipeline("j", initiation_interval=1)
+```

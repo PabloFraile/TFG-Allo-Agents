@@ -1,0 +1,56 @@
+
+=== Iteración 1/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    # --- bit-reversal permutation (decimation-in-time reordering) ---
+    # computed inside the kernel, no precomputed/global tables
+    for i in range(1024):
+        ...
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El schedule generado falla al construirse: ValueError en la línea 5 del script de schedule ('not enough values to unpack (expected 2, got 1)'). Esto indica que en `schedule_src` hay una asignación de desempaquetado (p.ej. `a, b = algo`) donde `algo` devuelve un único valor en vez de dos — probablemente una llamada a una función de Allo (p.ej. obtener loops/bucles del kernel vía `s.get_loops(...)` o similar) que en este kernel concreto solo expone un bucle o un identificador, no una tupla de dos elementos. Revisa la línea 5 de `schedule_src` en `_construir_schedule` (allo_tools.py:220) y ajusta el desempaquetado al número real de valores devueltos por el kernel, o corrige el nombre/estructura de los bucles referenciados en el schedule para que coincida con la firma real del kernel generado en L1. No se recibió el panel de diagnóstico de Allo por stdout (posible escritura a nivel de file descriptor nativo); si el mensaje no es suficiente, revisar la consola de orchestrator.py directamente.
+
+=== Iteración 2/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    for i in range(512):
+        a_real: float32 = x_real[2 * i]
+        a_imag: float32 = x_imag[2 * i]
+        b_real: float32 = x_real[2 * i + 1]
+        b_imag: float32 = x_imag[2 * i + 1]
+        y_real[2 * i] = ...
+⚠️  Fallo de infraestructura en la Iteración 2: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta en la siguiente iteración sin descartar el historial de errores acumulado.
+
+=== Iteración 3/6 ===
+⚠️  Fallo de infraestructura en la Iteración 3: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta en la siguiente iteración sin descartar el historial de errores acumulado.
+
+=== Iteración 4/6 ===
+⚠️  Fallo de infraestructura en la Iteración 4: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta en la siguiente iteración sin descartar el historial de errores acumulado.
+
+=== Iteración 5/6 ===
+⚠️  Fallo de infraestructura en la Iteración 5: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta en la siguiente iteración sin descartar el historial de errores acumulado.
+
+=== Iteración 6/6 ===
+⚠️  Fallo de infraestructura en la Iteración 6: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta en la siguiente iteración sin descartar el historial de errores acumulado.
+
+⚠️ Se agotó el presupuesto de 6 iteraciones sin converger.

@@ -1,0 +1,78 @@
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # --- Bit-reversal permutation (computed on the fly, no precomputed table) ---
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = idx % 2
+            idx = idx / 2
+            rev = rev * 2 + bit
+        y_real[i] = x_real[rev]
+        y_imag[i] = x_imag[rev]
+
+    # --- Iterative radix-2 DIT FFT: 10 stages (log2(1024)) ---
+    m: int32 = 1
+    for stage in range(10):
+        m = m * 2
+        half: int32 = m / 2
+        num_groups: int32 = 1024 / m
+        for g in range(num_groups):
+            base: int32 = g * m
+            for j in range(half):
+                j_f: float32 = j
+                m_f: float32 = m
+                angle: float32 = -6.283185307179586 * j_f / m_f
+
+                x2: float32 = angle * angle
+
+                cos_a: float32 = 1.0 + x2 * (-0.5 + x2 * (0.0416666667 + x2 * (-0.00138888889 + x2 * (0.0000248015873 + x2 * (-0.000000275573192 + x2 * (0.00000000208767570 + x2 * (-0.0000000000114707456 + x2 * 0.0000000000000477947733)))))))
+
+                sin_a: float32 = angle * (1.0 + x2 * (-0.166666667 + x2 * (0.00833333333 + x2 * (-0.000198412698 + x2 * (0.00000275573192 + x2 * (-0.0000000250521084 + x2 * 0.000000000160590438))))))
+
+                idx1: int32 = base + j
+                idx2: int32 = base + j + half
+
+                ur: float32 = y_real[idx1]
+                ui: float32 = y_imag[idx1]
+                vr: float32 = y_real[idx2]
+                vi: float32 = y_imag[idx2]
+
+                tr: float32 = vr * cos_a - vi * sin_a
+                ti: float32 = vr * sin_a + vi * cos_a
+
+                y_real[idx1] = ur + tr
+                y_imag[idx1] = ui + ti
+                y_real[idx2] = ur - tr
+                y_imag[idx2] = ui - ti
+```
+
+### SCHEDULE
+```python
+from allo.customize import Partition
+
+s = allo.customize(kernel)
+
+# Arrays are accessed with data-dependent / variable-stride patterns
+# (bit-reversal permutation, and butterfly strides that change per stage
+# after full unrolling) -> use complete partitioning to guarantee
+# conflict-free access.
+s.partition("kernel:x_real", partition_type=Partition.Complete)
+s.partition("kernel:x_imag", partition_type=Partition.Complete)
+s.partition("kernel:y_real", partition_type=Partition.Complete)
+s.partition("kernel:y_imag", partition_type=Partition.Complete)
+
+# The outer stage loop has only 10 iterations, and 'half'/'num_groups'
+# inside it depend on 'stage' -> fully unroll it so those become
+# compile-time constants in each replicated copy.
+s.unroll("stage", factor=0)
+
+# Pipeline the remaining loops to hit the II target.
+s.pipeline("i", initiation_interval=2)
+s.pipeline("j", initiation_interval=2)
+```

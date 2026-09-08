@@ -1,0 +1,17 @@
+{
+  "0": {
+    "basicblocks": 7,
+    "calls": "",
+    "file": "kernel.cpp",
+    "fileloc": 18,
+    "instructions": 48,
+    "loads": {
+      "T": 2
+    },
+    "name": "kernel",
+    "stores": {
+      "T": 1
+    },
+    "total_instructions": 205
+  }
+}

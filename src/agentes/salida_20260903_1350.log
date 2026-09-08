@@ -1,0 +1,41 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    # ---- Paso 1: permutacion bit-reversal (calculada dentro del kernel) ----
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in rang ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (sintaxis/tipos, equivalencia funcional contra el golden model 'fft_radix2_numpy_reference' y equivalencia formal de schedule vía allo.verify). El fallo está en L4: la síntesis HLS con objetivo_ii=1 excedió el timeout de 1200s. El kernel es funcional y correcto; el problema es que el schedule actual (con II=1) es demasiado costoso de sintetizar en el tiempo disponible. Se recomienda ajustar el schedule sin regenerar el kernel: relajar el objetivo de II (probar II=2), aumentar el timeout de síntesis, o introducir pragmas de pipeline/unroll más conservadores para reducir el tiempo de compilación de Vitis HLS.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 1/8 (kernel congelado, intento global #2) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    # ---- Paso 1: permutacion bit-reversal (calculada dentro del kernel) ----
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in rang ...
+    (código completo guardado en debug_iteraciones/intento_2.txt)

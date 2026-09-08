@@ -1,0 +1,84 @@
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    two_pi: float32 = 6.283185307179586
+
+    # Bit-reversal permutation: y[i] = x[bitreverse10(i)]
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = idx % 2
+            rev = rev * 2 + bit
+            idx = idx / 2
+        y_real[i] = x_real[rev]
+        y_imag[i] = x_imag[rev]
+
+    # Iterative Cooley-Tukey radix-2 FFT
+    m: int32 = 1
+    for s in range(10):
+        m = m * 2
+        half: int32 = m / 2
+        num_groups: int32 = 1024 / m
+        m_f: float32 = m
+        for g in range(num_groups):
+            base: int32 = g * m
+            for j in range(half):
+                j_f: float32 = j
+                angle: float32 = -two_pi * j_f / m_f
+
+                x2: float32 = angle * angle
+                x3: float32 = x2 * angle
+                x4: float32 = x2 * x2
+                x5: float32 = x4 * angle
+                x6: float32 = x4 * x2
+                x7: float32 = x6 * angle
+                x8: float32 = x4 * x4
+                x9: float32 = x8 * angle
+                x10: float32 = x8 * x2
+                x11: float32 = x10 * angle
+
+                cos_a: float32 = 1.0 - x2 / 2.0 + x4 / 24.0 - x6 / 720.0 + x8 / 40320.0 - x10 / 3628800.0
+                sin_a: float32 = angle - x3 / 6.0 + x5 / 120.0 - x7 / 5040.0 + x9 / 362880.0 - x11 / 39916800.0
+
+                idx1: int32 = base + j
+                idx2: int32 = base + j + half
+
+                ar: float32 = y_real[idx2]
+                ai: float32 = y_imag[idx2]
+
+                tr: float32 = cos_a * ar - sin_a * ai
+                ti: float32 = cos_a * ai + sin_a * ar
+
+                br: float32 = y_real[idx1]
+                bi: float32 = y_imag[idx1]
+
+                y_real[idx2] = br - tr
+                y_imag[idx2] = bi - ti
+                y_real[idx1] = br + tr
+                y_imag[idx1] = bi + ti
+```
+
+### SCHEDULE
+```python
+from allo.customize import Partition
+
+s = allo.customize(kernel)
+
+# 'half'/'num_groups' dependen de 's' (stage) -> desenrollar completamente
+s.unroll("s", factor=0)
+
+# Patrón de stride variable entre etapas desenrolladas -> particion completa
+s.partition("kernel:x_real", partition_type=Partition.Complete)
+s.partition("kernel:x_imag", partition_type=Partition.Complete)
+s.partition("kernel:y_real", partition_type=Partition.Complete)
+s.partition("kernel:y_imag", partition_type=Partition.Complete)
+
+# Objetivo de II para el bucle interno de la mariposa
+s.pipeline("j", initiation_interval=2)
+```

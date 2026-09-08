@@ -1,0 +1,124 @@
+
+=== Iteración 1/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    for k in range(1024):
+        acc_real: float32 = 0.0
+        acc_imag: float32 = 0.0
+        for n in range(1024):
+            # producto k*n reducido modulo 1024 usando solo +,-,*,/
+            kn: int32 ...
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El diseño pasó L1 (sintaxis/tipos) pero falla la verificación funcional L2: 238 de 1024 índices discrepan respecto a la referencia numpy 'fft_radix2_numpy_reference'. El error máximo (max|diff_real|=0.003338, max|diff_imag|=0.002213) excede la tolerancia (0.001) en un factor de ~3.3x. Esto sugiere un error sistemático de precisión (p.ej. truncamiento/redondeo en punto fijo, orden de operaciones en las mariposas FFT, o factores twiddle con precisión insuficiente) más que un error aleatorio aislado. Revisar el ancho de bits y esquema de redondeo usados en las etapas de la mariposa radix-2 y la precisión de los coeficientes twiddle antes de reintentar L2. No se ejecutaron L3 ni L4.
+
+=== Iteración 2/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    cos_table: float32[512]
+    sin_table: float32[512]
+
+    # Ángulo elemental = 2*pi/1024 (muy pequeño -> Taylor converge con
+    # precisión sobrada, muy por debajo del épsilon de float32).
+    x1: float32 = ...
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El schedule generado falla al ejecutarse: 'ValueError: not enough values to unpack (expected 2, got 1)' en la línea 4 del schedule_src, dentro de _construir_schedule (allo_tools.py:220), al hacer exec() del código de schedule. Esto indica que el schedule_src contiene una línea que intenta desempaquetar una tupla/iterable en 2 variables pero solo recibe 1 valor (p.ej. algo como 'a, b = func(...)' donde func devuelve un único valor, o una llamada a la API de Allo cuyo retorno cambió de forma). Revisa la línea 4 del schedule generado y la firma real de la función que se está desempaquetando (posiblemente relacionada con la obtención de loops o bucles del kernel para aplicar primitivas de scheduling). No se pudo capturar el panel de diagnóstico de Allo por stdout; revisar la consola del orchestrator para más contexto nativo.
+
+=== Iteración 3/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- constant local buffers computed entirely inside the kernel ----
+    cos_table: float32[512]
+    sin_table: float32[512]
+    cos_b: float32[9]
+    sin_b: float32[9]
+
+    # seed value: W_1024^1 = cos ...
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El schedule falla al ejecutarse: 'ValueError: not enough values to unpack (expected 2, got 1)' en la línea 8 del schedule_src generado, durante el exec() en _construir_schedule (allo_tools.py:220). Esto indica que el código del schedule intenta desempaquetar una tupla/iterable de 1 elemento en 2 variables (p.ej. algo como 'a, b = obtener_ejes(...)' donde la función devuelve un solo valor), probablemente por una llamada a la API de Allo (loops, buffers, etc.) con una firma de retorno distinta a la esperada por el kernel generado. Van 2 fallos consecutivos de L2: revisar si el patrón de desempaquetado es sistemático en el generador antes de reintentar un simple ajuste puntual del schedule.
+
+=== Iteración 4/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    # --- Bit-reversal permutation: y[i] = x[reverse_bits_10(i)] ---
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10) ...
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.REGENERAR_DESDE_CERO ---
+L2 (funcional) falló con un ValueError al construir el schedule: '_construir_schedule' ejecuta schedule_src y en la línea 5 hay un unpacking que espera 2 valores pero recibe 1 ('not enough values to unpack (expected 2, got 1)'). Revisa el script de schedule generado (probablemente una asignación tipo 'a, b = f(...)' o una comprensión/iteración sobre una tupla que en este caso solo devuelve un elemento, p.ej. un bucle sobre ejes/loops del kernel que asume un par (nombre, tamaño) y solo llega uno). Este es el 3er fallo consecutivo en L2: no sigas parcheando el schedule línea a línea, hay que regenerar el kernel/schedule desde el agente generador con las restricciones correctas de forma/loops. Nota aparte: la captura de stdout de Allo no está funcionando (posible escritura a nivel de file descriptor nativo); si se necesita el panel de diagnóstico de Allo, revisar la consola real de orchestrator.py o usar redirección a nivel de FD (os.dup2) en vez de contextlib.redirect_stdout.
+↻ Regenerando desde cero (se descarta el historial de errores).
+
+=== Iteración 5/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    for k in range(512):
+        k_f: float32 = k
+        theta: float32 = (-2.0 * PI * k_f) / 1024.0
+        x2: float32 = theta * theta
+
+        # cos(theta) via Horner-f ...
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.REGENERAR_DESDE_CERO ---
+El bloque SCHEDULE falla al ejecutarse: 'ValueError: not enough values to unpack (expected 2, got 1)' en la línea 5 del schedule_src, dentro de la llamada a allo.customize(kernel). Esto indica que el código del schedule intenta desempaquetar una tupla/loop con más variables de las que la expresión iterable produce (p.ej. algo como 'for i, j in ...' sobre un iterable que solo entrega un valor por elemento, o una asignación 'a, b = expr' donde expr no es una tupla de 2). Revisa la línea 5 del bloque SCHEDULE generado: probablemente un acceso a bucles/ejes del kernel (s.get_loops(...) o similar) que no coincide con la estructura real de bucles del kernel. Como ya son 4 fallos consecutivos en L2, no tiene sentido seguir parcheando el schedule sobre el mismo kernel: hay que regenerar el kernel (y su schedule asociado) desde cero, posiblemente simplificando la estructura de bucles para que sea coherente con lo que el schedule espera.
+↻ Regenerando desde cero (se descarta el historial de errores).
+
+=== Iteración 6/6 ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.141592653589793
+
+    # ---- Bit-reversal permutation (10 bits, N=1024) ----
+    for i in range(1024):
+        temp: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            h ...
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.REGENERAR_DESDE_CERO ---
+El schedule falla al construirse: ValueError 'not enough values to unpack (expected 2, got 1)' en la línea 5 del código de schedule, dentro de exec() en _construir_schedule. Esto indica que alguna línea del bloque `### SCHEDULE` intenta desempaquetar una tupla/iterable en dos variables pero recibe solo un valor (p. ej. algo como `a, b = funcion(...)` donde funcion devuelve un único objeto, o iterar sobre `.items()`/`enumerate()` mal formado, o una llamada a la API de Allo que cambió su firma de retorno). Revisa la línea 5 del schedule generado y compárala con la firma real de la función que se está desempaquetando en el namespace del kernel. Van 5 fallos consecutivos en L2: se recomienda regenerar el kernel/schedule desde cero en lugar de seguir parcheando, ya que el patrón de error persiste.
+↻ Regenerando desde cero (se descarta el historial de errores).
+
+⚠️ Se agotó el presupuesto de 6 iteraciones sin converger.

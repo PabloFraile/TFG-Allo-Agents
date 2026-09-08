@@ -1,0 +1,5 @@
+/home/pablo/tools/Vitis_HLS/2023.1/bin/rdiArgs.sh: línea 37: aviso: setlocale: LC_ALL: no se puede cambiar el local (en_US.UTF-8): No existe el archivo o el directorio
+/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
+terminate called after throwing an instance of 'std::runtime_error'
+  what():  locale::facet::_S_create_c_locale name not valid
+/home/pablo/tools/Vitis_HLS/2023.1/bin/rdiArgs.sh: line 352:  7118 Aborted                 (core dumped) "$RDI_PROG" "$@"

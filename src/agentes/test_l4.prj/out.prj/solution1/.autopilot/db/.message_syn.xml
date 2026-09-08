@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Messages>
+	<Message severity="WARNING" prefix="[HLS 200-1998]" key="HLS 200-1998" tag="" content="cannot find relative file path &apos;../../host.cpp&apos; in directory(s): /home/pablo/TFG/src/agentes/test_l4.prj/out.prj/solution /home/pablo/TFG/src/agentes/test_l4.prj" resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished File checks and directory preparation: CPU user time: 0.08 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.1 seconds; current allocated memory: 188.484 MB." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-10]" key="HLS_10_1312" tag="" content="Analyzing design file &apos;kernel.cpp&apos; ..." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished Source Code Analysis and Preprocessing: CPU user time: 21.98 seconds. CPU system time: 1.67 seconds. Elapsed time: 30.15 seconds; current allocated memory: 194.598 MB." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-777]" key="HLS 200-777" tag="" content="Using interface defaults for &apos;Vivado&apos; flow target." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-1995]" key="HLS 200-1995" tag="" content="There were 205 instructions in the design after the &apos;Compile/Link&apos; phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/src/agentes/test_l4.prj/out.prj/solution1/syn/report/csynth_design_size.rpt" resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-1995]" key="HLS 200-1995" tag="" content="There were 25 instructions in the design after the &apos;Unroll/Inline&apos; phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/src/agentes/test_l4.prj/out.prj/solution1/syn/report/csynth_design_size.rpt" resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-1995]" key="HLS 200-1995" tag="" content="There were 20 instructions in the design after the &apos;Performance/Pipeline&apos; phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/src/agentes/test_l4.prj/out.prj/solution1/syn/report/csynth_design_size.rpt" resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-1995]" key="HLS 200-1995" tag="" content="There were 32 instructions in the design after the &apos;Optimizations&apos; phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/src/agentes/test_l4.prj/out.prj/solution1/syn/report/csynth_design_size.rpt" resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished Compiling Optimization and Transform: CPU user time: 2.93 seconds. CPU system time: 0.55 seconds. Elapsed time: 10.25 seconds; current allocated memory: 194.953 MB." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished Checking Pragmas: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0.01 seconds; current allocated memory: 194.953 MB." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-10]" key="HLS_10_1467" tag="" content="Starting code transformations ..." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished Standard Transforms: CPU user time: 0.02 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.33 seconds; current allocated memory: 195.098 MB." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-10]" key="HLS_10_1472" tag="" content="Checking synthesizability ..." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished Checking Synthesizability: CPU user time: 0.02 seconds. CPU system time: 0 seconds. Elapsed time: 0.02 seconds; current allocated memory: 195.160 MB." resolution=""/>
+	<Message severity="INFO" prefix="[XFORM 203-510]" key="XFORM_AUTO_PIPELINE_STATUS_244" tag="" content="Pipelining loop &apos;l_S_i_0_i&apos; (kernel.cpp:23) in function &apos;kernel&apos; automatically." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished Loop, function and other optimizations: CPU user time: 0.04 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.05 seconds; current allocated memory: 215.930 MB." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished Architecture Synthesis: CPU user time: 0.03 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.04 seconds; current allocated memory: 206.430 MB." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-10]" key="HLS_10_1317" tag="" content="Starting hardware synthesis ..." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-10]" key="HLS_10_1385" tag="" content="Synthesizing &apos;kernel&apos; ..." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-10]" key="HLS_10_1477" tag="" content="----------------------------------------------------------------" resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-42]" key="HLS_42_1438" tag="" content="-- Implementing module &apos;kernel&apos;" resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-10]" key="HLS_10_1478" tag="" content="----------------------------------------------------------------" resolution=""/>
+	<Message severity="INFO" prefix="[SCHED 204-11]" key="SCHED_SCHED_STATUS_597" tag="" content="Starting scheduling ..." resolution=""/>
+	<Message severity="INFO" prefix="[SCHED 204-61]" key="SCHED_PIPELINING_STATUS_41" tag="" content="Pipelining loop &apos;l_S_i_0_i&apos;." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-1470]" key="HLS 200-1470" tag="SCHEDULE,VITIS_THROUGHPUT" content="Pipelining result : Target II = NA, Final II = 1, Depth = 2, loop &apos;l_S_i_0_i&apos;" resolution=""/>
+	<Message severity="INFO" prefix="[SCHED 204-11]" key="SCHED_SCHED_STATUS_596" tag="" content="Finished scheduling." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished Scheduling: CPU user time: 0.11 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.24 seconds; current allocated memory: 207.441 MB." resolution=""/>
+	<Message severity="INFO" prefix="[BIND 205-100]" key="BIND_100_926" tag="" content="Starting micro-architecture generation ..." resolution=""/>
+	<Message severity="INFO" prefix="[BIND 205-101]" key="BIND_101_698" tag="" content="Performing variable lifetime analysis." resolution=""/>
+	<Message severity="INFO" prefix="[BIND 205-101]" key="BIND_101_697" tag="" content="Exploring resource sharing." resolution=""/>
+	<Message severity="INFO" prefix="[BIND 205-101]" key="BIND_101_693" tag="" content="Binding ..." resolution=""/>
+	<Message severity="INFO" prefix="[BIND 205-100]" key="BIND_100_925" tag="" content="Finished micro-architecture generation." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished Binding: CPU user time: 0.05 seconds. CPU system time: 0 seconds. Elapsed time: 0.05 seconds; current allocated memory: 207.441 MB." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-10]" key="HLS_10_1483" tag="" content="----------------------------------------------------------------" resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-10]" key="HLS_10_1484" tag="" content="-- Generating RTL for module &apos;kernel&apos;" resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-10]" key="HLS_10_1485" tag="" content="----------------------------------------------------------------" resolution=""/>
+	<Message severity="INFO" prefix="[RTGEN 206-500]" key="PREPROC_IO_COMP_CONFLICT_1950" tag="" content="Setting interface mode on port &apos;kernel/v0&apos; to &apos;ap_memory&apos;." resolution=""/>
+	<Message severity="INFO" prefix="[RTGEN 206-500]" key="PREPROC_IO_COMP_CONFLICT_1950" tag="" content="Setting interface mode on port &apos;kernel/v1&apos; to &apos;ap_memory&apos;." resolution=""/>
+	<Message severity="INFO" prefix="[RTGEN 206-500]" key="PREPROC_IO_COMP_CONFLICT_1950" tag="" content="Setting interface mode on port &apos;kernel/v2&apos; to &apos;ap_memory&apos;." resolution=""/>
+	<Message severity="INFO" prefix="[RTGEN 206-500]" key="PREPROC_IO_COMP_CONFLICT_1950" tag="" content="Setting interface mode on function &apos;kernel&apos; to &apos;ap_ctrl_hs&apos;." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-1030]" key="HLS 200-1030" tag="" content="Apply Unified Pipeline Control on module &apos;kernel&apos; pipeline &apos;l_S_i_0_i&apos; pipeline type &apos;loop pipeline&apos;" resolution=""/>
+	<Message severity="INFO" prefix="[RTGEN 206-100]" key="RTGEN_100_856" tag="" content="Finished creating RTL model for &apos;kernel&apos;." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished Creating RTL model: CPU user time: 0.02 seconds. CPU system time: 0 seconds. Elapsed time: 0.02 seconds; current allocated memory: 207.441 MB." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished Generating all RTL models: CPU user time: 0.25 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.36 seconds; current allocated memory: 210.309 MB." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished Updating report files: CPU user time: 0.32 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.39 seconds; current allocated memory: 212.082 MB." resolution=""/>
+	<Message severity="INFO" prefix="[VHDL 208-304]" key="VHDL_304_1066" tag="" content="Generating VHDL RTL for kernel." resolution=""/>
+	<Message severity="INFO" prefix="[VLOG 209-307]" key="VLOG_307_1067" tag="" content="Generating Verilog RTL for kernel." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-790]" key="HLS 200-790" tag="LOOP,VITIS_KERNEL" content="**** Loop Constraint Status: All loop constraints were satisfied." resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-789]" key="HLS 200-789" tag="THROUGHPUT,VITIS_KERNEL" content="**** Estimated Fmax: 438.98 MHz" resolution=""/>
+	<Message severity="INFO" prefix="[HLS 200-111]" key="HLS_111_966" tag="RUNTIME" content="Finished Command csynth_design CPU user time: 25.86 seconds. CPU system time: 2.33 seconds. Elapsed time: 42.01 seconds; current allocated memory: 23.645 MB." resolution=""/>
+</Messages>

@@ -1,0 +1,109 @@
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979323846
+
+    # --- Paso 1: permutación bit-reversal (calculada dentro del kernel,
+    # sin tablas precomputadas fuera de la función) ---
+    for i in range(1024):
+        rev: int32 = 0
+        num: int32 = i
+        for b in range(10):
+            bit: int32 = num % 2
+            num = num / 2
+            rev = rev * 2 + bit
+        y_real[i] = x_real[rev]
+        y_imag[i] = x_imag[rev]
+
+    # --- Paso 2: FFT iterativa Cooley-Tukey radix-2, in-place sobre y_real/y_imag ---
+    m: int32 = 1
+    for stage in range(10):
+        m = m * 2
+        half: int32 = m / 2
+        num_groups: int32 = 1024 / m
+        for g in range(num_groups):
+            base: int32 = g * m
+            for j in range(half):
+                # angulo del twiddle factor W_m^j = exp(-2*pi*i*j/m),
+                # calculado directamente a partir de j (sin recurrencia)
+                j_f: float32 = j
+                m_f: float32 = m
+                angle: float32 = -2.0 * PI * j_f / m_f
+
+                # cos(angle) y sin(angle) via serie de Taylor (angle en (-pi, 0]),
+                # cada elemento se calcula de forma independiente a partir de 'angle'
+                x2: float32 = angle * angle
+                x4: float32 = x2 * x2
+                x6: float32 = x4 * x2
+                x8: float32 = x6 * x2
+                x10: float32 = x8 * x2
+                x12: float32 = x10 * x2
+                x14: float32 = x12 * x2
+
+                cos_a: float32 = 1.0 - x2 / 2.0 + x4 / 24.0 - x6 / 720.0 \
+                    + x8 / 40320.0 - x10 / 3628800.0 + x12 / 479001600.0 \
+                    - x14 / 87178291200.0
+
+                x3: float32 = angle * x2
+                x5: float32 = x3 * x2
+                x7: float32 = x5 * x2
+                x9: float32 = x7 * x2
+                x11: float32 = x9 * x2
+                x13: float32 = x11 * x2
+                x15: float32 = x13 * x2
+
+                sin_a: float32 = angle - x3 / 6.0 + x5 / 120.0 - x7 / 5040.0 \
+                    + x9 / 362880.0 - x11 / 39916800.0 + x13 / 6227020800.0 \
+                    - x15 / 1307674368000.0
+
+                idx1: int32 = base + j
+                idx2: int32 = base + j + half
+
+                v_real: float32 = y_real[idx2]
+                v_imag: float32 = y_imag[idx2]
+
+                t_real: float32 = v_real * cos_a - v_imag * sin_a
+                t_imag: float32 = v_real * sin_a + v_imag * cos_a
+
+                u_real: float32 = y_real[idx1]
+                u_imag: float32 = y_imag[idx1]
+
+                y_real[idx1] = u_real + t_real
+                y_imag[idx1] = u_imag + t_imag
+                y_real[idx2] = u_real - t_real
+                y_imag[idx2] = u_imag - t_imag
+```
+
+### SCHEDULE
+```python
+from allo.customize import Partition
+
+s = allo.customize(kernel)
+
+# El bucle 'stage' (10 iteraciones) define 'half' y 'num_groups', que
+# acotan los bucles internos 'g' y 'j'. Debe desenrollarse completamente
+# para que esos límites queden como constantes en tiempo de compilación
+# (si no, Vitis no puede acotar los bucles internos y reporta II=null).
+s.unroll("stage", factor=0)
+
+# Bucle crítico de la mariposa: se pipelinea con el II objetivo real (2),
+# sin forzar II=1 -- exigir II=1 aquí es una causa habitual de que la
+# síntesis se dispare en tiempo/complejidad y supere el timeout.
+s.pipeline("j", initiation_interval=2)
+
+# Particionado MODERADO (cíclico, factor 2) en vez de particionado
+# completo. Cada iteración de 'j' solo necesita 2 accesos concurrentes
+# (idx1 e idx2) para lectura/escritura, así que particionar por completo
+# los 1024 elementos de y_real/y_imag (mucho más caro de analizar en
+# P&R, y multiplicado por las 10 copias del 'stage' desenrollado) es
+# probablemente la causa más plausible del timeout de síntesis anterior.
+# Un factor cíclico pequeño basta para permitir esos 2 accesos
+# simultáneos y reduce drásticamente la complejidad del diseño.
+s.partition("kernel:y_real", partition_type=Partition.Cyclic, factor=2)
+s.partition("kernel:y_imag", partition_type=Partition.Cyclic, factor=2)
+```
