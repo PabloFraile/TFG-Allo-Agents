@@ -1,0 +1,135 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+
+    # ---- Bit-reversal permutation (10 bits, N=1024) ----
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in rang ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L1_SINTAXIS, decision=DecisionEscalada.REGENERAR_DESDE_CERO ---
+El Generador no produjo la cabecera '### SCHEDULE' esperada en su salida, por lo que _extraer_bloques() no pudo separar kernel y schedule (ValueError en allo_tools.py:181). Revisa el prompt/plantilla del agente Generador para asegurar que siempre emita ambos bloques ('### KERNEL' y '### SCHEDULE') con el formato exacto requerido por el parser. No se trata de un error de sintaxis Allo ni de tipos, sino de formato de salida del LLM generador; probablemente la generación se truncó o el modelo omitió la sección de schedule. Revisa también la consola de orchestrator.py por si Allo escribió diagnósticos adicionales a nivel de file descriptor nativo no capturados por stdout.
+↻ Regenerando desde cero (se descarta el historial de errores).
+
+=== Iteración de kernel 2/6 (intento global #2) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    TWO_PI: float32 = 6.283185307179586
+
+    # ---- Bit-reversal permutation (10 bits, N = 1024) ----
+    for i in range(1024):
+        tmp: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+       ...
+    (código completo guardado en debug_iteraciones/intento_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L1_SINTAXIS, decision=DecisionEscalada.CONTINUAR ---
+El Generador produjo código sin la cabecera obligatoria '### SCHEDULE' (y posiblemente sin '### KERNEL'). La herramienta run_l1_parse_types no pudo extraer los bloques y abortó antes de cualquier análisis de tipos. Acción: corregir la plantilla/prompt del Generador para que emita exactamente las cabeceras '### KERNEL' y '### SCHEDULE' tal como exige el parser en allo_tools.py (_extraer_bloques, línea 181), y reintentar L1. No se ha ejecutado L2/L3/L4.
+
+=== Iteración de kernel 3/6 (intento global #3) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # Bit-reversal permutation (10 bits, since 1024 = 2^10)
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = idx % 2
+            idx  ...
+    (código completo guardado en debug_iteraciones/intento_3.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L1_SINTAXIS, decision=DecisionEscalada.REGENERAR_DESDE_CERO ---
+El Generador produjo una salida sin la cabecera '### SCHEDULE' requerida por el parser (_extraer_bloques en allo_tools.py:181). La cascada se detuvo en L1 antes de llegar a L2/L3/L4. Acción: pedir al Generador que reemita la salida incluyendo explícitamente el bloque '### SCHEDULE' junto con el bloque de kernel, respetando el formato esperado por _extraer_bloques. Nota adicional: el panel de diagnóstico de Allo no se capturó en stdout (posible escritura a nivel de file descriptor nativo fuera del alcance de contextlib.redirect_stdout); revisar la consola real de orchestrator.py si se necesita más contexto.
+↻ Regenerando desde cero (se descarta el historial de errores).
+
+=== Iteración de kernel 4/6 (intento global #4) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Bit-reversal permutation (10 bits, 1024 points) ----
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            half_idx: int32 = idx / 2
+       ...
+    (código completo guardado en debug_iteraciones/intento_4.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L1_SINTAXIS, decision=DecisionEscalada.CONTINUAR ---
+El Generador produjo un código sin la cabecera '### SCHEDULE', por lo que `_extraer_bloques` no puede separar kernel y schedule y la cascada aborta antes de compilar. Revisa el prompt/plantilla del Generador para forzar que la salida incluya siempre las cabeceras '### KERNEL' y '### SCHEDULE' en el formato esperado por allo_tools.py (línea 181), y reintenta la generación. Nota aparte: el panel de diagnóstico de Allo no se capturó por stdout; si se necesita para depurar, revisar la consola nativa de orchestrator.py en vez de confiar en contextlib.redirect_stdout.
+
+=== Iteración de kernel 5/6 (intento global #5) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # ---- bit-reversal permutation ----
+    for i in range(1024):
+        n: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = n - (n / 2) * 2
+            rev = rev * 2 + b ...
+    (código completo guardado en debug_iteraciones/intento_5.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L1_SINTAXIS, decision=DecisionEscalada.CONTINUAR ---
+El Generador no produjo la cabecera obligatoria '### SCHEDULE' en su salida, por lo que _extraer_bloques() no pudo separar kernel y schedule y la cascada se detuvo antes de llegar a síntesis. Revisa el prompt/plantilla del Generador para asegurar que siempre emita ambas secciones ('### KERNEL' y '### SCHEDULE') con el formato esperado, y vuelve a lanzar L1. Nota aparte: el panel de diagnóstico de Allo no se capturó por stdout; si necesitas verlo, revisa la consola nativa de orchestrator.py.
+
+=== Iteración de kernel 6/6 (intento global #6) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # buffers de trabajo
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+    tmp_real: float32[1024]
+    tmp_imag: float32[1024]
+
+    PI: float32 = 3.14159265358979323846
+
+    # -------- bit-reversal pe ...
+    (código completo guardado en debug_iteraciones/intento_6.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El kernel generado no coincide funcionalmente con la referencia FFT radix-2 en NumPy: 995 de 1024 índices discrepantes (97% de la salida), con desviaciones grandes (max|diff_real|=5.146, max|diff_imag|=5.553 frente a tol=0.001). Esto no es un error de precisión numérica menor, sino una discrepancia estructural (posible bit-reversal incorrecto, mal orden de mariposas, o normalización/escala ausente). Revisar la implementación del kernel antes de reintentar: no tiene sentido avanzar a L3/L4 con un kernel funcionalmente incorrecto.
+
+⚠️ Se agotó el presupuesto de 6 iteraciones de generación de kernel sin converger.

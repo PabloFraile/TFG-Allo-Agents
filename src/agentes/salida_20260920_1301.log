@@ -1,0 +1,122 @@
+nohup: no se tendrá en cuenta la entrada
+🔒 Cargado kernel ya verificado desde 'kernel_verificado.txt' -- se arranca directamente en fase de ajuste de schedule, sin gastar presupuesto de generación de kernel desde cero.
+
+=== Intento de ajuste de schedule 1/8 (kernel congelado, intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1 (sintaxis/tipos), L2 (equivalencia funcional contra golden model) y L3 (equivalencia de schedule) pasaron correctamente. El fallo está solo en L4: la síntesis HLS excedió el timeout de 1800s, probablemente por un espacio de diseño de schedule demasiado grande o directivas de pipelining/unrolling agresivas que disparan el tiempo de exploración del sintetizador. El kernel es funcionalmente correcto; no se requiere regenerar el kernel, solo ajustar el schedule (p.ej. reducir factores de unroll, simplificar directivas de pipeline, o dividir la síntesis en bloques más pequeños) y/o aumentar el timeout si el diseño es legítimamente grande.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 2/8 (kernel congelado, intento global #2) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasan correctamente (sintaxis, equivalencia funcional contra golden model FFT radix-2, y equivalencia de schedule verificada). El kernel es funcionalmente correcto; el fallo está en las métricas de síntesis HLS de L4. Con II=32 y latencia de 73582 ciclos, el diseño no cumple los objetivos de rendimiento esperados (II demasiado alto para un pipeline eficiente). No se requiere regenerar el kernel: ajustar directivas de schedule (pipelining, unroll de bucles internos, partición de arrays BRAM) para reducir el II y la latencia sin tocar la lógica funcional.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 3/8 (kernel congelado, intento global #3) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_3.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1 (sintaxis/tipos), L2 (equivalencia funcional contra golden model) y L3 (equivalencia de schedule) pasaron correctamente. El fallo está aislado en L4: la síntesis HLS excedió el timeout de 1800s. Esto indica que el kernel es funcionalmente correcto pero el schedule actual genera un diseño demasiado complejo/grande para que el sintetizador converja en el tiempo asignado. Acciones recomendadas: (1) aumentar el timeout de síntesis si hay margen de recursos, (2) simplificar el schedule (reducir unrolling/pipelining agresivo, revisar directivas de partición de arrays), o (3) ejecutar síntesis incremental/por módulos para localizar el cuello de botella. No es necesario regenerar el kernel.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 4/8 (kernel congelado, intento global #4) ===
+--- Código generado ---
+### KERNEL
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_real: float ...
+    (código completo guardado en debug_iteraciones/intento_4.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (sintaxis, equivalencia funcional contra el golden model FFT radix-2 y equivalencia de schedule verificadas). El kernel es funcionalmente correcto, pero la síntesis HLS en L4 no cumple los objetivos de rendimiento: II=32 es muy alto para un pipeline eficiente y la latencia de peor caso es de 72559 ciclos. No es necesario regenerar el kernel; ajustar directivas de schedule (pipelining, unroll, partición de arrays) para reducir el II y la latencia.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 5/8 (kernel congelado, intento global #5) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_5.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (sintaxis, equivalencia funcional contra el golden model y equivalencia de schedule verificadas). El fallo está en L4: la síntesis de HLS excedió el timeout de 1800s, lo que indica que el diseño actual del schedule es demasiado complejo/grande para converger en el tiempo asignado (posible problema de pipelining, unrolling excesivo o falta de directivas de resource sharing). El kernel en sí es correcto; se recomienda ajustar el schedule (por ejemplo, reducir el grado de unroll, añadir directivas de partición de memoria más conservadoras, o aumentar el timeout de síntesis) sin regenerar el kernel.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 6/8 (kernel congelado, intento global #6) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_6.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.NINGUNO, decision=DecisionEscalada.CONTINUAR ---
+Todos los niveles L1-L4 pasaron correctamente. El kernel FFT radix-2 es sintácticamente válido, funcionalmente equivalente al modelo dorado numpy, y su schedule fue verificado formalmente con allo.verify. Síntesis HLS completada: II=20, latencia peor caso=73205 ciclos, reloj estimado=2.846 ns (~351 MHz), sin uso de BRAM, DSP=19, LUT=16299, FF=17542. No se requiere ninguna acción correctiva; el diseño está listo para el siguiente paso del flujo (implementación/bitstream).
+
+✅ Éxito. Guardado en el catálogo: ../../results/catalogo/fft_radix2.json

@@ -4,79 +4,379 @@ import allo
 from allo.ir.types import float32, int32
 
 
-def kernel(x_real: float32[1024], x_imag: float32[1024],
-           y_real: float32[1024], y_imag: float32[1024]):
-    PI: float32 = 3.14159265358979323846
+def kernel(x_real: float32[1024], x_imag: float32[1024], y_real: float32[1024], y_imag: float32[1024]):
+    NEG_TWO_PI: float32 = -6.283185307179586
 
-    # --- Paso 1: permutación bit-reversal (calculada dentro del kernel,
-    # sin tablas precomputadas fuera de la función) ---
+    # Permutacion bit-reversal (calculada dentro del kernel, sin tablas externas)
     for i in range(1024):
-        rev: int32 = 0
-        num: int32 = i
+        idx_br: int32 = i
+        rev_br: int32 = 0
         for b in range(10):
-            bit: int32 = num % 2
-            num = num / 2
-            rev = rev * 2 + bit
-        y_real[i] = x_real[rev]
-        y_imag[i] = x_imag[rev]
+            bit_br: int32 = idx_br - (idx_br / 2) * 2
+            rev_br = rev_br * 2 + bit_br
+            idx_br = idx_br / 2
+        y_real[i] = x_real[rev_br]
+        y_imag[i] = x_imag[rev_br]
 
-    # --- Paso 2: FFT iterativa Cooley-Tukey radix-2, in-place sobre y_real/y_imag ---
-    m: int32 = 1
-    for stage in range(10):
-        m = m * 2
-        half: int32 = m / 2
-        num_groups: int32 = 1024 / m
-        for g in range(num_groups):
-            base: int32 = g * m
-            for j in range(half):
-                # angulo del twiddle factor W_m^j = exp(-2*pi*i*j/m),
-                # calculado directamente a partir de j (sin recurrencia)
-                j_f: float32 = j
-                m_f: float32 = m
-                angle: float32 = -2.0 * PI * j_f / m_f
+    # Etapa 1: M=2, HALF=1, NUM_GROUPS=512
+    for g1 in range(512):
+        base1: int32 = g1 * 2
+        for j1 in range(1):
+            jf1: float32 = j1
+            angle1: float32 = NEG_TWO_PI * jf1 / 2.0
+            xsq1: float32 = angle1 * angle1
+            cosp7_1: float32 = -1.1470745597729725e-11
+            cosp6_1: float32 = 2.08767569878681e-09 + xsq1 * cosp7_1
+            cosp5_1: float32 = -2.755731922398589e-07 + xsq1 * cosp6_1
+            cosp4_1: float32 = 2.48015873015873e-05 + xsq1 * cosp5_1
+            cosp3_1: float32 = -0.001388888888888889 + xsq1 * cosp4_1
+            cosp2_1: float32 = 0.041666666666666664 + xsq1 * cosp3_1
+            cosp1_1: float32 = -0.5 + xsq1 * cosp2_1
+            cos_val1: float32 = 1.0 + xsq1 * cosp1_1
+            sinp7_1: float32 = -7.647163731819816e-13
+            sinp6_1: float32 = 1.6059043836821613e-10 + xsq1 * sinp7_1
+            sinp5_1: float32 = -2.505210838544172e-08 + xsq1 * sinp6_1
+            sinp4_1: float32 = 2.7557319223985893e-06 + xsq1 * sinp5_1
+            sinp3_1: float32 = -0.0001984126984126984 + xsq1 * sinp4_1
+            sinp2_1: float32 = 0.008333333333333333 + xsq1 * sinp3_1
+            sinp1_1: float32 = -0.16666666666666666 + xsq1 * sinp2_1
+            sin_val1: float32 = angle1 * (1.0 + xsq1 * sinp1_1)
+            idx1_1: int32 = base1 + j1
+            idx2_1: int32 = base1 + j1 + 1
+            yr2_1: float32 = y_real[idx2_1]
+            yi2_1: float32 = y_imag[idx2_1]
+            t_real1: float32 = cos_val1 * yr2_1 - sin_val1 * yi2_1
+            t_imag1: float32 = cos_val1 * yi2_1 + sin_val1 * yr2_1
+            u_real1: float32 = y_real[idx1_1]
+            u_imag1: float32 = y_imag[idx1_1]
+            y_real[idx1_1] = u_real1 + t_real1
+            y_imag[idx1_1] = u_imag1 + t_imag1
+            y_real[idx2_1] = u_real1 - t_real1
+            y_imag[idx2_1] = u_imag1 - t_imag1
 
-                # cos(angle) y sin(angle) via serie de Taylor (angle en (-pi, 0]),
-                # cada elemento se calcula de forma independiente a partir de 'angle'
-                x2: float32 = angle * angle
-                x4: float32 = x2 * x2
-                x6: float32 = x4 * x2
-                x8: float32 = x6 * x2
-                x10: float32 = x8 * x2
-                x12: float32 = x10 * x2
-                x14: float32 = x12 * x2
+    # Etapa 2: M=4, HALF=2, NUM_GROUPS=256
+    for g2 in range(256):
+        base2: int32 = g2 * 4
+        for j2 in range(2):
+            jf2: float32 = j2
+            angle2: float32 = NEG_TWO_PI * jf2 / 4.0
+            xsq2: float32 = angle2 * angle2
+            cosp7_2: float32 = -1.1470745597729725e-11
+            cosp6_2: float32 = 2.08767569878681e-09 + xsq2 * cosp7_2
+            cosp5_2: float32 = -2.755731922398589e-07 + xsq2 * cosp6_2
+            cosp4_2: float32 = 2.48015873015873e-05 + xsq2 * cosp5_2
+            cosp3_2: float32 = -0.001388888888888889 + xsq2 * cosp4_2
+            cosp2_2: float32 = 0.041666666666666664 + xsq2 * cosp3_2
+            cosp1_2: float32 = -0.5 + xsq2 * cosp2_2
+            cos_val2: float32 = 1.0 + xsq2 * cosp1_2
+            sinp7_2: float32 = -7.647163731819816e-13
+            sinp6_2: float32 = 1.6059043836821613e-10 + xsq2 * sinp7_2
+            sinp5_2: float32 = -2.505210838544172e-08 + xsq2 * sinp6_2
+            sinp4_2: float32 = 2.7557319223985893e-06 + xsq2 * sinp5_2
+            sinp3_2: float32 = -0.0001984126984126984 + xsq2 * sinp4_2
+            sinp2_2: float32 = 0.008333333333333333 + xsq2 * sinp3_2
+            sinp1_2: float32 = -0.16666666666666666 + xsq2 * sinp2_2
+            sin_val2: float32 = angle2 * (1.0 + xsq2 * sinp1_2)
+            idx1_2: int32 = base2 + j2
+            idx2_2: int32 = base2 + j2 + 2
+            yr2_2: float32 = y_real[idx2_2]
+            yi2_2: float32 = y_imag[idx2_2]
+            t_real2: float32 = cos_val2 * yr2_2 - sin_val2 * yi2_2
+            t_imag2: float32 = cos_val2 * yi2_2 + sin_val2 * yr2_2
+            u_real2: float32 = y_real[idx1_2]
+            u_imag2: float32 = y_imag[idx1_2]
+            y_real[idx1_2] = u_real2 + t_real2
+            y_imag[idx1_2] = u_imag2 + t_imag2
+            y_real[idx2_2] = u_real2 - t_real2
+            y_imag[idx2_2] = u_imag2 - t_imag2
 
-                cos_a: float32 = 1.0 - x2 / 2.0 + x4 / 24.0 - x6 / 720.0 \
-                    + x8 / 40320.0 - x10 / 3628800.0 + x12 / 479001600.0 \
-                    - x14 / 87178291200.0
+    # Etapa 3: M=8, HALF=4, NUM_GROUPS=128
+    for g3 in range(128):
+        base3: int32 = g3 * 8
+        for j3 in range(4):
+            jf3: float32 = j3
+            angle3: float32 = NEG_TWO_PI * jf3 / 8.0
+            xsq3: float32 = angle3 * angle3
+            cosp7_3: float32 = -1.1470745597729725e-11
+            cosp6_3: float32 = 2.08767569878681e-09 + xsq3 * cosp7_3
+            cosp5_3: float32 = -2.755731922398589e-07 + xsq3 * cosp6_3
+            cosp4_3: float32 = 2.48015873015873e-05 + xsq3 * cosp5_3
+            cosp3_3: float32 = -0.001388888888888889 + xsq3 * cosp4_3
+            cosp2_3: float32 = 0.041666666666666664 + xsq3 * cosp3_3
+            cosp1_3: float32 = -0.5 + xsq3 * cosp2_3
+            cos_val3: float32 = 1.0 + xsq3 * cosp1_3
+            sinp7_3: float32 = -7.647163731819816e-13
+            sinp6_3: float32 = 1.6059043836821613e-10 + xsq3 * sinp7_3
+            sinp5_3: float32 = -2.505210838544172e-08 + xsq3 * sinp6_3
+            sinp4_3: float32 = 2.7557319223985893e-06 + xsq3 * sinp5_3
+            sinp3_3: float32 = -0.0001984126984126984 + xsq3 * sinp4_3
+            sinp2_3: float32 = 0.008333333333333333 + xsq3 * sinp3_3
+            sinp1_3: float32 = -0.16666666666666666 + xsq3 * sinp2_3
+            sin_val3: float32 = angle3 * (1.0 + xsq3 * sinp1_3)
+            idx1_3: int32 = base3 + j3
+            idx2_3: int32 = base3 + j3 + 4
+            yr2_3: float32 = y_real[idx2_3]
+            yi2_3: float32 = y_imag[idx2_3]
+            t_real3: float32 = cos_val3 * yr2_3 - sin_val3 * yi2_3
+            t_imag3: float32 = cos_val3 * yi2_3 + sin_val3 * yr2_3
+            u_real3: float32 = y_real[idx1_3]
+            u_imag3: float32 = y_imag[idx1_3]
+            y_real[idx1_3] = u_real3 + t_real3
+            y_imag[idx1_3] = u_imag3 + t_imag3
+            y_real[idx2_3] = u_real3 - t_real3
+            y_imag[idx2_3] = u_imag3 - t_imag3
 
-                x3: float32 = angle * x2
-                x5: float32 = x3 * x2
-                x7: float32 = x5 * x2
-                x9: float32 = x7 * x2
-                x11: float32 = x9 * x2
-                x13: float32 = x11 * x2
-                x15: float32 = x13 * x2
+    # Etapa 4: M=16, HALF=8, NUM_GROUPS=64
+    for g4 in range(64):
+        base4: int32 = g4 * 16
+        for j4 in range(8):
+            jf4: float32 = j4
+            angle4: float32 = NEG_TWO_PI * jf4 / 16.0
+            xsq4: float32 = angle4 * angle4
+            cosp7_4: float32 = -1.1470745597729725e-11
+            cosp6_4: float32 = 2.08767569878681e-09 + xsq4 * cosp7_4
+            cosp5_4: float32 = -2.755731922398589e-07 + xsq4 * cosp6_4
+            cosp4_4: float32 = 2.48015873015873e-05 + xsq4 * cosp5_4
+            cosp3_4: float32 = -0.001388888888888889 + xsq4 * cosp4_4
+            cosp2_4: float32 = 0.041666666666666664 + xsq4 * cosp3_4
+            cosp1_4: float32 = -0.5 + xsq4 * cosp2_4
+            cos_val4: float32 = 1.0 + xsq4 * cosp1_4
+            sinp7_4: float32 = -7.647163731819816e-13
+            sinp6_4: float32 = 1.6059043836821613e-10 + xsq4 * sinp7_4
+            sinp5_4: float32 = -2.505210838544172e-08 + xsq4 * sinp6_4
+            sinp4_4: float32 = 2.7557319223985893e-06 + xsq4 * sinp5_4
+            sinp3_4: float32 = -0.0001984126984126984 + xsq4 * sinp4_4
+            sinp2_4: float32 = 0.008333333333333333 + xsq4 * sinp3_4
+            sinp1_4: float32 = -0.16666666666666666 + xsq4 * sinp2_4
+            sin_val4: float32 = angle4 * (1.0 + xsq4 * sinp1_4)
+            idx1_4: int32 = base4 + j4
+            idx2_4: int32 = base4 + j4 + 8
+            yr2_4: float32 = y_real[idx2_4]
+            yi2_4: float32 = y_imag[idx2_4]
+            t_real4: float32 = cos_val4 * yr2_4 - sin_val4 * yi2_4
+            t_imag4: float32 = cos_val4 * yi2_4 + sin_val4 * yr2_4
+            u_real4: float32 = y_real[idx1_4]
+            u_imag4: float32 = y_imag[idx1_4]
+            y_real[idx1_4] = u_real4 + t_real4
+            y_imag[idx1_4] = u_imag4 + t_imag4
+            y_real[idx2_4] = u_real4 - t_real4
+            y_imag[idx2_4] = u_imag4 - t_imag4
 
-                sin_a: float32 = angle - x3 / 6.0 + x5 / 120.0 - x7 / 5040.0 \
-                    + x9 / 362880.0 - x11 / 39916800.0 + x13 / 6227020800.0 \
-                    - x15 / 1307674368000.0
+    # Etapa 5: M=32, HALF=16, NUM_GROUPS=32
+    for g5 in range(32):
+        base5: int32 = g5 * 32
+        for j5 in range(16):
+            jf5: float32 = j5
+            angle5: float32 = NEG_TWO_PI * jf5 / 32.0
+            xsq5: float32 = angle5 * angle5
+            cosp7_5: float32 = -1.1470745597729725e-11
+            cosp6_5: float32 = 2.08767569878681e-09 + xsq5 * cosp7_5
+            cosp5_5: float32 = -2.755731922398589e-07 + xsq5 * cosp6_5
+            cosp4_5: float32 = 2.48015873015873e-05 + xsq5 * cosp5_5
+            cosp3_5: float32 = -0.001388888888888889 + xsq5 * cosp4_5
+            cosp2_5: float32 = 0.041666666666666664 + xsq5 * cosp3_5
+            cosp1_5: float32 = -0.5 + xsq5 * cosp2_5
+            cos_val5: float32 = 1.0 + xsq5 * cosp1_5
+            sinp7_5: float32 = -7.647163731819816e-13
+            sinp6_5: float32 = 1.6059043836821613e-10 + xsq5 * sinp7_5
+            sinp5_5: float32 = -2.505210838544172e-08 + xsq5 * sinp6_5
+            sinp4_5: float32 = 2.7557319223985893e-06 + xsq5 * sinp5_5
+            sinp3_5: float32 = -0.0001984126984126984 + xsq5 * sinp4_5
+            sinp2_5: float32 = 0.008333333333333333 + xsq5 * sinp3_5
+            sinp1_5: float32 = -0.16666666666666666 + xsq5 * sinp2_5
+            sin_val5: float32 = angle5 * (1.0 + xsq5 * sinp1_5)
+            idx1_5: int32 = base5 + j5
+            idx2_5: int32 = base5 + j5 + 16
+            yr2_5: float32 = y_real[idx2_5]
+            yi2_5: float32 = y_imag[idx2_5]
+            t_real5: float32 = cos_val5 * yr2_5 - sin_val5 * yi2_5
+            t_imag5: float32 = cos_val5 * yi2_5 + sin_val5 * yr2_5
+            u_real5: float32 = y_real[idx1_5]
+            u_imag5: float32 = y_imag[idx1_5]
+            y_real[idx1_5] = u_real5 + t_real5
+            y_imag[idx1_5] = u_imag5 + t_imag5
+            y_real[idx2_5] = u_real5 - t_real5
+            y_imag[idx2_5] = u_imag5 - t_imag5
 
-                idx1: int32 = base + j
-                idx2: int32 = base + j + half
+    # Etapa 6: M=64, HALF=32, NUM_GROUPS=16
+    for g6 in range(16):
+        base6: int32 = g6 * 64
+        for j6 in range(32):
+            jf6: float32 = j6
+            angle6: float32 = NEG_TWO_PI * jf6 / 64.0
+            xsq6: float32 = angle6 * angle6
+            cosp7_6: float32 = -1.1470745597729725e-11
+            cosp6_6: float32 = 2.08767569878681e-09 + xsq6 * cosp7_6
+            cosp5_6: float32 = -2.755731922398589e-07 + xsq6 * cosp6_6
+            cosp4_6: float32 = 2.48015873015873e-05 + xsq6 * cosp5_6
+            cosp3_6: float32 = -0.001388888888888889 + xsq6 * cosp4_6
+            cosp2_6: float32 = 0.041666666666666664 + xsq6 * cosp3_6
+            cosp1_6: float32 = -0.5 + xsq6 * cosp2_6
+            cos_val6: float32 = 1.0 + xsq6 * cosp1_6
+            sinp7_6: float32 = -7.647163731819816e-13
+            sinp6_6: float32 = 1.6059043836821613e-10 + xsq6 * sinp7_6
+            sinp5_6: float32 = -2.505210838544172e-08 + xsq6 * sinp6_6
+            sinp4_6: float32 = 2.7557319223985893e-06 + xsq6 * sinp5_6
+            sinp3_6: float32 = -0.0001984126984126984 + xsq6 * sinp4_6
+            sinp2_6: float32 = 0.008333333333333333 + xsq6 * sinp3_6
+            sinp1_6: float32 = -0.16666666666666666 + xsq6 * sinp2_6
+            sin_val6: float32 = angle6 * (1.0 + xsq6 * sinp1_6)
+            idx1_6: int32 = base6 + j6
+            idx2_6: int32 = base6 + j6 + 32
+            yr2_6: float32 = y_real[idx2_6]
+            yi2_6: float32 = y_imag[idx2_6]
+            t_real6: float32 = cos_val6 * yr2_6 - sin_val6 * yi2_6
+            t_imag6: float32 = cos_val6 * yi2_6 + sin_val6 * yr2_6
+            u_real6: float32 = y_real[idx1_6]
+            u_imag6: float32 = y_imag[idx1_6]
+            y_real[idx1_6] = u_real6 + t_real6
+            y_imag[idx1_6] = u_imag6 + t_imag6
+            y_real[idx2_6] = u_real6 - t_real6
+            y_imag[idx2_6] = u_imag6 - t_imag6
 
-                v_real: float32 = y_real[idx2]
-                v_imag: float32 = y_imag[idx2]
+    # Etapa 7: M=128, HALF=64, NUM_GROUPS=8
+    for g7 in range(8):
+        base7: int32 = g7 * 128
+        for j7 in range(64):
+            jf7: float32 = j7
+            angle7: float32 = NEG_TWO_PI * jf7 / 128.0
+            xsq7: float32 = angle7 * angle7
+            cosp7_7: float32 = -1.1470745597729725e-11
+            cosp6_7: float32 = 2.08767569878681e-09 + xsq7 * cosp7_7
+            cosp5_7: float32 = -2.755731922398589e-07 + xsq7 * cosp6_7
+            cosp4_7: float32 = 2.48015873015873e-05 + xsq7 * cosp5_7
+            cosp3_7: float32 = -0.001388888888888889 + xsq7 * cosp4_7
+            cosp2_7: float32 = 0.041666666666666664 + xsq7 * cosp3_7
+            cosp1_7: float32 = -0.5 + xsq7 * cosp2_7
+            cos_val7: float32 = 1.0 + xsq7 * cosp1_7
+            sinp7_7: float32 = -7.647163731819816e-13
+            sinp6_7: float32 = 1.6059043836821613e-10 + xsq7 * sinp7_7
+            sinp5_7: float32 = -2.505210838544172e-08 + xsq7 * sinp6_7
+            sinp4_7: float32 = 2.7557319223985893e-06 + xsq7 * sinp5_7
+            sinp3_7: float32 = -0.0001984126984126984 + xsq7 * sinp4_7
+            sinp2_7: float32 = 0.008333333333333333 + xsq7 * sinp3_7
+            sinp1_7: float32 = -0.16666666666666666 + xsq7 * sinp2_7
+            sin_val7: float32 = angle7 * (1.0 + xsq7 * sinp1_7)
+            idx1_7: int32 = base7 + j7
+            idx2_7: int32 = base7 + j7 + 64
+            yr2_7: float32 = y_real[idx2_7]
+            yi2_7: float32 = y_imag[idx2_7]
+            t_real7: float32 = cos_val7 * yr2_7 - sin_val7 * yi2_7
+            t_imag7: float32 = cos_val7 * yi2_7 + sin_val7 * yr2_7
+            u_real7: float32 = y_real[idx1_7]
+            u_imag7: float32 = y_imag[idx1_7]
+            y_real[idx1_7] = u_real7 + t_real7
+            y_imag[idx1_7] = u_imag7 + t_imag7
+            y_real[idx2_7] = u_real7 - t_real7
+            y_imag[idx2_7] = u_imag7 - t_imag7
 
-                t_real: float32 = v_real * cos_a - v_imag * sin_a
-                t_imag: float32 = v_real * sin_a + v_imag * cos_a
+    # Etapa 8: M=256, HALF=128, NUM_GROUPS=4
+    for g8 in range(4):
+        base8: int32 = g8 * 256
+        for j8 in range(128):
+            jf8: float32 = j8
+            angle8: float32 = NEG_TWO_PI * jf8 / 256.0
+            xsq8: float32 = angle8 * angle8
+            cosp7_8: float32 = -1.1470745597729725e-11
+            cosp6_8: float32 = 2.08767569878681e-09 + xsq8 * cosp7_8
+            cosp5_8: float32 = -2.755731922398589e-07 + xsq8 * cosp6_8
+            cosp4_8: float32 = 2.48015873015873e-05 + xsq8 * cosp5_8
+            cosp3_8: float32 = -0.001388888888888889 + xsq8 * cosp4_8
+            cosp2_8: float32 = 0.041666666666666664 + xsq8 * cosp3_8
+            cosp1_8: float32 = -0.5 + xsq8 * cosp2_8
+            cos_val8: float32 = 1.0 + xsq8 * cosp1_8
+            sinp7_8: float32 = -7.647163731819816e-13
+            sinp6_8: float32 = 1.6059043836821613e-10 + xsq8 * sinp7_8
+            sinp5_8: float32 = -2.505210838544172e-08 + xsq8 * sinp6_8
+            sinp4_8: float32 = 2.7557319223985893e-06 + xsq8 * sinp5_8
+            sinp3_8: float32 = -0.0001984126984126984 + xsq8 * sinp4_8
+            sinp2_8: float32 = 0.008333333333333333 + xsq8 * sinp3_8
+            sinp1_8: float32 = -0.16666666666666666 + xsq8 * sinp2_8
+            sin_val8: float32 = angle8 * (1.0 + xsq8 * sinp1_8)
+            idx1_8: int32 = base8 + j8
+            idx2_8: int32 = base8 + j8 + 128
+            yr2_8: float32 = y_real[idx2_8]
+            yi2_8: float32 = y_imag[idx2_8]
+            t_real8: float32 = cos_val8 * yr2_8 - sin_val8 * yi2_8
+            t_imag8: float32 = cos_val8 * yi2_8 + sin_val8 * yr2_8
+            u_real8: float32 = y_real[idx1_8]
+            u_imag8: float32 = y_imag[idx1_8]
+            y_real[idx1_8] = u_real8 + t_real8
+            y_imag[idx1_8] = u_imag8 + t_imag8
+            y_real[idx2_8] = u_real8 - t_real8
+            y_imag[idx2_8] = u_imag8 - t_imag8
 
-                u_real: float32 = y_real[idx1]
-                u_imag: float32 = y_imag[idx1]
+    # Etapa 9: M=512, HALF=256, NUM_GROUPS=2
+    for g9 in range(2):
+        base9: int32 = g9 * 512
+        for j9 in range(256):
+            jf9: float32 = j9
+            angle9: float32 = NEG_TWO_PI * jf9 / 512.0
+            xsq9: float32 = angle9 * angle9
+            cosp7_9: float32 = -1.1470745597729725e-11
+            cosp6_9: float32 = 2.08767569878681e-09 + xsq9 * cosp7_9
+            cosp5_9: float32 = -2.755731922398589e-07 + xsq9 * cosp6_9
+            cosp4_9: float32 = 2.48015873015873e-05 + xsq9 * cosp5_9
+            cosp3_9: float32 = -0.001388888888888889 + xsq9 * cosp4_9
+            cosp2_9: float32 = 0.041666666666666664 + xsq9 * cosp3_9
+            cosp1_9: float32 = -0.5 + xsq9 * cosp2_9
+            cos_val9: float32 = 1.0 + xsq9 * cosp1_9
+            sinp7_9: float32 = -7.647163731819816e-13
+            sinp6_9: float32 = 1.6059043836821613e-10 + xsq9 * sinp7_9
+            sinp5_9: float32 = -2.505210838544172e-08 + xsq9 * sinp6_9
+            sinp4_9: float32 = 2.7557319223985893e-06 + xsq9 * sinp5_9
+            sinp3_9: float32 = -0.0001984126984126984 + xsq9 * sinp4_9
+            sinp2_9: float32 = 0.008333333333333333 + xsq9 * sinp3_9
+            sinp1_9: float32 = -0.16666666666666666 + xsq9 * sinp2_9
+            sin_val9: float32 = angle9 * (1.0 + xsq9 * sinp1_9)
+            idx1_9: int32 = base9 + j9
+            idx2_9: int32 = base9 + j9 + 256
+            yr2_9: float32 = y_real[idx2_9]
+            yi2_9: float32 = y_imag[idx2_9]
+            t_real9: float32 = cos_val9 * yr2_9 - sin_val9 * yi2_9
+            t_imag9: float32 = cos_val9 * yi2_9 + sin_val9 * yr2_9
+            u_real9: float32 = y_real[idx1_9]
+            u_imag9: float32 = y_imag[idx1_9]
+            y_real[idx1_9] = u_real9 + t_real9
+            y_imag[idx1_9] = u_imag9 + t_imag9
+            y_real[idx2_9] = u_real9 - t_real9
+            y_imag[idx2_9] = u_imag9 - t_imag9
 
-                y_real[idx1] = u_real + t_real
-                y_imag[idx1] = u_imag + t_imag
-                y_real[idx2] = u_real - t_real
-                y_imag[idx2] = u_imag - t_imag
+    # Etapa 10: M=1024, HALF=512, NUM_GROUPS=1
+    for g10 in range(1):
+        base10: int32 = g10 * 1024
+        for j10 in range(512):
+            jf10: float32 = j10
+            angle10: float32 = NEG_TWO_PI * jf10 / 1024.0
+            xsq10: float32 = angle10 * angle10
+            cosp7_10: float32 = -1.1470745597729725e-11
+            cosp6_10: float32 = 2.08767569878681e-09 + xsq10 * cosp7_10
+            cosp5_10: float32 = -2.755731922398589e-07 + xsq10 * cosp6_10
+            cosp4_10: float32 = 2.48015873015873e-05 + xsq10 * cosp5_10
+            cosp3_10: float32 = -0.001388888888888889 + xsq10 * cosp4_10
+            cosp2_10: float32 = 0.041666666666666664 + xsq10 * cosp3_10
+            cosp1_10: float32 = -0.5 + xsq10 * cosp2_10
+            cos_val10: float32 = 1.0 + xsq10 * cosp1_10
+            sinp7_10: float32 = -7.647163731819816e-13
+            sinp6_10: float32 = 1.6059043836821613e-10 + xsq10 * sinp7_10
+            sinp5_10: float32 = -2.505210838544172e-08 + xsq10 * sinp6_10
+            sinp4_10: float32 = 2.7557319223985893e-06 + xsq10 * sinp5_10
+            sinp3_10: float32 = -0.0001984126984126984 + xsq10 * sinp4_10
+            sinp2_10: float32 = 0.008333333333333333 + xsq10 * sinp3_10
+            sinp1_10: float32 = -0.16666666666666666 + xsq10 * sinp2_10
+            sin_val10: float32 = angle10 * (1.0 + xsq10 * sinp1_10)
+            idx1_10: int32 = base10 + j10
+            idx2_10: int32 = base10 + j10 + 512
+            yr2_10: float32 = y_real[idx2_10]
+            yi2_10: float32 = y_imag[idx2_10]
+            t_real10: float32 = cos_val10 * yr2_10 - sin_val10 * yi2_10
+            t_imag10: float32 = cos_val10 * yi2_10 + sin_val10 * yr2_10
+            u_real10: float32 = y_real[idx1_10]
+            u_imag10: float32 = y_imag[idx1_10]
+            y_real[idx1_10] = u_real10 + t_real10
+            y_imag[idx1_10] = u_imag10 + t_imag10
+            y_real[idx2_10] = u_real10 - t_real10
+            y_imag[idx2_10] = u_imag10 - t_imag10
 ```
 
 ### SCHEDULE
@@ -85,27 +385,38 @@ from allo.customize import Partition
 
 s = allo.customize(kernel)
 
-# Necesario: 'half'/'num_groups' dependen de 'stage', y sin desenrollar
-# el bucle exterior HLS los ve como variables en tiempo de ejecucion
-# (II=null). Se mantiene el unroll completo porque es obligatorio para
-# la correccion del pipelineo, pero se reduce drasticamente todo lo
-# demas (particionado y profundidad de pipeline) para acelerar la
-# sintesis y evitar el timeout de 600s.
-s.unroll("stage", factor=0)
+# Particionado completo de los arrays de salida: el patron de acceso
+# (idx1/idx2 = base + j (+ half)) cambia de stride en cada una de las 10
+# etapas desenrolladas a mano, por lo que ningun factor fijo de
+# Cyclic/Block evita conflictos de banco en todas las etapas a la vez.
+s.partition("kernel:y_real", partition_type=Partition.Complete)
+s.partition("kernel:y_imag", partition_type=Partition.Complete)
 
-# Particionado moderado (ciclico, factor pequeno) en vez de
-# Partition.Complete: da suficientes puertos de acceso concurrente para
-# alcanzar II=2 en la mariposa sin explotar el numero de registros/BRAM
-# ports que generaba el particionado completo (causa probable del
-# timeout de sintesis anterior).
-s.partition("kernel:y_real", partition_type=Partition.Cyclic, factor=4)
-s.partition("kernel:y_imag", partition_type=Partition.Cyclic, factor=4)
+# Bit-reversal: pipelinear el bucle exterior (el interior 'b' es de solo
+# 10 iteraciones fijas, no domina el coste).
+s.pipeline("i", initiation_interval=20)
 
-# Solo se pipelinea el bucle interno de la mariposa (objetivo_ii=2);
-# no se pipelinea ni se toca el bucle de bit-reversal (paso 1) ni el
-# bucle de grupos 'g', para mantener el diseño simple y reducir el
-# tiempo de sintesis.
-s.pipeline("j", initiation_interval=2)
-
-s
+# En cada etapa desenrollada a mano, pipelinear SIEMPRE el bucle (g o j)
+# que tiene mas iteraciones -- el otro es trivial y pipelinearlo no
+# aporta nada, dejando sin pragma al bucle que realmente domina el coste.
+# Etapa 1  (g1:512, j1:1)   -> pipeline g1
+s.pipeline("g1", initiation_interval=20)
+# Etapa 2  (g2:256, j2:2)   -> pipeline g2
+s.pipeline("g2", initiation_interval=20)
+# Etapa 3  (g3:128, j3:4)   -> pipeline g3
+s.pipeline("g3", initiation_interval=20)
+# Etapa 4  (g4:64,  j4:8)   -> pipeline g4
+s.pipeline("g4", initiation_interval=20)
+# Etapa 5  (g5:32,  j5:16)  -> pipeline g5
+s.pipeline("g5", initiation_interval=20)
+# Etapa 6  (g6:16,  j6:32)  -> pipeline j6
+s.pipeline("j6", initiation_interval=20)
+# Etapa 7  (g7:8,   j7:64)  -> pipeline j7
+s.pipeline("j7", initiation_interval=20)
+# Etapa 8  (g8:4,   j8:128) -> pipeline j8
+s.pipeline("j8", initiation_interval=20)
+# Etapa 9  (g9:2,   j9:256) -> pipeline j9
+s.pipeline("j9", initiation_interval=20)
+# Etapa 10 (g10:1,  j10:512) -> pipeline j10
+s.pipeline("j10", initiation_interval=20)
 ```

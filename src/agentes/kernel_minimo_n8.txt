@@ -1,0 +1,113 @@
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[8], x_imag: float32[8],
+           y_real: float32[8], y_imag: float32[8]):
+
+    SQRT2_2: float32 = 0.70710678118654746  # sqrt(2)/2 -- W_8^1 y W_8^3
+
+    # ---- Tabla de twiddle factors (N/2=4 entradas). N=8 es tan pequeño que
+    # se escriben directamente los 4 valores conocidos de W_8^k = exp(-2*pi*i*k/8),
+    # k=0..3, en vez de calcularlos con una serie de Taylor como en el kernel
+    # de 1024 puntos -- aquí no hace falta esa maquinaria. ----
+    twiddle_real: float32[4]
+    twiddle_imag: float32[4]
+
+    twiddle_real[0] = 1.0
+    twiddle_imag[0] = 0.0
+    twiddle_real[1] = SQRT2_2
+    twiddle_imag[1] = -SQRT2_2
+    twiddle_real[2] = 0.0
+    twiddle_imag[2] = -1.0
+    twiddle_real[3] = -SQRT2_2
+    twiddle_imag[3] = -SQRT2_2
+
+    # ---- Permutacion bit-reversal (3 bits, N=8) ----
+    for i in range(8):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(3):
+            half_idx: int32 = idx / 2
+            bit: int32 = idx - half_idx * 2
+            idx = half_idx
+            rev = rev * 2 + bit
+        y_real[rev] = x_real[i]
+        y_imag[rev] = x_imag[i]
+
+    # ---- Etapa 1: m=2, half=1, num_groups=4 (bucle interno trivial, j=0
+    # siempre -- se deja fuera para no complicar el ejemplo) ----
+    for g1 in range(4):
+        base_1: int32 = g1 * 2
+        idx1_1: int32 = base_1
+        idx2_1: int32 = base_1 + 1
+        tr_1: float32 = twiddle_real[0]
+        ti_1: float32 = twiddle_imag[0]
+        ur_1: float32 = y_real[idx1_1]
+        ui_1: float32 = y_imag[idx1_1]
+        vr_1: float32 = y_real[idx2_1]
+        vi_1: float32 = y_imag[idx2_1]
+        trv_1: float32 = tr_1 * vr_1 - ti_1 * vi_1
+        tiv_1: float32 = tr_1 * vi_1 + ti_1 * vr_1
+        y_real[idx1_1] = ur_1 + trv_1
+        y_imag[idx1_1] = ui_1 + tiv_1
+        y_real[idx2_1] = ur_1 - trv_1
+        y_imag[idx2_1] = ui_1 - tiv_1
+
+    # ---- Etapa 2: m=4, half=2, num_groups=2 ----
+    for g2 in range(2):
+        base_2: int32 = g2 * 4
+        for j2 in range(2):
+            idx1_2: int32 = base_2 + j2
+            idx2_2: int32 = idx1_2 + 2
+            tw_idx_2: int32 = j2 * 2
+            tr_2: float32 = twiddle_real[tw_idx_2]
+            ti_2: float32 = twiddle_imag[tw_idx_2]
+            ur_2: float32 = y_real[idx1_2]
+            ui_2: float32 = y_imag[idx1_2]
+            vr_2: float32 = y_real[idx2_2]
+            vi_2: float32 = y_imag[idx2_2]
+            trv_2: float32 = tr_2 * vr_2 - ti_2 * vi_2
+            tiv_2: float32 = tr_2 * vi_2 + ti_2 * vr_2
+            y_real[idx1_2] = ur_2 + trv_2
+            y_imag[idx1_2] = ui_2 + tiv_2
+            y_real[idx2_2] = ur_2 - trv_2
+            y_imag[idx2_2] = ui_2 - tiv_2
+
+    # ---- Etapa 3: m=8, half=4, num_groups=1 (un solo grupo -- el bucle
+    # externo también se deja fuera, solo queda el interno j3) ----
+    for j3 in range(4):
+        idx1_3: int32 = j3
+        idx2_3: int32 = j3 + 4
+        tr_3: float32 = twiddle_real[j3]
+        ti_3: float32 = twiddle_imag[j3]
+        ur_3: float32 = y_real[idx1_3]
+        ui_3: float32 = y_imag[idx1_3]
+        vr_3: float32 = y_real[idx2_3]
+        vi_3: float32 = y_imag[idx2_3]
+        trv_3: float32 = tr_3 * vr_3 - ti_3 * vi_3
+        tiv_3: float32 = tr_3 * vi_3 + ti_3 * vr_3
+        y_real[idx1_3] = ur_3 + trv_3
+        y_imag[idx1_3] = ui_3 + tiv_3
+        y_real[idx2_3] = ur_3 - trv_3
+        y_imag[idx2_3] = ui_3 - tiv_3
+```
+
+### SCHEDULE
+```python
+from allo.customize import Partition
+
+s = allo.customize(kernel)
+
+# N=8 -- particion completa de dos arrays de 8 elementos es trivial (16
+# registros en total), nada que ver con el coste de particionar 1024.
+s.partition("kernel:y_real", partition_type=Partition.Complete)
+s.partition("kernel:y_imag", partition_type=Partition.Complete)
+
+s.pipeline("i", initiation_interval=1)
+s.pipeline("g1", initiation_interval=1)
+s.pipeline("g2", initiation_interval=1)
+s.pipeline("j3", initiation_interval=1)
+```

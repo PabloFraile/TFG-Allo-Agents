@@ -1,0 +1,113 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+    twiddle_real: float32[512]
+    twiddle_imag: float32[512]
+
+    # ---- Bit-reversal permutation load (10 bits, 1024 puntos) ----
+    for n in range(1 ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El kernel generado no coincide funcionalmente con el modelo de referencia 'fft_radix2_numpy_reference'. Se detectaron 555 de 1024 índices discrepantes (max|diff_real|=0.09971, max|diff_imag|=0.09169, tolerancia=0.001). El error afecta más de la mitad de las salidas y supera la tolerancia en dos órdenes de magnitud, lo que sugiere un fallo estructural (p. ej. orden de bit-reversal, twiddle factors incorrectos, o etapa de mariposa mal implementada) y no un simple error de precisión numérica. Revisar la lógica del kernel FFT radix-2 antes de reintentar; no se ejecutaron L3 ni L4.
+
+=== Iteración de kernel 2/6 (intento global #2) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # --- Bit-reversal permutation (10 bits, N=1024) ---
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = idx - (idx / 2) * 2
+        ...
+    (código completo guardado en debug_iteraciones/intento_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (parse/tipos, funcional contra golden model, y equivalencia de schedule verificada). El fallo ocurre en L4: la síntesis HLS excedió el timeout de 600s. El kernel es funcionalmente correcto; el problema es de complejidad/tamaño del schedule generado para síntesis. Se recomienda ajustar el schedule (p.ej. aumentar particionamiento, reducir el grado de unrolling/pipelining, o simplificar la jerarquía de bucles) sin regenerar el kernel, y opcionalmente aumentar el timeout de síntesis si el diseño es legítimamente grande.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 1/8 (kernel congelado, intento global #3) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    # --- Bit-reversal permutation (10 bits, N=1024) ---
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = idx - (idx / 2) * 2
+        ...
+    (código completo guardado en debug_iteraciones/intento_3.txt)
+⚠️  Fallo de infraestructura en el intento global #3: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 2/8 (kernel congelado, intento global #4) ===
+⚠️  Fallo de infraestructura en el intento global #4: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 3/8 (kernel congelado, intento global #5) ===
+⚠️  Fallo de infraestructura en el intento global #5: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 4/8 (kernel congelado, intento global #6) ===
+⚠️  Fallo de infraestructura en el intento global #6: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 5/8 (kernel congelado, intento global #7) ===
+⚠️  Fallo de infraestructura en el intento global #7: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 6/8 (kernel congelado, intento global #8) ===
+⚠️  Fallo de infraestructura en el intento global #8: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 7/8 (kernel congelado, intento global #9) ===
+⚠️  Fallo de infraestructura en el intento global #9: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Intento de ajuste de schedule 8/8 (kernel congelado, intento global #10) ===
+⚠️  Fallo de infraestructura en el intento global #10: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+⚠️ Se agotaron los 8 intentos de ajuste de schedule para este kernel sin cerrar el II objetivo. Regenerando el kernel desde cero.
+
+=== Iteración de kernel 3/6 (intento global #12) ===
+⚠️  Fallo de infraestructura en el intento global #12: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Iteración de kernel 4/6 (intento global #13) ===
+⚠️  Fallo de infraestructura en el intento global #13: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Iteración de kernel 5/6 (intento global #14) ===
+⚠️  Fallo de infraestructura en el intento global #14: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+=== Iteración de kernel 6/6 (intento global #15) ===
+⚠️  Fallo de infraestructura en el intento global #15: Exception: Claude Code returned an error result: success
+    Tratado como transitorio -- se reintenta sin descartar el historial de errores acumulado ni el kernel congelado.
+
+⚠️ Se agotó el presupuesto de 6 iteraciones de generación de kernel sin converger.

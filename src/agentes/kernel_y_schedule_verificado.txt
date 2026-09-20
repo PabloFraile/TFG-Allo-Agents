@@ -261,40 +261,35 @@ from allo.customize import Partition
 
 s = allo.customize(kernel)
 
-# ---- Particionado completo de los arrays afectados por patrones de
-# stride variable entre etapas (y_real/y_imag: idx1/idx2 cambian de
-# stride en cada etapa; twiddle_real/twiddle_imag: tw_idx tambien cambia
-# de stride en cada etapa) ----
+# y_real/y_imag se leen y escriben en DOS índices calculados (idx1, idx2) en
+# la misma iteración de cada etapa de la mariposa -- eso son 2 lecturas + 2
+# escrituras por ciclo sobre el mismo array, más de lo que un BRAM de doble
+# puerto soporta de forma directa. Partición completa los convierte en
+# registros individuales, sin conflicto de puertos.
 s.partition("kernel:y_real", partition_type=Partition.Complete)
 s.partition("kernel:y_imag", partition_type=Partition.Complete)
-s.partition("kernel:twiddle_real", partition_type=Partition.Complete)
-s.partition("kernel:twiddle_imag", partition_type=Partition.Complete)
 
-# ---- Pipeline de la tabla de twiddle factors y de la permutacion
-# bit-reversal ----
-s.pipeline("k", initiation_interval=20)
-s.pipeline("i", initiation_interval=20)
+# twiddle_real/twiddle_imag solo se leen UNA vez por iteración de cada etapa
+# (una lectura por array), así que no necesitan partición para cerrar II=20 --
+# un solo puerto de BRAM basta.
 
-# ---- Pipeline por etapa: siempre el bucle (g o j) con MAS iteraciones,
-# nunca el trivial ----
-# Etapa 1  (g1:512, j1:1)   -> pipelinear g1
-s.pipeline("g1", initiation_interval=20)
-# Etapa 2  (g2:256, j2:2)   -> pipelinear g2
-s.pipeline("g2", initiation_interval=20)
-# Etapa 3  (g3:128, j3:4)   -> pipelinear g3
-s.pipeline("g3", initiation_interval=20)
-# Etapa 4  (g4:64, j4:8)    -> pipelinear g4
-s.pipeline("g4", initiation_interval=20)
-# Etapa 5  (g5:32, j5:16)   -> pipelinear g5
-s.pipeline("g5", initiation_interval=20)
-# Etapa 6  (g6:16, j6:32)   -> pipelinear j6
-s.pipeline("j6", initiation_interval=20)
-# Etapa 7  (g7:8, j7:64)    -> pipelinear j7
-s.pipeline("j7", initiation_interval=20)
-# Etapa 8  (g8:4, j8:128)   -> pipelinear j8
-s.pipeline("j8", initiation_interval=20)
-# Etapa 9  (g9:2, j9:256)   -> pipelinear j9
-s.pipeline("j9", initiation_interval=20)
-# Etapa 10 (g10:1, j10:512) -> pipelinear j10
-s.pipeline("j10", initiation_interval=20)
+s.pipeline("k", initiation_interval=20)   # cálculo de la tabla de twiddle factors
+s.pipeline("i", initiation_interval=20)   # permutación bit-reversal
+
+# Para cada etapa N: se pipelinea el bucle (externo g_N o interno j_N) que
+# tenga MÁS iteraciones, y se deja que Allo/Vitis desenrolle por completo el
+# otro (el de menos iteraciones) -- así se evita tanto una síntesis
+# puramente secuencial como un desenrollado masivo del bucle grande, que
+# dispararía el uso de recursos. Mismo patrón usado en las cascadas que sí
+# llegaron a L4 en corridas anteriores (ver docs/bitacora.md).
+s.pipeline("g1", initiation_interval=20)   # 512 grupos x 1 mariposa
+s.pipeline("g2", initiation_interval=20)   # 256 grupos x 2 mariposas
+s.pipeline("g3", initiation_interval=20)   # 128 grupos x 4 mariposas
+s.pipeline("g4", initiation_interval=20)   #  64 grupos x 8 mariposas
+s.pipeline("g5", initiation_interval=20)   #  32 grupos x 16 mariposas
+s.pipeline("j6", initiation_interval=20)   #  16 grupos x 32 mariposas -- ya conviene pipelinear la interna
+s.pipeline("j7", initiation_interval=20)   #   8 grupos x 64 mariposas
+s.pipeline("j8", initiation_interval=20)   #   4 grupos x 128 mariposas
+s.pipeline("j9", initiation_interval=20)   #   2 grupos x 256 mariposas
+s.pipeline("j10", initiation_interval=20)  #   1 grupo  x 512 mariposas
 ```

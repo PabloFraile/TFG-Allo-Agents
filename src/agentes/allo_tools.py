@@ -92,16 +92,28 @@ ERRORES_CAPTURABLES = (Exception, SystemExit)
 # ---------------------------------------------------------------------------
 NOMBRE_PROYECTO_VITIS = "out.prj"  # fijo -- así lo nombra Allo internamente,
                                      # independientemente del project= que le pasemos
-TIMEOUT_SINTESIS_L4_SEGUNDOS = 600  # 20 min; subido de nuevo el 20 de agosto
-                                      # de 2026 tras confirmar que 600s seguían
-                                      # siendo insuficientes en el hardware
-                                      # disponible (portátil de gama media) para
-                                      # la síntesis completa de la FFT de 1024
-                                      # puntos con objetivo_ii=1 -- ver
-                                      # docs/bitacora.md. Si esto sigue sin
-                                      # bastar, valorar relajar objetivo_ii a 2
-                                      # como decisión de ingeniería documentada
-                                      # en vez de seguir subiendo el timeout.
+TIMEOUT_SINTESIS_L4_SEGUNDOS = 1800  # 30 min. CORREGIDO (19 de septiembre de
+                                      # 2026, ver docs/bitacora.md): el
+                                      # comentario de esta constante decía "20
+                                      # min" (subido "de nuevo" el 20 de
+                                      # agosto) pero el valor real seguía en
+                                      # 600s = 10 min -- el comentario nunca se
+                                      # aplicó al número. Confirmado en
+                                      # verificar_cascada_completa.py: con el
+                                      # kernel+schedule de
+                                      # kernel_y_schedule_verificado.txt
+                                      # (objetivo_ii=20, partición completa de
+                                      # y_real/y_imag), L1-L3 pasan de verdad y
+                                      # L4 agota los 600s -- probablemente el
+                                      # propio coste de scheduling/mux del
+                                      # solver de síntesis ante la partición
+                                      # completa de dos arrays de 1024
+                                      # elementos, no solo el objetivo de II.
+                                      # Si 1800s tampoco basta, valorar reducir
+                                      # la partición de y_real/y_imag a un
+                                      # factor cíclico en vez de completa
+                                      # (menos registros/muxing que sintetizar)
+                                      # antes de seguir subiendo el timeout.
 
 
 def _formatear_error(e: BaseException, log_stdout: str = "") -> str:
@@ -274,11 +286,20 @@ async def run_l1_parse_types(args: dict[str, Any]) -> dict[str, Any]:
     "run_l2_functional",
     "Nivel L2: compila con s.build(target='llvm') y ejecuta el módulo contra "
     "el golden model sobre los vectores de test. Devuelve diff numérico si falla.",
-    {"codigo_allo": str, "golden_model_id": str},
+    {"codigo_allo": str, "golden_model_id": str, "n_puntos": int},
 )
 async def run_l2_functional(args: dict[str, Any]) -> dict[str, Any]:
+    """
+    NUEVO (19 de septiembre de 2026, ver docs/bitacora.md): 'n_puntos' es
+    opcional (por defecto 1024, el tamaño del spec real) -- se añadió para
+    poder probar la cascada L1-L4 completa contra un ejemplo mínimo (p. ej.
+    una FFT de 8 puntos) sin que L2 intente comparar contra vectores de
+    prueba de 1024 elementos generados para un kernel mucho más pequeño.
+    No cambia nada para las llamadas existentes que no pasan 'n_puntos'.
+    """
     codigo = args["codigo_allo"]
     golden_id = args["golden_model_id"]
+    n_puntos = args.get("n_puntos", 1024)
     log = io.StringIO()
 
     try:
@@ -295,7 +316,7 @@ async def run_l2_functional(args: dict[str, Any]) -> dict[str, Any]:
             s = _construir_schedule(kernel_fn, schedule_src)
             mod = s.build(target="llvm")
 
-        x_real, x_imag = generar_vectores_test()
+        x_real, x_imag = generar_vectores_test(forma=(n_puntos,))
         y_real = np.zeros_like(x_real)
         y_imag = np.zeros_like(x_imag)
 
@@ -438,23 +459,64 @@ def _parsear_reporte_csynth(ruta_xml: Path) -> dict:
     report/kernel_csynth.xml). Etiquetas confirmadas contra una síntesis
     real en Vitis HLS 2023.1 el 12 de agosto de 2026 (ver docs/bitacora.md)
     -- NO son las que trae la documentación oficial para otras versiones,
-    que puede variar ligeramente."""
+    que puede variar ligeramente.
+
+    CORREGIDO (19 de septiembre de 2026, ver docs/bitacora.md): esta es la
+    causa real de "II: null" en TODAS las corridas de L4 del proyecto desde
+    agosto, confirmada leyendo a mano el árbol de un proyecto de síntesis
+    real. kernel_csynth.xml (el único fichero que se leía aquí) NO tiene
+    ninguna sección <SummaryOfLoopLatency> en absoluto cuando el kernel se
+    descompone en varios submódulos pipelineados -- y eso pasa siempre que
+    el kernel tiene más de un bucle con s.pipeline() (o sea, prácticamente
+    cualquier kernel real de este proyecto, incluida la FFT). Cada bucle se
+    sintetiza como su propio submódulo con su PROPIO informe separado,
+    kernel_Pipeline_<nombre_del_bucle>_csynth.xml, en el mismo directorio
+    -- ese fichero sí tiene <SummaryOfLoopLatency><PipelineII> con el valor
+    real (confirmado: II=1 para un bucle, II=12 para otro, en la misma
+    síntesis donde el nivel superior devolvía la lista vacía). Así que
+    'ii_minimo = min(iis) if iis else None' daba None SIEMPRE que hubiera
+    más de un bucle pipelineado, con independencia de si la síntesis había
+    cerrado un II perfectamente válido -- el problema nunca fue (solo) el
+    diseño, fue que nunca se miraba donde estaba el dato real.
+    """
     root = ET.parse(ruta_xml).getroot()
 
     def _texto(path, default=None):
         el = root.find(path)
         return el.text if el is not None else default
 
-    # Puede haber varios bucles con su propio PipelineII bajo
-    # SummaryOfLoopLatency (uno por cada <nombre_de_bucle> anidado como
-    # etiqueta dinámica) -- cogemos el mínimo, asumiendo que el bucle
-    # crítico/interno es el que nos interesa para objetivo_ii.
     iis = [int(el.text) for el in root.findall(".//SummaryOfLoopLatency//PipelineII")
            if el.text is not None]
-    ii_minimo = min(iis) if iis else None
+
+    # Se añaden los informes de los submódulos pipelineados (uno por bucle),
+    # que viven junto al informe de nivel superior con el mismo sufijo
+    # '*_csynth.xml'. El glob incluye de nuevo ruta_xml, así que se excluye
+    # explícitamente para no contar sus PipelineII (si los tuviera) dos
+    # veces.
+    for ruta_submodulo in sorted(ruta_xml.parent.glob("*_csynth.xml")):
+        if ruta_submodulo == ruta_xml:
+            continue
+        try:
+            root_submodulo = ET.parse(ruta_submodulo).getroot()
+        except ET.ParseError:
+            continue
+        iis.extend(
+            int(el.text)
+            for el in root_submodulo.findall(".//SummaryOfLoopLatency//PipelineII")
+            if el.text is not None
+        )
+
+    # Con varias etapas ejecutadas en secuencia (una por bucle pipelineado),
+    # el throughput real del diseño lo marca el PEOR (mayor) II de todas,
+    # no el mejor -- de ahí max() en vez del min() que había antes. min()
+    # solo tenía sentido bajo la premisa de que hubiera un único "bucle
+    # crítico" que mirar, premisa que en la práctica nunca se llegó a
+    # comprobar porque la lista de IIs estaba vacía en todas las corridas
+    # anteriores.
+    ii_peor_caso = max(iis) if iis else None
 
     return {
-        "II": ii_minimo,
+        "II": ii_peor_caso,
         "latencia_peor_caso": _texto(".//SummaryOfOverallLatency/Worst-caseLatency"),
         "periodo_reloj_estimado_ns": _texto(".//SummaryOfTimingAnalysis/EstimatedClockPeriod"),
         "BRAM": _texto(".//AreaEstimates/Resources/BRAM_18K"),

@@ -1,0 +1,138 @@
+🔒 Cargado kernel ya verificado desde 'kernel_verificado.txt' -- se arranca directamente en fase de ajuste de schedule, sin gastar presupuesto de generación de kernel desde cero.
+
+=== Intento de ajuste de schedule 1/8 (kernel congelado, intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1 (sintaxis/tipos), L2 (equivalencia funcional contra golden model) y L3 (equivalencia de schedule) pasaron correctamente. El fallo está únicamente en L4: la síntesis HLS excedió el timeout de 600s, probablemente por un espacio de diseño de schedule demasiado grande o directivas de pipeline/unroll que generan una exploración excesiva para el solver de síntesis. No es necesario regenerar el kernel: revisar y ajustar las directivas de schedule (p.ej. reducir factores de unroll, acotar el pipelining, o simplificar la jerarquía de bucles) y/o aumentar el timeout de síntesis antes de reintentar.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 2/8 (kernel congelado, intento global #2) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasan correctamente (sintaxis, verificación funcional contra el modelo golden FFT radix-2 y equivalencia de schedule confirmadas). El fallo está en la síntesis HLS de L4: el reporte no arroja un II (Initiation Interval) válido — aparece como null, lo cual indica que el pipelining no se logró cerrar (posible dependencia no resuelta o loop-carried dependency que impide el pipeline). Latencia de peor caso de 72559 ciclos a 3.522 ns/ciclo es muy alta para un kernel FFT de este tamaño, consistente con ausencia de pipelining. Recomendación: revisar directivas de pipeline/unroll en el schedule (allo.pipeline / dataflow) sobre los bucles internos de la mariposa FFT, y verificar dependencias de memoria (bancos BRAM) que puedan estar serializando el acceso. No es necesario regenerar el kernel: el problema es de ajuste de directivas de schedule, no de corrección funcional.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 3/8 (kernel congelado, intento global #3) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_3.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (sintaxis/tipos, equivalencia funcional contra el golden model y equivalencia de schedule verificada). El fallo está en L4: la síntesis HLS excedió el timeout de 600s, lo que indica que el diseño del schedule/kernel es demasiado complejo para converger a tiempo (posible explosión de estados en la herramienta de síntesis, pipelining insuficiente o directivas de unroll/tiling agresivas). El kernel en sí es correcto; se recomienda ajustar directivas de schedule (reducir unroll factor, añadir pipeline con II mayor, particionar arrays, o simplificar loops anidados) sin regenerar el kernel.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 4/8 (kernel congelado, intento global #4) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_4.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1 (sintaxis/tipos), L2 (funcional vs golden model fft_radix2_numpy_reference) y L3 (equivalencia de schedule con allo.verify) pasaron correctamente. El fallo está en L4: la síntesis HLS excedió el timeout de 600s. El kernel es funcionalmente correcto y el schedule está verificado; el problema es exclusivamente de tiempo de síntesis (probablemente el espacio de diseño del schedule actual es demasiado complejo/grande para el sintetizador dentro del límite de tiempo). No se requiere regenerar el kernel ni el schedule desde cero: ajustar directivas de schedule (pipelining, tiling, unroll factors, partición de memoria) para reducir la complejidad de síntesis o aumentar el timeout permitido.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 5/8 (kernel congelado, intento global #5) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_5.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1, L2 y L3 pasaron correctamente (sintaxis, equivalencia funcional contra el golden model y equivalencia de schedule verificadas). El kernel es correcto; el fallo está únicamente en la síntesis HLS de L4, que excedió el timeout de 600s. No es necesario regenerar el kernel ni el schedule desde cero: revisar directivas de síntesis (pipelining, unrolling, particionado de arrays) o aumentar el timeout/simplificar el diseño para que la herramienta de síntesis converja.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 6/8 (kernel congelado, intento global #6) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_6.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente (sintaxis, equivalencia funcional contra el golden model y equivalencia de schedule verificada). El fallo está en L4: la síntesis HLS excedió el timeout de 600s. El kernel es funcionalmente correcto; el problema es de tiempo de síntesis, probablemente por directivas de scheduling/pipelining demasiado agresivas o espacio de diseño demasiado grande para el solver de síntesis. Recomendado: aumentar el timeout, simplificar directivas de unroll/pipeline, o dividir el kernel en bloques más pequeños para síntesis incremental. No es necesario regenerar el kernel ni el schedule lógico, solo ajustar parámetros de síntesis.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 7/8 (kernel congelado, intento global #7) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_7.txt)
