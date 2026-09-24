@@ -2262,8 +2262,82 @@ Dado que el pipeline ya demostró (dos veces) que puede escribir un kernel FFT c
 - Un cierre de lazo L1-L4 con el kernel congelado no basta para confirmar que la generación de kernel end-to-end funciona -- hay que probarlo también sin el atajo. De hecho el Generador puede llegar a una solución igualmente válida pero estructuralmente distinta (aquí, sin tabla de twiddles) y más cara en recursos -- dato en sí mismo interesante para una comparación de diseños a igualdad de II.
 - Un "atajo" de desarrollo (kernel congelado) que deja de usarse por defecto debe documentarse explícitamente en el propio código (no solo en la bitácora), porque el código es lo primero que lee cualquiera que retome el proyecto.
 
-## Pendiente para la siguiente sesión (ampliación, Parte 18)
+## Parte 19 — Generalización a FFT radix-4: segundo bloque, mismo pipeline
 
-- Decidir si se continúa el barrido de `objetivo_ii` por debajo de 5 (con cuidado -- ver Parte 9 sobre los timeouts vistos en `objetivo_ii=1`) o si los tres puntos ya conseguidos (20/10/5) bastan como curva rendimiento/área para la memoria del TFG.
-- Valorar si el "kernel generado desde cero" (`fft_radix2_ii5_kernel_generado.json`) merece entrar como material de la sección de resultados del TFG -- es una comparación real de dos diseños válidos a igual `objetivo_ii` (tabla precalculada vs. recómputo en línea), no solo una curiosidad de esta sesión.
-- Seguía pendiente desde la Parte 17: confirmar el valor real de `TIMEOUT_SINTESIS_L4_SEGUNDOS` efectivamente usado en las corridas con discrepancias de log -- no se ha vuelto a tocar en esta sesión.
+**Contexto.** La Parte 18 había cerrado el barrido de `objetivo_ii` (20→10→5) y la segunda/tercera confirmación de cierre L1→L4 para la FFT radix-2. Para asegurar que el pipeline de 3 agentes no estaba sobreajustado a ese bloque concreto, se decidió probar con un bloque distinto de dificultad semejante, dejando intactas todas las pruebas y archivos de la radix-2. Se eligió **FFT radix-4, N=1024** entre tres opciones.
+
+Cambios previos al lanzamiento: `orchestrator.py` ahora acepta la ruta del spec como argumento opcional (`sys.argv[1]`, por defecto sigue siendo `spec_example.yaml` si no se pasa nada), y se creó `specs/spec_fft_radix4.yaml` reutilizando el mismo golden model que la radix-2 (ver hallazgo más abajo) con `objetivo_ii=20` como primer punto, igual que el primer cierre de lazo de la radix-2 en la Parte 17.
+
+### Primera corrida: `objetivo_ii=20`, kernel desde cero
+
+Sin ningún kernel congelado (no existe ninguno para radix-4 todavía). **Convergió a la primera (1/6)**, sin ningún intento fallido, con una descomposición **digit-reversal base-4 genuina** (5 dígitos en base 4, `4^5=1024`) y dos buffers intermedios (`buf1`, `buf2`) turnándose entre las 5 etapas de la mariposa. Métricas: **II=20** (justo el objetivo), latencia=20333 ciclos, reloj≈2.846ns, BRAM=24, DSP=66, LUT=22713, FF=30117. Guardado en `results/catalogo/fft_radix4.json` (después respaldado en `fft_radix4_ii20.json` antes de que la siguiente corrida lo sobreescribiera).
+
+**Duración: ~6-7 min** (17:13 → 17:20:04; el margen de un minuto es porque el nombre del log solo redondea al minuto de inicio).
+
+![Terminal mostrando la Iteración de kernel 1/6 de la FFT radix-4 con objetivo_ii=20: kernel con permutación digit-reversal base-4 y buffers intermedios, informe del Validador con L1-L4 superados, y el guardado exitoso en results/catalogo/fft_radix4.json](img/2026-09-24_radix4-exito-ii20-primera-vez.png)
+
+### Segunda corrida: `objetivo_ii=5`, sin ningún atajo ni ayuda
+
+Se pidió explícitamente bajar el II "bastante" pero **sin ninguna ayuda**: nada de kernel congelado, nada de script de barrido de partición aislado precomputando el factor (a diferencia de la Parte 18 con la radix-2) -- el pipeline tenía que resolver kernel y schedule enteramente desde cero, sin ninguna pista sobre qué factor de partición usar. Se bajó `objetivo_ii` directamente a 5 en el spec (saltando el paso intermedio de 10).
+
+Tres intentos fallidos antes de converger en el 4/6:
+1. Intento 1/6: permutación por bit-reversal (estilo radix-2). Falló L2: 555/1024 índices discrepantes (54%).
+2. Intento 2/6: (no capturado en la captura de pantalla).
+3. Intento 3/6: permutación digit-reversal base-4. Falló L2: 122/1024 índices discrepantes (11.9%), error localizado en el manejo de twiddle factors de una etapa concreta.
+4. **Intento 4/6: éxito.** Otra permutación por bit-reversal, pero con una implementación distinta a la del intento 1 (usa un array `perm` de índices en vez de permutar los datos directamente). II=5, latencia=20416 ciclos, reloj=2.633ns, sin BRAM, DSP=76, LUT=43519, FF=58734.
+
+**Duración total: ~15-16 min** (17:26 → 17:41:58), incluyendo los 3 intentos fallidos más el exitoso.
+
+Se respaldó este resultado en `results/catalogo/fft_radix4_ii5_sin_ayuda.json` antes del siguiente paso.
+
+![Terminal mostrando el intento 3/6 fallando en L2 (digit-reversal base-4, 122/1024 índices discrepantes) y el intento 4/6 convergiendo con éxito (bit-reversal, II=5, LUT=43519, FF=58734), guardado en fft_radix4.json](img/2026-09-24_radix4-sin-ayuda-fallo-l2-y-exito-ii5.png)
+
+### Hallazgo metodológico: el golden model es agnóstico al radix
+
+El informe del Validador de la corrida anterior describía el kernel como "el kernel FFT radix-2", pese a validar el bloque `fft_radix4`. La causa: `golden_model_id: fft_radix2_numpy_reference` apuntaba a una función que **no tiene nada de radix-2** -- es `np.fft.fft()` sin más, sobre la señal compleja reconstruida:
+
+```python
+def fft_radix2_numpy_reference(x_real, x_imag):
+    x = x_real.astype(np.float64) + 1j * x_imag.astype(np.float64)
+    y = np.fft.fft(x)
+    return y.real.astype(np.float32), y.imag.astype(np.float32)
+```
+
+L2 solo compara el resultado numérico final contra esta referencia; no verifica en ningún momento qué descomposición algorítmica usa el kernel por dentro. Por eso el mismo bloque `fft_radix4` acepta tanto una implementación con digit-reversal base-4 genuina como una con bit-reversal estilo radix-2 -- ambas son matemáticamente correctas y pasan igual. El campo `descripcion` del spec es solo una pista para el Generador, no una restricción verificada.
+
+Se renombró la función y su id de `fft_radix2_numpy_reference` a **`fft_numpy_reference`** en `golden_models.py`, `spec_example.yaml` y `spec_fft_radix4.yaml`, para no sugerir una especificidad de radix que no existe. Los catálogos y logs guardados antes de este cambio siguen citando el nombre antiguo -- son evidencia histórica y no se han reescrito.
+
+### Tercera corrida: relanzamiento tras el renombrado, mismo `objetivo_ii=5`
+
+Misma prueba sin ayuda de antes, ahora con el golden model ya renombrado. **Convergió a la primera (1/6)**, esta vez con digit-reversal base-4 genuina (coherente con el primer éxito de `objetivo_ii=20`). El informe del Validador ya cita correctamente `'fft_numpy_reference'`, sin la mención engañosa a "radix-2". Métricas: **II=5**, latencia=**8664 ciclos** (menos de la mitad que el intento con bit-reversal), reloj=2.633ns (~380MHz), sin BRAM, DSP=256, LUT=67405, FF=96535.
+
+**Duración: ~6-7 min** (17:50 → 17:56:22).
+
+![Terminal mostrando el relanzamiento de la FFT radix-4 con objetivo_ii=5 tras el renombrado del golden model: intento 1/6 con permutación digit-reversal base-4, informe del Validador citando correctamente 'fft_numpy_reference', II=5, latencia=8664, LUT=67405, FF=96535, guardado con éxito](img/2026-09-24_radix4-relanzamiento-digitreversal-ii5.png)
+
+### Comparación: dos diseños válidos, mismo II, trade-off área/latencia real
+
+A igualdad de `objetivo_ii=5`, los dos kernels que convergieron (bit-reversal vs digit-reversal base-4) son ambos funcionalmente correctos pero estructuralmente distintos:
+
+| | bit-reversal (intento 4/6, sin ayuda) | digit-reversal base-4 (relanzamiento) |
+|---|---|---|
+| II | 5 | 5 |
+| Latencia (ciclos) | 20416 | 8664 |
+| DSP | 76 | 256 |
+| LUT | 43519 | 67405 |
+| FF | 58734 | 96535 |
+| BRAM | 0 | 0 |
+
+La descomposición realmente radix-4 baja la latencia a menos de la mitad, a costa de 3-4× más DSP y ~1.5-1.6× más LUT/FF. Es un dato de comparación de diseños real para la sección de resultados del TFG, no solo una curiosidad -- mismo bloque, mismo II objetivo, dos puntos distintos de la curva área/latencia.
+
+## Aprendizajes para la memoria del TFG (ampliación, Parte 19)
+
+- El pipeline generaliza más allá del bloque radix-2 original: con un spec nuevo (mismo formato de contrato, mismo golden model reutilizado, kernel completamente nuevo) el Generador resuelve un bloque de la misma familia pero con una estructura de datos distinta, y llega a converger sin ayuda externa en varias ocasiones.
+- Un golden model agnóstico al radix no es un error, es una característica del contrato: L1-L4 garantizan corrección funcional y de schedule del bloque, no que se haya usado una estrategia algorítmica concreta. Si se quiere forzar o verificar una descomposición específica (p. ej. confirmar que un bloque "radix-4" usa de verdad mariposas de 4 entradas), hace falta un chequeo adicional que inspeccione la estructura del código o del schedule -- no existe todavía en la cascada.
+- Nombrar los golden models de forma neutra (sin sugerir un radix concreto) evita que el propio LLM Validador arrastre una etiqueta engañosa en sus informes de texto, aunque el resultado numérico sea correcto.
+- Cuando dos intentos convergen al mismo objetivo_ii con algoritmos distintos, el II por sí solo no basta para comparar diseños -- hace falta mirar latencia y recursos juntos, como en la tabla de arriba.
+
+## Pendiente para la siguiente sesión (ampliación, Parte 19)
+
+- Bajar `objetivo_ii` a **1** para la radix-4 (siguiente paso pedido). Cuidado: `objetivo_ii=1` ya causó timeouts de síntesis repetidos con la radix-2 (ver Parte 9) -- vigilar de cerca si se repite el patrón aquí.
+- Valorar si el par de resultados II=5 (bit-reversal vs digit-reversal, tabla de arriba) merece entrar en la sección de resultados del TFG como comparación de diseños a igualdad de II, igual que se valoró con el par equivalente de la radix-2 en la Parte 18.
