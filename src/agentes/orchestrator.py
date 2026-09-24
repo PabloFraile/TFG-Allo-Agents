@@ -64,6 +64,22 @@ DIR_CATALOGO = "../../results/catalogo"
 # kernel_src -- sin cabecera '### KERNEL' ni vallas de markdown).
 RUTA_KERNEL_VERIFICADO = "kernel_verificado.txt"
 
+# DECISIÓN (24 de septiembre de 2026): esta ruta se deja SIN archivo por
+# defecto a propósito -- nadie debería depender del atajo de kernel
+# congelado como modo normal de trabajo, precisamente porque enmascara si
+# el Generador es capaz de escribir el kernel completo desde cero (ver
+# results/catalogo/fft_radix2_ii5_kernel_generado.json, la corrida que
+# confirmó que sí lo es, con un diseño distinto al de este archivo: sin
+# tabla de twiddles precalculada, recomputando la trigonometría en línea
+# en cada etapa). El kernel que SÍ pasó L1-L3 a mano y sirvió para
+# aislar el ajuste de schedule (ver probar_particion_ii.py y
+# results/catalogo/fft_radix2_ii10.json / fft_radix2_ii5.json) se
+# conserva como evidencia del TFG en
+# src/agentes/kernel_verificado_backup.txt -- NO renombrar de vuelta a
+# kernel_verificado.txt salvo que se quiera repetir deliberadamente ese
+# atajo para una depuración puntual del schedule, sabiendo que así se
+# deja de probar la generación de kernel end-to-end.
+
 
 # ---------------------------------------------------------------------------
 # Prompts de rol. Esto es lo que distingue a cada "agente" -- no hay tres
@@ -349,33 +365,58 @@ rendimiento (objetivo_ii), no solo cuando el Validador ya lo haya
 reportado.
 
 REGLA CRÍTICA sobre partición de arrays con STRIDE VARIABLE entre copias
-desenrolladas (confirmado el 21 de agosto de 2026 tras 7 intentos de
-schedule oscilando entre timeout e 'II=null' con Partition.Cyclic/Block --
-ver docs/bitacora.md): si desenrollaste completamente un bucle exterior de
-pocas iteraciones (regla anterior) y, DENTRO de cada copia desenrollada, el
-patrón de acceso a un array depende de una variable que cambia de copia a
-copia (p.ej. en una FFT: 'half' vale 1, 2, 4, 8... 512 según la etapa, y
-los índices de acceso son 'base+j' / 'base+j+half'), entonces
-Partition.Cyclic o Partition.Block con un factor FIJO NO sirve: un único
-factor no puede evitar conflictos de banco de memoria para 10 patrones de
-stride distintos a la vez -- el síntoma es el mismo 'II=null' recurrente
-pase lo que pase con el factor que pruebes.
+desenrolladas -- CORREGIDA (evidencia en results/catalogo/fft_radix2_ii10.json
+y en src/agentes/probar_particion_ii.py; pendiente de anotar formalmente en
+docs/bitacora.md como Parte 17/18 -- de momento no está documentada allí).
 
-SOLUCIÓN OBLIGATORIA en este caso: usa Partition.Complete (no Cyclic ni
-Block) en los arrays afectados por este patrón de stride variable:
+Historia: la primera versión de esta regla, del 21 de agosto de 2026, decía
+que Partition.Cyclic/Block con un factor fijo NO podía servir para un array
+cuyo patrón de acceso cambia de stride entre copias desenrolladas (p.ej. la
+FFT radix-2, donde 'half' vale 1, 2, 4, 8... 512 según la etapa), tras 7
+intentos fallidos, y mandaba usar Partition.Complete en su lugar. Esa
+conclusión se sacó dejando que el Generador (el LLM) adivinase el schedule a
+ciegas -- y esos 7 intentos fallidos incluían timeouts de L4 que en realidad
+eran un bug de sincronización del harness (timeout atascado en 1800s en vez
+del valor real configurado), no un límite real del propio diseño; ver el
+docstring de probar_particion_ii.py.
 
-    s.partition("kernel:NOMBRE_ARRAY", partition_type=Partition.Complete)
+Para aislar la pregunta de si el factor fijo realmente no podía funcionar,
+se probó directamente (sin ningún LLM de por medio, con
+src/agentes/probar_particion_ii.py, reutilizando las mismas funciones que
+usa el Ejecutor real) el mismo kernel verificado con
+Partition.Cyclic(factor=4/8/16) fijo sobre los 4 arrays de la mariposa
+(twiddle_real, twiddle_imag, y_real, y_imag). Resultado real, guardado en
+results/catalogo/fft_radix2_ii10.json: factor=4 SÍ cierra II=10 (125s,
+LUT=22075, FF=28526) -- de hecho con MENOS recursos que factor=8 (mismo
+II=10, LUT=29287, FF=33053) o factor=16 (mismo II=10, LUT=43202, FF=40356);
+subir el factor por encima de 4 no baja el II más, solo gasta área de más.
+factor=4 es el mismo que ya había funcionado antes a objetivo_ii=20.
 
-Partition.Complete convierte el array en registros individuales (uno por
-elemento) en vez de en bloques de BRAM, lo que garantiza acceso sin
-conflicto sin importar el patrón de índices -- es más caro en recursos
-(LUT/FF) que Cyclic/Block, pero para arrays de writeup moderado (cientos a
-pocos miles de elementos float32) suele caber sobradamente dentro de los
-recursos disponibles de la FPGA objetivo. Aplícalo de forma proactiva
-cuando detectes este patrón de stride variable entre copias desenrolladas,
-en vez de perder varios intentos de síntesis probando distintos factores
-de Cyclic/Block que no van a funcionar por la razón estructural explicada
-arriba.
+USA ESTO POR DEFECTO para este patrón de stride variable, empezando por
+factor=4:
+
+    s.partition("kernel:NOMBRE_ARRAY", partition_type=Partition.Cyclic, factor=4)
+
+IMPORTANTE -- actualización con un segundo punto de datos (objetivo_ii=5,
+ver results/catalogo/fft_radix2_ii5.json y
+src/agentes/resultados_particion_ii_ii5.json): el factor de partición NO
+es un valor fijo universal, depende de lo agresivo que sea objetivo_ii.
+factor=4 bastaba para objetivo_ii=10 (II=10 real, 125s), pero para
+objetivo_ii=5 ese mismo factor=4 se queda corto (solo llega a II=8, no
+II=5) -- hace falta factor=8 para cerrar II=5 de verdad (107s), y subir a
+factor=16 no mejora nada más sobre factor=8 (mismo II=5, pero con casi el
+doble de LUT/FF). Regla práctica: prueba factor=4 primero; si el II real
+resultante es peor que el objetivo_ii pedido (no si falla, si simplemente
+converge a un II peor), sube al siguiente factor de la serie (8, luego 16)
+en vez de asumir que el patrón de partición está mal -- vuelve a intentar
+con src/agentes/probar_particion_ii.py si hace falta acotar esto de forma
+aislada antes de gastar una corrida completa del pipeline.
+
+Usa Partition.Complete solo como último recurso, si ni siquiera factor=16
+cierra el II pedido en L4 -- y antes de concluir que falla de verdad,
+descarta primero que sea el mismo tipo de falso negativo de
+infraestructura (timeout mal configurado, cuota de Pro agotada -- ver
+docs/bitacora.md Parte 16) que motivó la regla original.
 
 REGLA CRÍTICA sobre qué eje pipelinear en un nido `for g in range(G): for j
 in range(J):` con G*J constante (confirmado el 9 de septiembre de 2026 tras

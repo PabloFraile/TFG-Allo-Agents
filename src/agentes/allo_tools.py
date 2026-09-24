@@ -92,28 +92,50 @@ ERRORES_CAPTURABLES = (Exception, SystemExit)
 # ---------------------------------------------------------------------------
 NOMBRE_PROYECTO_VITIS = "out.prj"  # fijo -- así lo nombra Allo internamente,
                                      # independientemente del project= que le pasemos
-TIMEOUT_SINTESIS_L4_SEGUNDOS = 1800  # 30 min. CORREGIDO (19 de septiembre de
-                                      # 2026, ver docs/bitacora.md): el
-                                      # comentario de esta constante decía "20
-                                      # min" (subido "de nuevo" el 20 de
-                                      # agosto) pero el valor real seguía en
-                                      # 600s = 10 min -- el comentario nunca se
-                                      # aplicó al número. Confirmado en
-                                      # verificar_cascada_completa.py: con el
-                                      # kernel+schedule de
-                                      # kernel_y_schedule_verificado.txt
-                                      # (objetivo_ii=20, partición completa de
-                                      # y_real/y_imag), L1-L3 pasan de verdad y
-                                      # L4 agota los 600s -- probablemente el
-                                      # propio coste de scheduling/mux del
-                                      # solver de síntesis ante la partición
-                                      # completa de dos arrays de 1024
-                                      # elementos, no solo el objetivo de II.
-                                      # Si 1800s tampoco basta, valorar reducir
-                                      # la partición de y_real/y_imag a un
-                                      # factor cíclico en vez de completa
-                                      # (menos registros/muxing que sintetizar)
-                                      # antes de seguir subiendo el timeout.
+TIMEOUT_SINTESIS_L4_SEGUNDOS = 1800  # 30 min. BAJADO OTRA VEZ (24 de
+                                      # septiembre de 2026, ver
+                                      # docs/bitacora.md): la corrida del 23
+                                      # con el timeout ya corregido de
+                                      # verdad a 14400 (4h) demostró que
+                                      # subirlo no ayuda cuando el schedule
+                                      # está mal planteado -- 3 de 5
+                                      # intentos agotaron las 4h completas
+                                      # sin converger (12h solo en esos
+                                      # tres), y el único que sí completó
+                                      # volvió a caer en II=32 (sin
+                                      # partición, mismo techo de siempre).
+                                      # Evidencia de que un schedule que SI
+                                      # va a converger lo hace rápido: los 3
+                                      # intentos que cerraron con éxito en
+                                      # la corrida del 20 de septiembre
+                                      # (II=20) tardaron ~5-7 min cada uno de
+                                      # media, no horas. 1800s da margen de
+                                      # sobra (4-6x) sobre eso sin quemar
+                                      # horas en diseños que nunca van a
+                                      # cerrar -- deja gastar el presupuesto
+                                      # de 8 intentos de ajuste de schedule
+                                      # en probar variantes de verdad en vez
+                                      # de quedarse colgado en 1-2.
+                                      # Exploración más rápida y barata
+                                      # (sin gastar cuota de Pro ni horas)
+                                      # del factor de partición necesario
+                                      # para bajar de II=20: ver
+                                      # probar_particion_ii.py, que reutiliza
+                                      # estas mismas funciones fuera del
+                                      # bucle de agentes.
+                                      #
+                                      # Regla que se queda (24 de sept.):
+                                      # tras editar este archivo vía el
+                                      # asistente, NO volver a hacer stage
+                                      # del mismo path antes de mandarlo de
+                                      # vuelta con SendUserFile -- verificar
+                                      # el commit releyendo el archivo en una
+                                      # llamada posterior separada, nunca
+                                      # entre la edición y el envío (bug real
+                                      # encontrado el 23 de sept. que dejó
+                                      # este mismo timeout atascado en 1800
+                                      # varios días pese a "confirmarse"
+                                      # subido a 14400).
 
 
 def _formatear_error(e: BaseException, log_stdout: str = "") -> str:

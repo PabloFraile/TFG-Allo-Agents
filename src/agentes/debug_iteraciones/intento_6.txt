@@ -261,45 +261,42 @@ from allo.customize import Partition
 
 s = allo.customize(kernel)
 
-# Directivas conservadoras: sin Partition.Complete (que en el intento
-# anterior generaba una red de multiplexores enorme sobre arrays de 1024
-# elementos con indices dinamicos, disparando el timeout de sintesis de
-# HLS). En su lugar, particion ciclica moderada (factor=4) para permitir
-# los 2 accesos de lectura + 2 de escritura por iteracion sin explotar el
-# area/tiempo de compilacion, apoyandonos en el objetivo_ii=20 (mucho mas
-# laxo que II=1) que da margen de sobra para serializar parcialmente esos
-# accesos dentro de la ventana de pipeline.
-s.partition("kernel:twiddle_real", partition_type=Partition.Cyclic, factor=4)
-s.partition("kernel:twiddle_imag", partition_type=Partition.Cyclic, factor=4)
-s.partition("kernel:y_real", partition_type=Partition.Cyclic, factor=4)
-s.partition("kernel:y_imag", partition_type=Partition.Cyclic, factor=4)
+# Los arrays y_real/y_imag/twiddle_real/twiddle_imag se acceden con
+# patrones de indice/stride que cambian de etapa a etapa (regla de stride
+# variable entre copias desenrolladas) -> particion completa para
+# garantizar acceso sin conflicto en todas las etapas.
+s.partition("kernel:y_real", partition_type=Partition.Complete)
+s.partition("kernel:y_imag", partition_type=Partition.Complete)
+s.partition("kernel:twiddle_real", partition_type=Partition.Complete)
+s.partition("kernel:twiddle_imag", partition_type=Partition.Complete)
 
-# Pipeline de los bucles de calculo de tabla y bit-reversal (dominan el
-# recuento de iteraciones frente a sus bucles internos 'b' de 10 pasos).
-s.pipeline("k", initiation_interval=20)
-s.pipeline("i", initiation_interval=20)
+# Calculo de la tabla de twiddle factors: cada iteracion es independiente
+# (sin recurrencia), se puede pipelinear directamente.
+s.pipeline("k", initiation_interval=10)
 
-# Por cada etapa de la mariposa, pipelinear SOLO el bucle (g o j) que
-# tiene mas iteraciones en esa etapa concreta -- el otro es demasiado
-# pequeno para aportar solapamiento real:
-#   Etapa 1  (g:512, j:1)   -> g1
-#   Etapa 2  (g:256, j:2)   -> g2
-#   Etapa 3  (g:128, j:4)   -> g3
-#   Etapa 4  (g:64,  j:8)   -> g4
-#   Etapa 5  (g:32,  j:16)  -> g5
-#   Etapa 6  (g:16,  j:32)  -> j6
-#   Etapa 7  (g:8,   j:64)  -> j7
-#   Etapa 8  (g:4,   j:128) -> j8
-#   Etapa 9  (g:2,   j:256) -> j9
-#   Etapa 10 (g:1,   j:512) -> j10
-s.pipeline("g1", initiation_interval=20)
-s.pipeline("g2", initiation_interval=20)
-s.pipeline("g3", initiation_interval=20)
-s.pipeline("g4", initiation_interval=20)
-s.pipeline("g5", initiation_interval=20)
-s.pipeline("j6", initiation_interval=20)
-s.pipeline("j7", initiation_interval=20)
-s.pipeline("j8", initiation_interval=20)
-s.pipeline("j9", initiation_interval=20)
-s.pipeline("j10", initiation_interval=20)
+# Permutacion bit-reversal: 1024 iteraciones independientes entre si.
+s.pipeline("i", initiation_interval=10)
+
+# Etapas de la mariposa FFT: en cada etapa se pipelinea el bucle (g o j)
+# que tiene MAS iteraciones, nunca el trivial.
+# Etapa 1  (g:512, j:1)   -> pipelinea g1
+s.pipeline("g1", initiation_interval=10)
+# Etapa 2  (g:256, j:2)   -> pipelinea g2
+s.pipeline("g2", initiation_interval=10)
+# Etapa 3  (g:128, j:4)   -> pipelinea g3
+s.pipeline("g3", initiation_interval=10)
+# Etapa 4  (g:64,  j:8)   -> pipelinea g4
+s.pipeline("g4", initiation_interval=10)
+# Etapa 5  (g:32,  j:16)  -> pipelinea g5
+s.pipeline("g5", initiation_interval=10)
+# Etapa 6  (g:16,  j:32)  -> pipelinea j6
+s.pipeline("j6", initiation_interval=10)
+# Etapa 7  (g:8,   j:64)  -> pipelinea j7
+s.pipeline("j7", initiation_interval=10)
+# Etapa 8  (g:4,   j:128) -> pipelinea j8
+s.pipeline("j8", initiation_interval=10)
+# Etapa 9  (g:2,   j:256) -> pipelinea j9
+s.pipeline("j9", initiation_interval=10)
+# Etapa 10 (g:1,   j:512) -> pipelinea j10
+s.pipeline("j10", initiation_interval=10)
 ```

@@ -1,0 +1,24 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # --- Bit-reversal permutation (10 bits, N=1024) ---
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            idx_half: int32 = idx / 2
+            b ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.NINGUNO, decision=DecisionEscalada.CONTINUAR ---
+Todos los niveles L1-L4 pasaron correctamente. El kernel FFT radix-2 es sintácticamente válido, funcionalmente equivalente al golden model, y la equivalencia de schedule fue verificada por allo.verify. Las métricas de HLS muestran II=5, latencia de peor caso de 20446 ciclos, periodo de reloj estimado de 2.633 ns, con uso de recursos: BRAM=0, DSP=76, LUT=44503, FF=60247. No se requiere ninguna acción correctiva.
+
+✅ Éxito. Guardado en el catálogo: ../../results/catalogo/fft_radix2.json

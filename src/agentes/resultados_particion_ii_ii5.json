@@ -1,0 +1,53 @@
+[
+  {
+    "factor_particion": 4,
+    "objetivo_ii": 5,
+    "schedule_probado": "from allo.customize import Partition\n\ns = allo.customize(kernel)\n\ns.partition(\"kernel:twiddle_real\", partition_type=Partition.Cyclic, factor=4)\ns.partition(\"kernel:twiddle_imag\", partition_type=Partition.Cyclic, factor=4)\ns.partition(\"kernel:y_real\", partition_type=Partition.Cyclic, factor=4)\ns.partition(\"kernel:y_imag\", partition_type=Partition.Cyclic, factor=4)\n\ns.pipeline(\"k\", initiation_interval=5)\ns.pipeline(\"i\", initiation_interval=5)\ns.pipeline(\"g1\", initiation_interval=5)\ns.pipeline(\"g2\", initiation_interval=5)\ns.pipeline(\"g3\", initiation_interval=5)\ns.pipeline(\"g4\", initiation_interval=5)\ns.pipeline(\"g5\", initiation_interval=5)\ns.pipeline(\"j6\", initiation_interval=5)\ns.pipeline(\"j7\", initiation_interval=5)\ns.pipeline(\"j8\", initiation_interval=5)\ns.pipeline(\"j9\", initiation_interval=5)\ns.pipeline(\"j10\", initiation_interval=5)\n",
+    "ok": true,
+    "metricas": {
+      "II": 8,
+      "latencia_peor_caso": "20132",
+      "periodo_reloj_estimado_ns": "2.653",
+      "BRAM": "0",
+      "DSP": "48",
+      "LUT": "26307",
+      "FF": "35433"
+    },
+    "segundos": 106.67444610595703,
+    "proyecto_dir": "/tmp/allo_l4_factor4_vihss80e"
+  },
+  {
+    "factor_particion": 8,
+    "objetivo_ii": 5,
+    "schedule_probado": "from allo.customize import Partition\n\ns = allo.customize(kernel)\n\ns.partition(\"kernel:twiddle_real\", partition_type=Partition.Cyclic, factor=8)\ns.partition(\"kernel:twiddle_imag\", partition_type=Partition.Cyclic, factor=8)\ns.partition(\"kernel:y_real\", partition_type=Partition.Cyclic, factor=8)\ns.partition(\"kernel:y_imag\", partition_type=Partition.Cyclic, factor=8)\n\ns.pipeline(\"k\", initiation_interval=5)\ns.pipeline(\"i\", initiation_interval=5)\ns.pipeline(\"g1\", initiation_interval=5)\ns.pipeline(\"g2\", initiation_interval=5)\ns.pipeline(\"g3\", initiation_interval=5)\ns.pipeline(\"g4\", initiation_interval=5)\ns.pipeline(\"g5\", initiation_interval=5)\ns.pipeline(\"j6\", initiation_interval=5)\ns.pipeline(\"j7\", initiation_interval=5)\ns.pipeline(\"j8\", initiation_interval=5)\ns.pipeline(\"j9\", initiation_interval=5)\ns.pipeline(\"j10\", initiation_interval=5)\n",
+    "ok": true,
+    "metricas": {
+      "II": 5,
+      "latencia_peor_caso": "20032",
+      "periodo_reloj_estimado_ns": "2.633",
+      "BRAM": "0",
+      "DSP": "76",
+      "LUT": "37624",
+      "FF": "46981"
+    },
+    "segundos": 107.74581623077393,
+    "proyecto_dir": "/tmp/allo_l4_factor8_0jwc7q32"
+  },
+  {
+    "factor_particion": 16,
+    "objetivo_ii": 5,
+    "schedule_probado": "from allo.customize import Partition\n\ns = allo.customize(kernel)\n\ns.partition(\"kernel:twiddle_real\", partition_type=Partition.Cyclic, factor=16)\ns.partition(\"kernel:twiddle_imag\", partition_type=Partition.Cyclic, factor=16)\ns.partition(\"kernel:y_real\", partition_type=Partition.Cyclic, factor=16)\ns.partition(\"kernel:y_imag\", partition_type=Partition.Cyclic, factor=16)\n\ns.pipeline(\"k\", initiation_interval=5)\ns.pipeline(\"i\", initiation_interval=5)\ns.pipeline(\"g1\", initiation_interval=5)\ns.pipeline(\"g2\", initiation_interval=5)\ns.pipeline(\"g3\", initiation_interval=5)\ns.pipeline(\"g4\", initiation_interval=5)\ns.pipeline(\"g5\", initiation_interval=5)\ns.pipeline(\"j6\", initiation_interval=5)\ns.pipeline(\"j7\", initiation_interval=5)\ns.pipeline(\"j8\", initiation_interval=5)\ns.pipeline(\"j9\", initiation_interval=5)\ns.pipeline(\"j10\", initiation_interval=5)\n",
+    "ok": true,
+    "metricas": {
+      "II": 5,
+      "latencia_peor_caso": "20032",
+      "periodo_reloj_estimado_ns": "2.633",
+      "BRAM": "0",
+      "DSP": "76",
+      "LUT": "54890",
+      "FF": "60781"
+    },
+    "segundos": 123.14746737480164,
+    "proyecto_dir": "/tmp/allo_l4_factor16_afi9isz_"
+  }
+]

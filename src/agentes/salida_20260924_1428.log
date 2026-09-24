@@ -1,0 +1,22 @@
+🔒 Cargado kernel ya verificado desde 'kernel_verificado.txt' -- se arranca directamente en fase de ajuste de schedule, sin gastar presupuesto de generación de kernel desde cero.
+
+=== Intento de ajuste de schedule 1/8 (kernel congelado, intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.NINGUNO, decision=DecisionEscalada.CONTINUAR ---
+Todos los niveles L1-L4 pasaron correctamente. El kernel FFT radix-2 es sintácticamente correcto, funcionalmente equivalente al modelo dorado numpy, mantiene equivalencia de schedule verificada, y la síntesis HLS produjo métricas válidas (II=5, latencia=20032 ciclos, DSP=76, LUT=37624, FF=46981, BRAM=0). No se requiere acción adicional.
+
+✅ Éxito. Guardado en el catálogo: ../../results/catalogo/fft_radix2.json

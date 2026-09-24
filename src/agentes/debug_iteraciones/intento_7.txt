@@ -261,40 +261,32 @@ from allo.customize import Partition
 
 s = allo.customize(kernel)
 
-# ---- Particionado completo de los arrays afectados por patrones de
-# stride variable entre etapas (y_real/y_imag: idx1/idx2 cambian de
-# stride en cada etapa; twiddle_real/twiddle_imag: tw_idx tambien cambia
-# de stride en cada etapa) ----
-s.partition("kernel:y_real", partition_type=Partition.Complete)
-s.partition("kernel:y_imag", partition_type=Partition.Complete)
+# Particionado completo de las tablas de twiddle: se leen con indices
+# tw_idx_N cuyo stride cambia de etapa a etapa (patron de stride variable
+# entre copias desenrolladas), asi que Cyclic/Block con un factor fijo no
+# evita conflictos de banco para las 10 etapas a la vez.
 s.partition("kernel:twiddle_real", partition_type=Partition.Complete)
 s.partition("kernel:twiddle_imag", partition_type=Partition.Complete)
 
-# ---- Pipeline de la tabla de twiddle factors y de la permutacion
-# bit-reversal ----
-s.pipeline("k", initiation_interval=20)
-s.pipeline("i", initiation_interval=20)
+# Mismo razonamiento para y_real / y_imag: cada etapa accede con
+# idx1_N/idx2_N cuyo "half" cambia de etapa a etapa.
+s.partition("kernel:y_real", partition_type=Partition.Complete)
+s.partition("kernel:y_imag", partition_type=Partition.Complete)
 
-# ---- Pipeline por etapa: siempre el bucle (g o j) con MAS iteraciones,
-# nunca el trivial ----
-# Etapa 1  (g1:512, j1:1)   -> pipelinear g1
-s.pipeline("g1", initiation_interval=20)
-# Etapa 2  (g2:256, j2:2)   -> pipelinear g2
-s.pipeline("g2", initiation_interval=20)
-# Etapa 3  (g3:128, j3:4)   -> pipelinear g3
-s.pipeline("g3", initiation_interval=20)
-# Etapa 4  (g4:64, j4:8)    -> pipelinear g4
-s.pipeline("g4", initiation_interval=20)
-# Etapa 5  (g5:32, j5:16)   -> pipelinear g5
-s.pipeline("g5", initiation_interval=20)
-# Etapa 6  (g6:16, j6:32)   -> pipelinear j6
-s.pipeline("j6", initiation_interval=20)
-# Etapa 7  (g7:8, j7:64)    -> pipelinear j7
-s.pipeline("j7", initiation_interval=20)
-# Etapa 8  (g8:4, j8:128)   -> pipelinear j8
-s.pipeline("j8", initiation_interval=20)
-# Etapa 9  (g9:2, j9:256)   -> pipelinear j9
-s.pipeline("j9", initiation_interval=20)
-# Etapa 10 (g10:1, j10:512) -> pipelinear j10
-s.pipeline("j10", initiation_interval=20)
+# Pipeline de la tabla de twiddle factors y de la permutacion bit-reversal.
+s.pipeline("k", initiation_interval=10)
+s.pipeline("i", initiation_interval=10)
+
+# Para cada etapa de la mariposa, se pipelinea SOLO el bucle (g o j) que
+# realmente domina el numero de iteraciones -- nunca el que es trivial.
+s.pipeline("g1", initiation_interval=10)   # g1: 512 vs j1: 1
+s.pipeline("g2", initiation_interval=10)   # g2: 256 vs j2: 2
+s.pipeline("g3", initiation_interval=10)   # g3: 128 vs j3: 4
+s.pipeline("g4", initiation_interval=10)   # g4: 64  vs j4: 8
+s.pipeline("g5", initiation_interval=10)   # g5: 32  vs j5: 16
+s.pipeline("j6", initiation_interval=10)   # j6: 32  vs g6: 16
+s.pipeline("j7", initiation_interval=10)   # j7: 64  vs g7: 8
+s.pipeline("j8", initiation_interval=10)   # j8: 128 vs g8: 4
+s.pipeline("j9", initiation_interval=10)   # j9: 256 vs g9: 2
+s.pipeline("j10", initiation_interval=10)  # j10: 512 vs g10: 1
 ```

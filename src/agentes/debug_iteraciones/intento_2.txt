@@ -257,34 +257,47 @@ def kernel(x_real: float32[1024], x_imag: float32[1024],
 
 ### SCHEDULE
 ```python
+from allo.customize import Partition
+
 s = allo.customize(kernel)
 
-# Schedule deliberadamente conservador para L4: solo se pipelinea el bucle
-# realmente dominante de cada etapa (el de mas iteraciones, segun la regla
-# de asignacion g/j por etapa), todos con el objetivo_ii real de la
-# especificacion (20), y SIN directivas de particionamiento ni unroll
-# adicionales. Esto reduce drasticamente el espacio de exploracion que el
-# sintetizador HLS tenia que recorrer en el intento anterior (que agoto el
-# timeout de 1800s), a costa de no perseguir un II=1 agresivo que aqui no
-# hace falta, ya que la especificacion solo exige II=20.
+# Particionado completo de los buffers de datos e twiddles: el patron de
+# acceso (idx1/idx2/tw_idx) cambia de stride en cada una de las 10 etapas
+# desenrolladas a mano, asi que un factor fijo de Cyclic/Block no evita
+# conflictos de banco para todas las etapas a la vez -- se usa
+# Partition.Complete como exige la regla de stride variable.
+s.partition("kernel:y_real", partition_type=Partition.Complete)
+s.partition("kernel:y_imag", partition_type=Partition.Complete)
+s.partition("kernel:twiddle_real", partition_type=Partition.Complete)
+s.partition("kernel:twiddle_imag", partition_type=Partition.Complete)
 
-# Tabla de twiddle factors y permutacion bit-reversal: bucles simples de
-# tamano moderado (512 y 1024 iteraciones), se pipelinean tambien a II=20
-# para dar throughput razonable sin añadir complejidad de particionamiento.
-s.pipeline("k", initiation_interval=20)
-s.pipeline("i", initiation_interval=20)
+# Calculo de la tabla de twiddles (independiente por indice k) y de la
+# permutacion bit-reversal: se pipelinea el bucle exterior de cada bloque,
+# que es el que domina el numero de iteraciones.
+s.pipeline("k", initiation_interval=10)
+s.pipeline("i", initiation_interval=10)
 
-# Etapas de la mariposa: se pipelinea unicamente el bucle dominante de cada
-# etapa (el de mayor rango), tal como exige la regla critica sobre que eje
-# pipelinear en un nido g/j con producto constante.
-s.pipeline("g1", initiation_interval=20)   # g1: 512 iter, j1: 1 iter
-s.pipeline("g2", initiation_interval=20)   # g2: 256 iter, j2: 2 iter
-s.pipeline("g3", initiation_interval=20)   # g3: 128 iter, j3: 4 iter
-s.pipeline("g4", initiation_interval=20)   # g4: 64 iter,  j4: 8 iter
-s.pipeline("g5", initiation_interval=20)   # g5: 32 iter,  j5: 16 iter
-s.pipeline("j6", initiation_interval=20)   # g6: 16 iter,  j6: 32 iter
-s.pipeline("j7", initiation_interval=20)   # g7: 8 iter,   j7: 64 iter
-s.pipeline("j8", initiation_interval=20)   # g8: 4 iter,   j8: 128 iter
-s.pipeline("j9", initiation_interval=20)   # g9: 2 iter,   j9: 256 iter
-s.pipeline("j10", initiation_interval=20)  # g10: 1 iter,  j10: 512 iter
+# Mariposas por etapa: en cada nido for g_/for j_ se pipelinea SIEMPRE el
+# bucle con mas iteraciones (el que realmente domina la latencia), nunca
+# el que es trivial (rango 1 o muy pequeno) frente al otro.
+# Etapa 1  (g1:512, j1:1)   -> pipeline g1
+s.pipeline("g1", initiation_interval=10)
+# Etapa 2  (g2:256, j2:2)   -> pipeline g2
+s.pipeline("g2", initiation_interval=10)
+# Etapa 3  (g3:128, j3:4)   -> pipeline g3
+s.pipeline("g3", initiation_interval=10)
+# Etapa 4  (g4:64,  j4:8)   -> pipeline g4
+s.pipeline("g4", initiation_interval=10)
+# Etapa 5  (g5:32,  j5:16)  -> pipeline g5
+s.pipeline("g5", initiation_interval=10)
+# Etapa 6  (g6:16,  j6:32)  -> pipeline j6
+s.pipeline("j6", initiation_interval=10)
+# Etapa 7  (g7:8,   j7:64)  -> pipeline j7
+s.pipeline("j7", initiation_interval=10)
+# Etapa 8  (g8:4,   j8:128) -> pipeline j8
+s.pipeline("j8", initiation_interval=10)
+# Etapa 9  (g9:2,   j9:256) -> pipeline j9
+s.pipeline("j9", initiation_interval=10)
+# Etapa 10 (g10:1,  j10:512) -> pipeline j10
+s.pipeline("j10", initiation_interval=10)
 ```

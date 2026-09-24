@@ -7,252 +7,354 @@ from allo.ir.types import float32, int32
 def kernel(x_real: float32[1024], x_imag: float32[1024],
            y_real: float32[1024], y_imag: float32[1024]):
 
-    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
-    # forma independiente a partir de su indice k (sin recurrencia) usando
-    # una serie de Taylor de seno/coseno ----
-    twiddle_real: float32[512]
-    twiddle_imag: float32[512]
-
-    NEG_TWO_PI: float32 = -6.283185307179586
-
-    for k in range(512):
-        k_f: float32 = k
-        ang: float32 = NEG_TWO_PI * k_f / 1024.0
-
-        x2: float32 = ang * ang
-        x3: float32 = x2 * ang
-        x4: float32 = x2 * x2
-        x5: float32 = x4 * ang
-        x6: float32 = x4 * x2
-        x7: float32 = x6 * ang
-        x8: float32 = x4 * x4
-        x9: float32 = x8 * ang
-        x10: float32 = x8 * x2
-        x11: float32 = x10 * ang
-        x12: float32 = x8 * x4
-        x13: float32 = x12 * ang
-        x14: float32 = x8 * x6
-        x15: float32 = x14 * ang
-        x16: float32 = x8 * x8
-
-        cos_val: float32 = 1.0 - x2 / 2.0 + x4 / 24.0 - x6 / 720.0 + x8 / 40320.0 - x10 / 3628800.0 + x12 / 479001600.0 - x14 / 87178291200.0 + x16 / 20922789888000.0
-        sin_val: float32 = ang - x3 / 6.0 + x5 / 120.0 - x7 / 5040.0 + x9 / 362880.0 - x11 / 39916800.0 + x13 / 6227020800.0 - x15 / 1307674368000.0
-
-        twiddle_real[k] = cos_val
-        twiddle_imag[k] = sin_val
-
-    # ---- Permutacion bit-reversal (10 bits, N=1024), calculada dentro del
-    # kernel sin modulo (solo +,-,*,/) ----
+    # --- Bit-reversal permutation (10 bits, N=1024) ---
     for i in range(1024):
         idx: int32 = i
         rev: int32 = 0
         for b in range(10):
-            half_idx: int32 = idx / 2
-            bit: int32 = idx - half_idx * 2
-            idx = half_idx
+            idx_half: int32 = idx / 2
+            bit: int32 = idx - idx_half * 2
+            idx = idx_half
             rev = rev * 2 + bit
-        y_real[rev] = x_real[i]
-        y_imag[rev] = x_imag[i]
+        y_real[i] = x_real[rev]
+        y_imag[i] = x_imag[rev]
 
-    # ---- Etapa 1: m=2, half=1, num_groups=512, stride=512 ----
+    # --- Stage 1: m=2, half=1, groups=512 (twiddle trivial: 1+0i) ---
     for g1 in range(512):
-        base_1: int32 = g1 * 2
-        for j1 in range(1):
-            idx1_1: int32 = base_1 + j1
-            idx2_1: int32 = idx1_1 + 1
-            tw_idx_1: int32 = j1 * 512
-            tr_1: float32 = twiddle_real[tw_idx_1]
-            ti_1: float32 = twiddle_imag[tw_idx_1]
-            ur_1: float32 = y_real[idx1_1]
-            ui_1: float32 = y_imag[idx1_1]
-            vr_1: float32 = y_real[idx2_1]
-            vi_1: float32 = y_imag[idx2_1]
-            trv_1: float32 = tr_1 * vr_1 - ti_1 * vi_1
-            tiv_1: float32 = tr_1 * vi_1 + ti_1 * vr_1
-            y_real[idx1_1] = ur_1 + trv_1
-            y_imag[idx1_1] = ui_1 + tiv_1
-            y_real[idx2_1] = ur_1 - trv_1
-            y_imag[idx2_1] = ui_1 - tiv_1
+        idx1_1: int32 = g1 * 2
+        idx2_1: int32 = idx1_1 + 1
+        a_real_1: float32 = y_real[idx1_1]
+        a_imag_1: float32 = y_imag[idx1_1]
+        b_real_1: float32 = y_real[idx2_1]
+        b_imag_1: float32 = y_imag[idx2_1]
+        y_real[idx1_1] = a_real_1 + b_real_1
+        y_imag[idx1_1] = a_imag_1 + b_imag_1
+        y_real[idx2_1] = a_real_1 - b_real_1
+        y_imag[idx2_1] = a_imag_1 - b_imag_1
 
-    # ---- Etapa 2: m=4, half=2, num_groups=256, stride=256 ----
+    # --- Stage 2: m=4, half=2, groups=256 ---
     for g2 in range(256):
-        base_2: int32 = g2 * 4
         for j2 in range(2):
-            idx1_2: int32 = base_2 + j2
+            idx1_2: int32 = g2 * 4 + j2
             idx2_2: int32 = idx1_2 + 2
-            tw_idx_2: int32 = j2 * 256
-            tr_2: float32 = twiddle_real[tw_idx_2]
-            ti_2: float32 = twiddle_imag[tw_idx_2]
-            ur_2: float32 = y_real[idx1_2]
-            ui_2: float32 = y_imag[idx1_2]
-            vr_2: float32 = y_real[idx2_2]
-            vi_2: float32 = y_imag[idx2_2]
-            trv_2: float32 = tr_2 * vr_2 - ti_2 * vi_2
-            tiv_2: float32 = tr_2 * vi_2 + ti_2 * vr_2
-            y_real[idx1_2] = ur_2 + trv_2
-            y_imag[idx1_2] = ui_2 + tiv_2
-            y_real[idx2_2] = ur_2 - trv_2
-            y_imag[idx2_2] = ui_2 - tiv_2
+            j2_f: float32 = j2
+            theta_2: float32 = -1.5707963267948966 * j2_f
+            theta2_2: float32 = theta_2 * theta_2
+            theta3_2: float32 = theta2_2 * theta_2
+            theta4_2: float32 = theta2_2 * theta2_2
+            theta5_2: float32 = theta4_2 * theta_2
+            theta6_2: float32 = theta4_2 * theta2_2
+            theta7_2: float32 = theta6_2 * theta_2
+            theta8_2: float32 = theta4_2 * theta4_2
+            theta9_2: float32 = theta8_2 * theta_2
+            theta10_2: float32 = theta8_2 * theta2_2
+            theta11_2: float32 = theta10_2 * theta_2
+            theta12_2: float32 = theta8_2 * theta4_2
+            theta13_2: float32 = theta12_2 * theta_2
+            theta14_2: float32 = theta12_2 * theta2_2
+            theta15_2: float32 = theta14_2 * theta_2
+            theta16_2: float32 = theta8_2 * theta8_2
+            theta17_2: float32 = theta16_2 * theta_2
+            cos_2: float32 = 1.0 - theta2_2 / 2.0 + theta4_2 / 24.0 - theta6_2 / 720.0 + theta8_2 / 40320.0 - theta10_2 / 3628800.0 + theta12_2 / 479001600.0 - theta14_2 / 87178291200.0 + theta16_2 / 20922789888000.0
+            sin_2: float32 = theta_2 - theta3_2 / 6.0 + theta5_2 / 120.0 - theta7_2 / 5040.0 + theta9_2 / 362880.0 - theta11_2 / 39916800.0 + theta13_2 / 6227020800.0 - theta15_2 / 1307674368000.0 + theta17_2 / 355687428096000.0
+            a_real_2: float32 = y_real[idx1_2]
+            a_imag_2: float32 = y_imag[idx1_2]
+            b_real_2: float32 = y_real[idx2_2]
+            b_imag_2: float32 = y_imag[idx2_2]
+            t_real_2: float32 = cos_2 * b_real_2 - sin_2 * b_imag_2
+            t_imag_2: float32 = cos_2 * b_imag_2 + sin_2 * b_real_2
+            y_real[idx1_2] = a_real_2 + t_real_2
+            y_imag[idx1_2] = a_imag_2 + t_imag_2
+            y_real[idx2_2] = a_real_2 - t_real_2
+            y_imag[idx2_2] = a_imag_2 - t_imag_2
 
-    # ---- Etapa 3: m=8, half=4, num_groups=128, stride=128 ----
+    # --- Stage 3: m=8, half=4, groups=128 ---
     for g3 in range(128):
-        base_3: int32 = g3 * 8
         for j3 in range(4):
-            idx1_3: int32 = base_3 + j3
+            idx1_3: int32 = g3 * 8 + j3
             idx2_3: int32 = idx1_3 + 4
-            tw_idx_3: int32 = j3 * 128
-            tr_3: float32 = twiddle_real[tw_idx_3]
-            ti_3: float32 = twiddle_imag[tw_idx_3]
-            ur_3: float32 = y_real[idx1_3]
-            ui_3: float32 = y_imag[idx1_3]
-            vr_3: float32 = y_real[idx2_3]
-            vi_3: float32 = y_imag[idx2_3]
-            trv_3: float32 = tr_3 * vr_3 - ti_3 * vi_3
-            tiv_3: float32 = tr_3 * vi_3 + ti_3 * vr_3
-            y_real[idx1_3] = ur_3 + trv_3
-            y_imag[idx1_3] = ui_3 + tiv_3
-            y_real[idx2_3] = ur_3 - trv_3
-            y_imag[idx2_3] = ui_3 - tiv_3
+            j3_f: float32 = j3
+            theta_3: float32 = -0.7853981633974483 * j3_f
+            theta2_3: float32 = theta_3 * theta_3
+            theta3_3: float32 = theta2_3 * theta_3
+            theta4_3: float32 = theta2_3 * theta2_3
+            theta5_3: float32 = theta4_3 * theta_3
+            theta6_3: float32 = theta4_3 * theta2_3
+            theta7_3: float32 = theta6_3 * theta_3
+            theta8_3: float32 = theta4_3 * theta4_3
+            theta9_3: float32 = theta8_3 * theta_3
+            theta10_3: float32 = theta8_3 * theta2_3
+            theta11_3: float32 = theta10_3 * theta_3
+            theta12_3: float32 = theta8_3 * theta4_3
+            theta13_3: float32 = theta12_3 * theta_3
+            theta14_3: float32 = theta12_3 * theta2_3
+            theta15_3: float32 = theta14_3 * theta_3
+            theta16_3: float32 = theta8_3 * theta8_3
+            theta17_3: float32 = theta16_3 * theta_3
+            cos_3: float32 = 1.0 - theta2_3 / 2.0 + theta4_3 / 24.0 - theta6_3 / 720.0 + theta8_3 / 40320.0 - theta10_3 / 3628800.0 + theta12_3 / 479001600.0 - theta14_3 / 87178291200.0 + theta16_3 / 20922789888000.0
+            sin_3: float32 = theta_3 - theta3_3 / 6.0 + theta5_3 / 120.0 - theta7_3 / 5040.0 + theta9_3 / 362880.0 - theta11_3 / 39916800.0 + theta13_3 / 6227020800.0 - theta15_3 / 1307674368000.0 + theta17_3 / 355687428096000.0
+            a_real_3: float32 = y_real[idx1_3]
+            a_imag_3: float32 = y_imag[idx1_3]
+            b_real_3: float32 = y_real[idx2_3]
+            b_imag_3: float32 = y_imag[idx2_3]
+            t_real_3: float32 = cos_3 * b_real_3 - sin_3 * b_imag_3
+            t_imag_3: float32 = cos_3 * b_imag_3 + sin_3 * b_real_3
+            y_real[idx1_3] = a_real_3 + t_real_3
+            y_imag[idx1_3] = a_imag_3 + t_imag_3
+            y_real[idx2_3] = a_real_3 - t_real_3
+            y_imag[idx2_3] = a_imag_3 - t_imag_3
 
-    # ---- Etapa 4: m=16, half=8, num_groups=64, stride=64 ----
+    # --- Stage 4: m=16, half=8, groups=64 ---
     for g4 in range(64):
-        base_4: int32 = g4 * 16
         for j4 in range(8):
-            idx1_4: int32 = base_4 + j4
+            idx1_4: int32 = g4 * 16 + j4
             idx2_4: int32 = idx1_4 + 8
-            tw_idx_4: int32 = j4 * 64
-            tr_4: float32 = twiddle_real[tw_idx_4]
-            ti_4: float32 = twiddle_imag[tw_idx_4]
-            ur_4: float32 = y_real[idx1_4]
-            ui_4: float32 = y_imag[idx1_4]
-            vr_4: float32 = y_real[idx2_4]
-            vi_4: float32 = y_imag[idx2_4]
-            trv_4: float32 = tr_4 * vr_4 - ti_4 * vi_4
-            tiv_4: float32 = tr_4 * vi_4 + ti_4 * vr_4
-            y_real[idx1_4] = ur_4 + trv_4
-            y_imag[idx1_4] = ui_4 + tiv_4
-            y_real[idx2_4] = ur_4 - trv_4
-            y_imag[idx2_4] = ui_4 - tiv_4
+            j4_f: float32 = j4
+            theta_4: float32 = -0.39269908169872414 * j4_f
+            theta2_4: float32 = theta_4 * theta_4
+            theta3_4: float32 = theta2_4 * theta_4
+            theta4_4: float32 = theta2_4 * theta2_4
+            theta5_4: float32 = theta4_4 * theta_4
+            theta6_4: float32 = theta4_4 * theta2_4
+            theta7_4: float32 = theta6_4 * theta_4
+            theta8_4: float32 = theta4_4 * theta4_4
+            theta9_4: float32 = theta8_4 * theta_4
+            theta10_4: float32 = theta8_4 * theta2_4
+            theta11_4: float32 = theta10_4 * theta_4
+            theta12_4: float32 = theta8_4 * theta4_4
+            theta13_4: float32 = theta12_4 * theta_4
+            theta14_4: float32 = theta12_4 * theta2_4
+            theta15_4: float32 = theta14_4 * theta_4
+            theta16_4: float32 = theta8_4 * theta8_4
+            theta17_4: float32 = theta16_4 * theta_4
+            cos_4: float32 = 1.0 - theta2_4 / 2.0 + theta4_4 / 24.0 - theta6_4 / 720.0 + theta8_4 / 40320.0 - theta10_4 / 3628800.0 + theta12_4 / 479001600.0 - theta14_4 / 87178291200.0 + theta16_4 / 20922789888000.0
+            sin_4: float32 = theta_4 - theta3_4 / 6.0 + theta5_4 / 120.0 - theta7_4 / 5040.0 + theta9_4 / 362880.0 - theta11_4 / 39916800.0 + theta13_4 / 6227020800.0 - theta15_4 / 1307674368000.0 + theta17_4 / 355687428096000.0
+            a_real_4: float32 = y_real[idx1_4]
+            a_imag_4: float32 = y_imag[idx1_4]
+            b_real_4: float32 = y_real[idx2_4]
+            b_imag_4: float32 = y_imag[idx2_4]
+            t_real_4: float32 = cos_4 * b_real_4 - sin_4 * b_imag_4
+            t_imag_4: float32 = cos_4 * b_imag_4 + sin_4 * b_real_4
+            y_real[idx1_4] = a_real_4 + t_real_4
+            y_imag[idx1_4] = a_imag_4 + t_imag_4
+            y_real[idx2_4] = a_real_4 - t_real_4
+            y_imag[idx2_4] = a_imag_4 - t_imag_4
 
-    # ---- Etapa 5: m=32, half=16, num_groups=32, stride=32 ----
+    # --- Stage 5: m=32, half=16, groups=32 ---
     for g5 in range(32):
-        base_5: int32 = g5 * 32
         for j5 in range(16):
-            idx1_5: int32 = base_5 + j5
+            idx1_5: int32 = g5 * 32 + j5
             idx2_5: int32 = idx1_5 + 16
-            tw_idx_5: int32 = j5 * 32
-            tr_5: float32 = twiddle_real[tw_idx_5]
-            ti_5: float32 = twiddle_imag[tw_idx_5]
-            ur_5: float32 = y_real[idx1_5]
-            ui_5: float32 = y_imag[idx1_5]
-            vr_5: float32 = y_real[idx2_5]
-            vi_5: float32 = y_imag[idx2_5]
-            trv_5: float32 = tr_5 * vr_5 - ti_5 * vi_5
-            tiv_5: float32 = tr_5 * vi_5 + ti_5 * vr_5
-            y_real[idx1_5] = ur_5 + trv_5
-            y_imag[idx1_5] = ui_5 + tiv_5
-            y_real[idx2_5] = ur_5 - trv_5
-            y_imag[idx2_5] = ui_5 - tiv_5
+            j5_f: float32 = j5
+            theta_5: float32 = -0.19634954084936207 * j5_f
+            theta2_5: float32 = theta_5 * theta_5
+            theta3_5: float32 = theta2_5 * theta_5
+            theta4_5: float32 = theta2_5 * theta2_5
+            theta5_5: float32 = theta4_5 * theta_5
+            theta6_5: float32 = theta4_5 * theta2_5
+            theta7_5: float32 = theta6_5 * theta_5
+            theta8_5: float32 = theta4_5 * theta4_5
+            theta9_5: float32 = theta8_5 * theta_5
+            theta10_5: float32 = theta8_5 * theta2_5
+            theta11_5: float32 = theta10_5 * theta_5
+            theta12_5: float32 = theta8_5 * theta4_5
+            theta13_5: float32 = theta12_5 * theta_5
+            theta14_5: float32 = theta12_5 * theta2_5
+            theta15_5: float32 = theta14_5 * theta_5
+            theta16_5: float32 = theta8_5 * theta8_5
+            theta17_5: float32 = theta16_5 * theta_5
+            cos_5: float32 = 1.0 - theta2_5 / 2.0 + theta4_5 / 24.0 - theta6_5 / 720.0 + theta8_5 / 40320.0 - theta10_5 / 3628800.0 + theta12_5 / 479001600.0 - theta14_5 / 87178291200.0 + theta16_5 / 20922789888000.0
+            sin_5: float32 = theta_5 - theta3_5 / 6.0 + theta5_5 / 120.0 - theta7_5 / 5040.0 + theta9_5 / 362880.0 - theta11_5 / 39916800.0 + theta13_5 / 6227020800.0 - theta15_5 / 1307674368000.0 + theta17_5 / 355687428096000.0
+            a_real_5: float32 = y_real[idx1_5]
+            a_imag_5: float32 = y_imag[idx1_5]
+            b_real_5: float32 = y_real[idx2_5]
+            b_imag_5: float32 = y_imag[idx2_5]
+            t_real_5: float32 = cos_5 * b_real_5 - sin_5 * b_imag_5
+            t_imag_5: float32 = cos_5 * b_imag_5 + sin_5 * b_real_5
+            y_real[idx1_5] = a_real_5 + t_real_5
+            y_imag[idx1_5] = a_imag_5 + t_imag_5
+            y_real[idx2_5] = a_real_5 - t_real_5
+            y_imag[idx2_5] = a_imag_5 - t_imag_5
 
-    # ---- Etapa 6: m=64, half=32, num_groups=16, stride=16 ----
+    # --- Stage 6: m=64, half=32, groups=16 ---
     for g6 in range(16):
-        base_6: int32 = g6 * 64
         for j6 in range(32):
-            idx1_6: int32 = base_6 + j6
+            idx1_6: int32 = g6 * 64 + j6
             idx2_6: int32 = idx1_6 + 32
-            tw_idx_6: int32 = j6 * 16
-            tr_6: float32 = twiddle_real[tw_idx_6]
-            ti_6: float32 = twiddle_imag[tw_idx_6]
-            ur_6: float32 = y_real[idx1_6]
-            ui_6: float32 = y_imag[idx1_6]
-            vr_6: float32 = y_real[idx2_6]
-            vi_6: float32 = y_imag[idx2_6]
-            trv_6: float32 = tr_6 * vr_6 - ti_6 * vi_6
-            tiv_6: float32 = tr_6 * vi_6 + ti_6 * vr_6
-            y_real[idx1_6] = ur_6 + trv_6
-            y_imag[idx1_6] = ui_6 + tiv_6
-            y_real[idx2_6] = ur_6 - trv_6
-            y_imag[idx2_6] = ui_6 - tiv_6
+            j6_f: float32 = j6
+            theta_6: float32 = -0.09817477042468103 * j6_f
+            theta2_6: float32 = theta_6 * theta_6
+            theta3_6: float32 = theta2_6 * theta_6
+            theta4_6: float32 = theta2_6 * theta2_6
+            theta5_6: float32 = theta4_6 * theta_6
+            theta6_6: float32 = theta4_6 * theta2_6
+            theta7_6: float32 = theta6_6 * theta_6
+            theta8_6: float32 = theta4_6 * theta4_6
+            theta9_6: float32 = theta8_6 * theta_6
+            theta10_6: float32 = theta8_6 * theta2_6
+            theta11_6: float32 = theta10_6 * theta_6
+            theta12_6: float32 = theta8_6 * theta4_6
+            theta13_6: float32 = theta12_6 * theta_6
+            theta14_6: float32 = theta12_6 * theta2_6
+            theta15_6: float32 = theta14_6 * theta_6
+            theta16_6: float32 = theta8_6 * theta8_6
+            theta17_6: float32 = theta16_6 * theta_6
+            cos_6: float32 = 1.0 - theta2_6 / 2.0 + theta4_6 / 24.0 - theta6_6 / 720.0 + theta8_6 / 40320.0 - theta10_6 / 3628800.0 + theta12_6 / 479001600.0 - theta14_6 / 87178291200.0 + theta16_6 / 20922789888000.0
+            sin_6: float32 = theta_6 - theta3_6 / 6.0 + theta5_6 / 120.0 - theta7_6 / 5040.0 + theta9_6 / 362880.0 - theta11_6 / 39916800.0 + theta13_6 / 6227020800.0 - theta15_6 / 1307674368000.0 + theta17_6 / 355687428096000.0
+            a_real_6: float32 = y_real[idx1_6]
+            a_imag_6: float32 = y_imag[idx1_6]
+            b_real_6: float32 = y_real[idx2_6]
+            b_imag_6: float32 = y_imag[idx2_6]
+            t_real_6: float32 = cos_6 * b_real_6 - sin_6 * b_imag_6
+            t_imag_6: float32 = cos_6 * b_imag_6 + sin_6 * b_real_6
+            y_real[idx1_6] = a_real_6 + t_real_6
+            y_imag[idx1_6] = a_imag_6 + t_imag_6
+            y_real[idx2_6] = a_real_6 - t_real_6
+            y_imag[idx2_6] = a_imag_6 - t_imag_6
 
-    # ---- Etapa 7: m=128, half=64, num_groups=8, stride=8 ----
+    # --- Stage 7: m=128, half=64, groups=8 ---
     for g7 in range(8):
-        base_7: int32 = g7 * 128
         for j7 in range(64):
-            idx1_7: int32 = base_7 + j7
+            idx1_7: int32 = g7 * 128 + j7
             idx2_7: int32 = idx1_7 + 64
-            tw_idx_7: int32 = j7 * 8
-            tr_7: float32 = twiddle_real[tw_idx_7]
-            ti_7: float32 = twiddle_imag[tw_idx_7]
-            ur_7: float32 = y_real[idx1_7]
-            ui_7: float32 = y_imag[idx1_7]
-            vr_7: float32 = y_real[idx2_7]
-            vi_7: float32 = y_imag[idx2_7]
-            trv_7: float32 = tr_7 * vr_7 - ti_7 * vi_7
-            tiv_7: float32 = tr_7 * vi_7 + ti_7 * vr_7
-            y_real[idx1_7] = ur_7 + trv_7
-            y_imag[idx1_7] = ui_7 + tiv_7
-            y_real[idx2_7] = ur_7 - trv_7
-            y_imag[idx2_7] = ui_7 - tiv_7
+            j7_f: float32 = j7
+            theta_7: float32 = -0.04908738521234052 * j7_f
+            theta2_7: float32 = theta_7 * theta_7
+            theta3_7: float32 = theta2_7 * theta_7
+            theta4_7: float32 = theta2_7 * theta2_7
+            theta5_7: float32 = theta4_7 * theta_7
+            theta6_7: float32 = theta4_7 * theta2_7
+            theta7_7: float32 = theta6_7 * theta_7
+            theta8_7: float32 = theta4_7 * theta4_7
+            theta9_7: float32 = theta8_7 * theta_7
+            theta10_7: float32 = theta8_7 * theta2_7
+            theta11_7: float32 = theta10_7 * theta_7
+            theta12_7: float32 = theta8_7 * theta4_7
+            theta13_7: float32 = theta12_7 * theta_7
+            theta14_7: float32 = theta12_7 * theta2_7
+            theta15_7: float32 = theta14_7 * theta_7
+            theta16_7: float32 = theta8_7 * theta8_7
+            theta17_7: float32 = theta16_7 * theta_7
+            cos_7: float32 = 1.0 - theta2_7 / 2.0 + theta4_7 / 24.0 - theta6_7 / 720.0 + theta8_7 / 40320.0 - theta10_7 / 3628800.0 + theta12_7 / 479001600.0 - theta14_7 / 87178291200.0 + theta16_7 / 20922789888000.0
+            sin_7: float32 = theta_7 - theta3_7 / 6.0 + theta5_7 / 120.0 - theta7_7 / 5040.0 + theta9_7 / 362880.0 - theta11_7 / 39916800.0 + theta13_7 / 6227020800.0 - theta15_7 / 1307674368000.0 + theta17_7 / 355687428096000.0
+            a_real_7: float32 = y_real[idx1_7]
+            a_imag_7: float32 = y_imag[idx1_7]
+            b_real_7: float32 = y_real[idx2_7]
+            b_imag_7: float32 = y_imag[idx2_7]
+            t_real_7: float32 = cos_7 * b_real_7 - sin_7 * b_imag_7
+            t_imag_7: float32 = cos_7 * b_imag_7 + sin_7 * b_real_7
+            y_real[idx1_7] = a_real_7 + t_real_7
+            y_imag[idx1_7] = a_imag_7 + t_imag_7
+            y_real[idx2_7] = a_real_7 - t_real_7
+            y_imag[idx2_7] = a_imag_7 - t_imag_7
 
-    # ---- Etapa 8: m=256, half=128, num_groups=4, stride=4 ----
+    # --- Stage 8: m=256, half=128, groups=4 ---
     for g8 in range(4):
-        base_8: int32 = g8 * 256
         for j8 in range(128):
-            idx1_8: int32 = base_8 + j8
+            idx1_8: int32 = g8 * 256 + j8
             idx2_8: int32 = idx1_8 + 128
-            tw_idx_8: int32 = j8 * 4
-            tr_8: float32 = twiddle_real[tw_idx_8]
-            ti_8: float32 = twiddle_imag[tw_idx_8]
-            ur_8: float32 = y_real[idx1_8]
-            ui_8: float32 = y_imag[idx1_8]
-            vr_8: float32 = y_real[idx2_8]
-            vi_8: float32 = y_imag[idx2_8]
-            trv_8: float32 = tr_8 * vr_8 - ti_8 * vi_8
-            tiv_8: float32 = tr_8 * vi_8 + ti_8 * vr_8
-            y_real[idx1_8] = ur_8 + trv_8
-            y_imag[idx1_8] = ui_8 + tiv_8
-            y_real[idx2_8] = ur_8 - trv_8
-            y_imag[idx2_8] = ui_8 - tiv_8
+            j8_f: float32 = j8
+            theta_8: float32 = -0.02454369260617026 * j8_f
+            theta2_8: float32 = theta_8 * theta_8
+            theta3_8: float32 = theta2_8 * theta_8
+            theta4_8: float32 = theta2_8 * theta2_8
+            theta5_8: float32 = theta4_8 * theta_8
+            theta6_8: float32 = theta4_8 * theta2_8
+            theta7_8: float32 = theta6_8 * theta_8
+            theta8_8: float32 = theta4_8 * theta4_8
+            theta9_8: float32 = theta8_8 * theta_8
+            theta10_8: float32 = theta8_8 * theta2_8
+            theta11_8: float32 = theta10_8 * theta_8
+            theta12_8: float32 = theta8_8 * theta4_8
+            theta13_8: float32 = theta12_8 * theta_8
+            theta14_8: float32 = theta12_8 * theta2_8
+            theta15_8: float32 = theta14_8 * theta_8
+            theta16_8: float32 = theta8_8 * theta8_8
+            theta17_8: float32 = theta16_8 * theta_8
+            cos_8: float32 = 1.0 - theta2_8 / 2.0 + theta4_8 / 24.0 - theta6_8 / 720.0 + theta8_8 / 40320.0 - theta10_8 / 3628800.0 + theta12_8 / 479001600.0 - theta14_8 / 87178291200.0 + theta16_8 / 20922789888000.0
+            sin_8: float32 = theta_8 - theta3_8 / 6.0 + theta5_8 / 120.0 - theta7_8 / 5040.0 + theta9_8 / 362880.0 - theta11_8 / 39916800.0 + theta13_8 / 6227020800.0 - theta15_8 / 1307674368000.0 + theta17_8 / 355687428096000.0
+            a_real_8: float32 = y_real[idx1_8]
+            a_imag_8: float32 = y_imag[idx1_8]
+            b_real_8: float32 = y_real[idx2_8]
+            b_imag_8: float32 = y_imag[idx2_8]
+            t_real_8: float32 = cos_8 * b_real_8 - sin_8 * b_imag_8
+            t_imag_8: float32 = cos_8 * b_imag_8 + sin_8 * b_real_8
+            y_real[idx1_8] = a_real_8 + t_real_8
+            y_imag[idx1_8] = a_imag_8 + t_imag_8
+            y_real[idx2_8] = a_real_8 - t_real_8
+            y_imag[idx2_8] = a_imag_8 - t_imag_8
 
-    # ---- Etapa 9: m=512, half=256, num_groups=2, stride=2 ----
+    # --- Stage 9: m=512, half=256, groups=2 ---
     for g9 in range(2):
-        base_9: int32 = g9 * 512
         for j9 in range(256):
-            idx1_9: int32 = base_9 + j9
+            idx1_9: int32 = g9 * 512 + j9
             idx2_9: int32 = idx1_9 + 256
-            tw_idx_9: int32 = j9 * 2
-            tr_9: float32 = twiddle_real[tw_idx_9]
-            ti_9: float32 = twiddle_imag[tw_idx_9]
-            ur_9: float32 = y_real[idx1_9]
-            ui_9: float32 = y_imag[idx1_9]
-            vr_9: float32 = y_real[idx2_9]
-            vi_9: float32 = y_imag[idx2_9]
-            trv_9: float32 = tr_9 * vr_9 - ti_9 * vi_9
-            tiv_9: float32 = tr_9 * vi_9 + ti_9 * vr_9
-            y_real[idx1_9] = ur_9 + trv_9
-            y_imag[idx1_9] = ui_9 + tiv_9
-            y_real[idx2_9] = ur_9 - trv_9
-            y_imag[idx2_9] = ui_9 - tiv_9
+            j9_f: float32 = j9
+            theta_9: float32 = -0.01227184630308513 * j9_f
+            theta2_9: float32 = theta_9 * theta_9
+            theta3_9: float32 = theta2_9 * theta_9
+            theta4_9: float32 = theta2_9 * theta2_9
+            theta5_9: float32 = theta4_9 * theta_9
+            theta6_9: float32 = theta4_9 * theta2_9
+            theta7_9: float32 = theta6_9 * theta_9
+            theta8_9: float32 = theta4_9 * theta4_9
+            theta9_9: float32 = theta8_9 * theta_9
+            theta10_9: float32 = theta8_9 * theta2_9
+            theta11_9: float32 = theta10_9 * theta_9
+            theta12_9: float32 = theta8_9 * theta4_9
+            theta13_9: float32 = theta12_9 * theta_9
+            theta14_9: float32 = theta12_9 * theta2_9
+            theta15_9: float32 = theta14_9 * theta_9
+            theta16_9: float32 = theta8_9 * theta8_9
+            theta17_9: float32 = theta16_9 * theta_9
+            cos_9: float32 = 1.0 - theta2_9 / 2.0 + theta4_9 / 24.0 - theta6_9 / 720.0 + theta8_9 / 40320.0 - theta10_9 / 3628800.0 + theta12_9 / 479001600.0 - theta14_9 / 87178291200.0 + theta16_9 / 20922789888000.0
+            sin_9: float32 = theta_9 - theta3_9 / 6.0 + theta5_9 / 120.0 - theta7_9 / 5040.0 + theta9_9 / 362880.0 - theta11_9 / 39916800.0 + theta13_9 / 6227020800.0 - theta15_9 / 1307674368000.0 + theta17_9 / 355687428096000.0
+            a_real_9: float32 = y_real[idx1_9]
+            a_imag_9: float32 = y_imag[idx1_9]
+            b_real_9: float32 = y_real[idx2_9]
+            b_imag_9: float32 = y_imag[idx2_9]
+            t_real_9: float32 = cos_9 * b_real_9 - sin_9 * b_imag_9
+            t_imag_9: float32 = cos_9 * b_imag_9 + sin_9 * b_real_9
+            y_real[idx1_9] = a_real_9 + t_real_9
+            y_imag[idx1_9] = a_imag_9 + t_imag_9
+            y_real[idx2_9] = a_real_9 - t_real_9
+            y_imag[idx2_9] = a_imag_9 - t_imag_9
 
-    # ---- Etapa 10: m=1024, half=512, num_groups=1, stride=1 ----
+    # --- Stage 10: m=1024, half=512, groups=1 ---
     for g10 in range(1):
-        base_10: int32 = g10 * 1024
         for j10 in range(512):
-            idx1_10: int32 = base_10 + j10
+            idx1_10: int32 = g10 * 1024 + j10
             idx2_10: int32 = idx1_10 + 512
-            tw_idx_10: int32 = j10 * 1
-            tr_10: float32 = twiddle_real[tw_idx_10]
-            ti_10: float32 = twiddle_imag[tw_idx_10]
-            ur_10: float32 = y_real[idx1_10]
-            ui_10: float32 = y_imag[idx1_10]
-            vr_10: float32 = y_real[idx2_10]
-            vi_10: float32 = y_imag[idx2_10]
-            trv_10: float32 = tr_10 * vr_10 - ti_10 * vi_10
-            tiv_10: float32 = tr_10 * vi_10 + ti_10 * vr_10
-            y_real[idx1_10] = ur_10 + trv_10
-            y_imag[idx1_10] = ui_10 + tiv_10
-            y_real[idx2_10] = ur_10 - trv_10
-            y_imag[idx2_10] = ui_10 - tiv_10
+            j10_f: float32 = j10
+            theta_10: float32 = -0.006135923151542565 * j10_f
+            theta2_10: float32 = theta_10 * theta_10
+            theta3_10: float32 = theta2_10 * theta_10
+            theta4_10: float32 = theta2_10 * theta2_10
+            theta5_10: float32 = theta4_10 * theta_10
+            theta6_10: float32 = theta4_10 * theta2_10
+            theta7_10: float32 = theta6_10 * theta_10
+            theta8_10: float32 = theta4_10 * theta4_10
+            theta9_10: float32 = theta8_10 * theta_10
+            theta10_10: float32 = theta8_10 * theta2_10
+            theta11_10: float32 = theta10_10 * theta_10
+            theta12_10: float32 = theta8_10 * theta4_10
+            theta13_10: float32 = theta12_10 * theta_10
+            theta14_10: float32 = theta12_10 * theta2_10
+            theta15_10: float32 = theta14_10 * theta_10
+            theta16_10: float32 = theta8_10 * theta8_10
+            theta17_10: float32 = theta16_10 * theta_10
+            cos_10: float32 = 1.0 - theta2_10 / 2.0 + theta4_10 / 24.0 - theta6_10 / 720.0 + theta8_10 / 40320.0 - theta10_10 / 3628800.0 + theta12_10 / 479001600.0 - theta14_10 / 87178291200.0 + theta16_10 / 20922789888000.0
+            sin_10: float32 = theta_10 - theta3_10 / 6.0 + theta5_10 / 120.0 - theta7_10 / 5040.0 + theta9_10 / 362880.0 - theta11_10 / 39916800.0 + theta13_10 / 6227020800.0 - theta15_10 / 1307674368000.0 + theta17_10 / 355687428096000.0
+            a_real_10: float32 = y_real[idx1_10]
+            a_imag_10: float32 = y_imag[idx1_10]
+            b_real_10: float32 = y_real[idx2_10]
+            b_imag_10: float32 = y_imag[idx2_10]
+            t_real_10: float32 = cos_10 * b_real_10 - sin_10 * b_imag_10
+            t_imag_10: float32 = cos_10 * b_imag_10 + sin_10 * b_real_10
+            y_real[idx1_10] = a_real_10 + t_real_10
+            y_imag[idx1_10] = a_imag_10 + t_imag_10
+            y_real[idx2_10] = a_real_10 - t_real_10
+            y_imag[idx2_10] = a_imag_10 - t_imag_10
 ```
 
 ### SCHEDULE
@@ -261,42 +363,23 @@ from allo.customize import Partition
 
 s = allo.customize(kernel)
 
-# Arrays con patron de indices variable entre etapas (stride distinto en
-# cada etapa desenrollada) -> Partition.Complete para evitar conflictos
-# de banco de memoria sin depender de un factor fijo de Cyclic/Block.
-s.partition("kernel:y_real", partition_type=Partition.Complete)
-s.partition("kernel:y_imag", partition_type=Partition.Complete)
-s.partition("kernel:twiddle_real", partition_type=Partition.Complete)
-s.partition("kernel:twiddle_imag", partition_type=Partition.Complete)
+# Bit-reversal permutation loop
+s.pipeline("i", initiation_interval=5)
 
-# Calculo de la tabla de twiddle: cada iteracion es independiente (sin
-# recurrencia), se puede pipelinear.
-s.pipeline("k", initiation_interval=20)
+# Butterfly stages: pipeline the loop with the largest trip count in each nest
+s.pipeline("g1", initiation_interval=5)
+s.pipeline("g2", initiation_interval=5)
+s.pipeline("g3", initiation_interval=5)
+s.pipeline("g4", initiation_interval=5)
+s.pipeline("g5", initiation_interval=5)
+s.pipeline("j6", initiation_interval=5)
+s.pipeline("j7", initiation_interval=5)
+s.pipeline("j8", initiation_interval=5)
+s.pipeline("j9", initiation_interval=5)
+s.pipeline("j10", initiation_interval=5)
 
-# Permutacion bit-reversal: bucle exterior de 1024 iteraciones, bucle
-# interior 'b' con bound constante (10) -> pipelinear el exterior.
-s.pipeline("i", initiation_interval=20)
-
-# Etapas de la mariposa: en cada una se pipelinea el bucle (g_s o j_s) que
-# tiene MAS iteraciones -- el otro es demasiado pequeno para aportar nada.
-# Etapa 1  (g1:512, j1:1)   -> pipelinea g1
-s.pipeline("g1", initiation_interval=20)
-# Etapa 2  (g2:256, j2:2)   -> pipelinea g2
-s.pipeline("g2", initiation_interval=20)
-# Etapa 3  (g3:128, j3:4)   -> pipelinea g3
-s.pipeline("g3", initiation_interval=20)
-# Etapa 4  (g4:64,  j4:8)   -> pipelinea g4
-s.pipeline("g4", initiation_interval=20)
-# Etapa 5  (g5:32,  j5:16)  -> pipelinea g5
-s.pipeline("g5", initiation_interval=20)
-# Etapa 6  (g6:16,  j6:32)  -> pipelinea j6
-s.pipeline("j6", initiation_interval=20)
-# Etapa 7  (g7:8,   j7:64)  -> pipelinea j7
-s.pipeline("j7", initiation_interval=20)
-# Etapa 8  (g8:4,   j8:128) -> pipelinea j8
-s.pipeline("j8", initiation_interval=20)
-# Etapa 9  (g9:2,   j9:256) -> pipelinea j9
-s.pipeline("j9", initiation_interval=20)
-# Etapa 10 (g10:1,  j10:512) -> pipelinea j10
-s.pipeline("j10", initiation_interval=20)
+# Partition the working arrays to sustain II=5 despite variable stride
+# between butterfly stages (factor=8 required for objetivo_ii=5).
+s.partition("kernel:y_real", partition_type=Partition.Cyclic, factor=8)
+s.partition("kernel:y_imag", partition_type=Partition.Cyclic, factor=8)
 ```

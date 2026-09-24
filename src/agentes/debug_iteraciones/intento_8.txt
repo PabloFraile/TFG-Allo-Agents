@@ -257,43 +257,30 @@ def kernel(x_real: float32[1024], x_imag: float32[1024],
 
 ### SCHEDULE
 ```python
-from allo.customize import Partition
-
 s = allo.customize(kernel)
 
-# ---- Particionado conservador: solo las tablas/arreglos que sufren el
-# patron de stride variable entre las 10 etapas desenrolladas a mano
-# (twiddle_real/twiddle_imag e y_real/y_imag). Se usa Partition.Complete
-# porque un factor fijo de Cyclic/Block no puede evitar conflictos de
-# banco para 10 patrones de stride distintos a la vez. No se anaden mas
-# directivas de particionado ni de unroll para mantener el espacio de
-# diseno de la sintesis lo mas simple posible y evitar el timeout de L4.
-s.partition("kernel:twiddle_real", partition_type=Partition.Complete)
-s.partition("kernel:twiddle_imag", partition_type=Partition.Complete)
-s.partition("kernel:y_real", partition_type=Partition.Complete)
-s.partition("kernel:y_imag", partition_type=Partition.Complete)
+# Objetivo_ii = 10 (relajado). Se evita deliberadamente cualquier
+# Partition.Complete/Cyclic/Block sobre y_real/y_imag/twiddle_real/
+# twiddle_imag: con II=10 hay margen de sobra para que los 2 lecturas +
+# 2 escrituras por iteracion de cada mariposa se sirvan secuencialmente
+# desde BRAM de doble puerto sin particionar, y anadir particionado
+# agresivo sobre arrays de hasta 1024 elementos es precisamente lo que
+# dispara la explosion de espacio de busqueda que causo el timeout de
+# L4 en el intento anterior. Se pipelinea unicamente el bucle dominante
+# (el de mas iteraciones) de cada etapa, y las dos tablas de precalculo,
+# todo con el mismo initiation_interval=10 pedido por la especificacion.
 
-# ---- Pipeline con el objetivo_ii real de la especificacion (20), nunca 1,
-# para no forzar al sintetizador a explorar un espacio de diseno
-# inalcanzable (causa raiz confirmada de timeouts de L4 anteriores).
+s.pipeline("k", initiation_interval=10)
+s.pipeline("i", initiation_interval=10)
 
-# Calculo de la tabla de twiddle factors (bucle dominante: 512 iteraciones)
-s.pipeline("k", initiation_interval=20)
-
-# Permutacion bit-reversal (bucle dominante: 1024 iteraciones, 'b' es
-# un bucle interno trivial de 10 iteraciones anidado dentro de 'i')
-s.pipeline("i", initiation_interval=20)
-
-# Mariposas por etapa: se pipelinea siempre el bucle (g o j) con MAS
-# iteraciones en cada etapa, nunca el trivial.
-s.pipeline("g1", initiation_interval=20)   # etapa 1: g=512, j=1
-s.pipeline("g2", initiation_interval=20)   # etapa 2: g=256, j=2
-s.pipeline("g3", initiation_interval=20)   # etapa 3: g=128, j=4
-s.pipeline("g4", initiation_interval=20)   # etapa 4: g=64,  j=8
-s.pipeline("g5", initiation_interval=20)   # etapa 5: g=32,  j=16
-s.pipeline("j6", initiation_interval=20)   # etapa 6: g=16,  j=32
-s.pipeline("j7", initiation_interval=20)   # etapa 7: g=8,   j=64
-s.pipeline("j8", initiation_interval=20)   # etapa 8: g=4,   j=128
-s.pipeline("j9", initiation_interval=20)   # etapa 9: g=2,   j=256
-s.pipeline("j10", initiation_interval=20)  # etapa 10: g=1,  j=512
+s.pipeline("g1", initiation_interval=10)
+s.pipeline("g2", initiation_interval=10)
+s.pipeline("g3", initiation_interval=10)
+s.pipeline("g4", initiation_interval=10)
+s.pipeline("g5", initiation_interval=10)
+s.pipeline("j6", initiation_interval=10)
+s.pipeline("j7", initiation_interval=10)
+s.pipeline("j8", initiation_interval=10)
+s.pipeline("j9", initiation_interval=10)
+s.pipeline("j10", initiation_interval=10)
 ```

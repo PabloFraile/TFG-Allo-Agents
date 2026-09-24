@@ -25,5 +25,19 @@ salidas:
 golden_model_id: fft_radix2_numpy_reference
 
 restricciones:
-  objetivo_ii: 20          # II=1 en el bucle interno (ver nivel L4)
+  objetivo_ii: 5            # bajado desde 10 (24 de septiembre de 2026):
+                            # segundo punto del mismo barrido de objetivo_ii
+                            # para la curva rendimiento/area del TFG (20 -> 10
+                            # -> 5). El resultado de II=10 (Partition.Cyclic,
+                            # factor=4, confirmado real en
+                            # src/agentes/probar_particion_ii.py) ya esta
+                            # respaldado en
+                            # results/catalogo/fft_radix2_ii10.json antes de
+                            # este cambio, porque guardar_en_catalogo()
+                            # sobreescribe por nombre de bloque. Paso
+                            # conservador (10 -> 5, no directo a 1) por la
+                            # misma razon que el paso anterior: objetivo_ii=1
+                            # ya causo timeouts de sintesis repetidos en
+                            # corridas anteriores (ver Parte 9 de la
+                            # bitacora).
   throughput_min: 100e6   # muestras/segundo

@@ -257,50 +257,43 @@ def kernel(x_real: float32[1024], x_imag: float32[1024],
 
 ### SCHEDULE
 ```python
-s = allo.customize(kernel)
-
 from allo.customize import Partition
 
-# Los accesos a estos arrays cambian de patron de stride entre etapas (y
-# entre el bucle de twiddle / bit-reversal y las 10 etapas de mariposa),
-# asi que un factor fijo de Cyclic/Block no evita conflictos de banco en
-# todas las etapas a la vez -- se usa Partition.Complete.
-s.partition("kernel:twiddle_real", partition_type=Partition.Complete)
-s.partition("kernel:twiddle_imag", partition_type=Partition.Complete)
+s = allo.customize(kernel)
+
+# Particionado conservador: solo los arrays cuyo patron de acceso cambia de
+# stride entre etapas (y_real/y_imag, con indices base+j y base+j+half donde
+# half varia por etapa) necesitan Partition.Complete -- un factor fijo
+# Cyclic/Block no puede evitar conflictos de banco para 10 patrones de
+# stride distintos. No se particionan twiddle_real/twiddle_imag ni x_real/
+# x_imag para mantener el espacio de diseño de la sintesis lo mas pequeno
+# posible y evitar el timeout observado en el intento anterior.
 s.partition("kernel:y_real", partition_type=Partition.Complete)
 s.partition("kernel:y_imag", partition_type=Partition.Complete)
 
-# Calculo de la tabla de twiddle factors: cada iteracion k es independiente
-# (sin recurrencia), se puede pipelinear directamente.
-s.pipeline("k", initiation_interval=20)
+# Pipeline con el objetivo_ii de la especificacion (10) en cada bucle
+# independiente, sin unroll adicional, para mantener las directivas al
+# minimo y dejar converger al solver de sintesis.
 
-# Permutacion bit-reversal: se pipelinea el bucle exterior i (1024
-# iteraciones); el bucle interior b (10 iteraciones fijas) queda contenido
-# dentro de cada iteracion pipelineada de i.
-s.pipeline("i", initiation_interval=20)
+# Tabla de twiddle factors: cada iteracion de k es independiente.
+s.pipeline("k", initiation_interval=10)
 
-# Las 10 etapas de la mariposa FFT ya estan desenrolladas a mano en el
-# KERNEL (regla de bucles exteriores con bounds dependientes). En cada
-# etapa se pipelinea el bucle (g o j) que tiene MAS iteraciones, nunca el
-# trivial, para que el pragma realmente solape el trabajo dominante:
-#   Etapa 1  (g1:512, j1:1)   -> pipelinea g1
-#   Etapa 2  (g2:256, j2:2)   -> pipelinea g2
-#   Etapa 3  (g3:128, j3:4)   -> pipelinea g3
-#   Etapa 4  (g4:64,  j4:8)   -> pipelinea g4
-#   Etapa 5  (g5:32,  j5:16)  -> pipelinea g5
-#   Etapa 6  (g6:16,  j6:32)  -> pipelinea j6
-#   Etapa 7  (g7:8,   j7:64)  -> pipelinea j7
-#   Etapa 8  (g8:4,   j8:128) -> pipelinea j8
-#   Etapa 9  (g9:2,   j9:256) -> pipelinea j9
-#   Etapa 10 (g10:1,  j10:512)-> pipelinea j10
-s.pipeline("g1", initiation_interval=20)
-s.pipeline("g2", initiation_interval=20)
-s.pipeline("g3", initiation_interval=20)
-s.pipeline("g4", initiation_interval=20)
-s.pipeline("g5", initiation_interval=20)
-s.pipeline("j6", initiation_interval=20)
-s.pipeline("j7", initiation_interval=20)
-s.pipeline("j8", initiation_interval=20)
-s.pipeline("j9", initiation_interval=20)
-s.pipeline("j10", initiation_interval=20)
+# Bit-reversal: cada iteracion de i es independiente (el bucle interno b
+# es una recurrencia corta de 10 pasos fijos, no se pipelinea).
+s.pipeline("i", initiation_interval=10)
+
+# Por cada etapa de la mariposa, se pipelinea SOLO el bucle (g o j) que
+# tiene mas iteraciones -- el otro es demasiado pequeno para beneficiarse
+# y dejar sin pipeline al bucle dominante era la causa de bucles largos
+# sin solapar en el intento anterior.
+s.pipeline("g1", initiation_interval=10)   # g1:512  vs j1:1
+s.pipeline("g2", initiation_interval=10)   # g2:256  vs j2:2
+s.pipeline("g3", initiation_interval=10)   # g3:128  vs j3:4
+s.pipeline("g4", initiation_interval=10)   # g4:64   vs j4:8
+s.pipeline("g5", initiation_interval=10)   # g5:32   vs j5:16
+s.pipeline("j6", initiation_interval=10)   # g6:16   vs j6:32
+s.pipeline("j7", initiation_interval=10)   # g7:8    vs j7:64
+s.pipeline("j8", initiation_interval=10)   # g8:4    vs j8:128
+s.pipeline("j9", initiation_interval=10)   # g9:2    vs j9:256
+s.pipeline("j10", initiation_interval=10)  # g10:1   vs j10:512
 ```

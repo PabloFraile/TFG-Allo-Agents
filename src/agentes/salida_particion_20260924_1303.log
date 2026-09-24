@@ -1,0 +1,19 @@
+nohup: no se tendrá en cuenta la entrada
+Kernel cargado desde 'kernel_verificado.txt' (10119 caracteres). Sin tocar -- solo se varía el factor de partición del schedule.
+
+=== Probando Partition.Cyclic(factor=4), objetivo_ii=10, timeout=1200s ===
+  -> OK en 179s: II=10, latencia=37770, reloj=2.673ns, BRAM=0 DSP=38 LUT=22075 FF=28526
+  (resultados parciales guardados en resultados_particion_ii.json)
+
+=== Probando Partition.Cyclic(factor=8), objetivo_ii=10, timeout=1200s ===
+  -> OK en 141s: II=10, latencia=37770, reloj=2.673ns, BRAM=0 DSP=38 LUT=29287 FF=33053
+  (resultados parciales guardados en resultados_particion_ii.json)
+
+=== Probando Partition.Cyclic(factor=16), objetivo_ii=10, timeout=1200s ===
+  -> OK en 160s: II=10, latencia=37770, reloj=2.673ns, BRAM=0 DSP=38 LUT=43202 FF=40356
+  (resultados parciales guardados en resultados_particion_ii.json)
+
+=== Resumen ===
+factor=  4: II=10 (179s)
+factor=  8: II=10 (141s)
+factor= 16: II=10 (160s)

@@ -1,5 +1,4 @@
 ### KERNEL
-```python
 import allo
 from allo.ir.types import float32, int32
 
@@ -253,43 +252,36 @@ def kernel(x_real: float32[1024], x_imag: float32[1024],
             y_imag[idx1_10] = ui_10 + tiv_10
             y_real[idx2_10] = ur_10 - trv_10
             y_imag[idx2_10] = ui_10 - tiv_10
-```
 
 ### SCHEDULE
-```python
 from allo.customize import Partition
 
 s = allo.customize(kernel)
 
-# y_real/y_imag se leen y escriben en DOS índices calculados (idx1, idx2) en
-# la misma iteración de cada etapa de la mariposa -- eso son 2 lecturas + 2
-# escrituras por ciclo sobre el mismo array, más de lo que un BRAM de doble
-# puerto soporta de forma directa. Partición completa los convierte en
-# registros individuales, sin conflicto de puertos.
-s.partition("kernel:y_real", partition_type=Partition.Complete)
-s.partition("kernel:y_imag", partition_type=Partition.Complete)
+# Ganador del barrido de probar_particion_ii.py (24 de septiembre de 2026,
+# ver docs/bitacora.md): factor=4 ya alcanza II=10 el mismo objetivo_ii que
+# el spec pide, en 179s, con MENOS recursos (LUT=22075, FF=28526) que
+# factor=8 (LUT=29287, FF=33053, mismo II=10, 141s) o factor=16
+# (LUT=43202, FF=40356, mismo II=10, 160s) -- subir el factor de particion
+# aqui no baja el II mas alla de 10, solo gasta area de mas. factor=4 es el
+# mismo que ya funcionaba a objetivo_ii=20 (ver fft_radix2_ii20.json); lo
+# unico que cambio de verdad para bajar de II=20 a II=10 fue pedir un
+# initiation_interval mas bajo en s.pipeline(), no el factor de particion.
 
-# twiddle_real/twiddle_imag solo se leen UNA vez por iteración de cada etapa
-# (una lectura por array), así que no necesitan partición para cerrar II=20 --
-# un solo puerto de BRAM basta.
+s.partition("kernel:twiddle_real", partition_type=Partition.Cyclic, factor=4)
+s.partition("kernel:twiddle_imag", partition_type=Partition.Cyclic, factor=4)
+s.partition("kernel:y_real", partition_type=Partition.Cyclic, factor=4)
+s.partition("kernel:y_imag", partition_type=Partition.Cyclic, factor=4)
 
-s.pipeline("k", initiation_interval=20)   # cálculo de la tabla de twiddle factors
-s.pipeline("i", initiation_interval=20)   # permutación bit-reversal
-
-# Para cada etapa N: se pipelinea el bucle (externo g_N o interno j_N) que
-# tenga MÁS iteraciones, y se deja que Allo/Vitis desenrolle por completo el
-# otro (el de menos iteraciones) -- así se evita tanto una síntesis
-# puramente secuencial como un desenrollado masivo del bucle grande, que
-# dispararía el uso de recursos. Mismo patrón usado en las cascadas que sí
-# llegaron a L4 en corridas anteriores (ver docs/bitacora.md).
-s.pipeline("g1", initiation_interval=20)   # 512 grupos x 1 mariposa
-s.pipeline("g2", initiation_interval=20)   # 256 grupos x 2 mariposas
-s.pipeline("g3", initiation_interval=20)   # 128 grupos x 4 mariposas
-s.pipeline("g4", initiation_interval=20)   #  64 grupos x 8 mariposas
-s.pipeline("g5", initiation_interval=20)   #  32 grupos x 16 mariposas
-s.pipeline("j6", initiation_interval=20)   #  16 grupos x 32 mariposas -- ya conviene pipelinear la interna
-s.pipeline("j7", initiation_interval=20)   #   8 grupos x 64 mariposas
-s.pipeline("j8", initiation_interval=20)   #   4 grupos x 128 mariposas
-s.pipeline("j9", initiation_interval=20)   #   2 grupos x 256 mariposas
-s.pipeline("j10", initiation_interval=20)  #   1 grupo  x 512 mariposas
-```
+s.pipeline("k", initiation_interval=10)
+s.pipeline("i", initiation_interval=10)
+s.pipeline("g1", initiation_interval=10)
+s.pipeline("g2", initiation_interval=10)
+s.pipeline("g3", initiation_interval=10)
+s.pipeline("g4", initiation_interval=10)
+s.pipeline("g5", initiation_interval=10)
+s.pipeline("j6", initiation_interval=10)
+s.pipeline("j7", initiation_interval=10)
+s.pipeline("j8", initiation_interval=10)
+s.pipeline("j9", initiation_interval=10)
+s.pipeline("j10", initiation_interval=10)
