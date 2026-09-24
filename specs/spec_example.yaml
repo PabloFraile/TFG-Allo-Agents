@@ -22,7 +22,15 @@ salidas:
     tipo: allo.float32
     forma: [1024]
 
-golden_model_id: fft_radix2_numpy_reference
+golden_model_id: fft_numpy_reference   # renombrado desde fft_radix2_numpy_reference
+                                        # (24 de septiembre de 2026): el nombre
+                                        # anterior sugería que la referencia era
+                                        # especifica de radix-2, pero es agnóstica
+                                        # al radix (np.fft.fft sin más) -- ver
+                                        # golden_models.py. Los catálogos/logs
+                                        # guardados antes de este cambio siguen
+                                        # citando el id antiguo, es evidencia
+                                        # histórica y no se reescribe.
 
 restricciones:
   objetivo_ii: 5            # bajado desde 10 (24 de septiembre de 2026):

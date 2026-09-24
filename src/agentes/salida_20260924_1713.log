@@ -1,0 +1,25 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    perm_real: float32[1024]
+    perm_imag: float32[1024]
+    buf1_real: float32[1024]
+    buf1_imag: float32[1024]
+    buf2_real: float32[1024]
+    buf2_imag: float32[1024]
+
+    # --------------------------- ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.NINGUNO, decision=DecisionEscalada.CONTINUAR ---
+Todos los niveles de la cascada (L1-L4) han pasado correctamente. El kernel FFT radix-2 es sintácticamente válido, funcionalmente equivalente al modelo dorado (numpy reference), preserva la equivalencia de schedule verificada por allo.verify, y la síntesis HLS produjo métricas válidas (II=20, latencia=20333 ciclos, reloj≈2.846 ns, BRAM=24, DSP=66, LUT=22713, FF=30117). No se requiere ninguna acción correctiva; se puede proceder a la siguiente etapa del pipeline (p. ej. exploración de espacio de diseño para reducir II/latencia si se desea optimizar más).
+
+✅ Éxito. Guardado en el catálogo: ../../results/catalogo/fft_radix4.json

@@ -1,0 +1,59 @@
+# Prueba de generalización (24 de septiembre de 2026): mismo formato de
+# contrato que spec_example.yaml (fft_radix2), pero para una mariposa FFT
+# radix-4 de dificultad semejante -- el objetivo es comprobar que el
+# pipeline de 3 agentes no está sobreajustado al caso radix-2 concreto que
+# ya se validó en las Partes 17-18. No sustituye a spec_example.yaml: es un
+# spec nuevo y separado, y orchestrator.py acepta la ruta como argumento
+# opcional (por defecto sigue usando spec_example.yaml si no se pasa nada).
+
+bloque: fft_radix4
+descripcion: >
+  Kernel de una mariposa FFT radix-4 (Cooley-Tukey), entrada compleja de N
+  puntos, salida compleja de N puntos. Misma forma de E/S que la variante
+  radix-2 ya validada, pero con mariposas de 4 entradas en vez de 2 -- misma
+  familia de algoritmo, dificultad de implementación comparable.
+
+entradas:
+  - nombre: x_real
+    tipo: allo.float32
+    forma: [1024]
+  - nombre: x_imag
+    tipo: allo.float32
+    forma: [1024]
+
+salidas:
+  - nombre: y_real
+    tipo: allo.float32
+    forma: [1024]
+  - nombre: y_imag
+    tipo: allo.float32
+    forma: [1024]
+
+# Reutiliza el mismo modelo dorado que fft_radix2: la función envuelve
+# np.fft.fft sobre la señal compleja reconstruida y es agnóstica al radix
+# usado internamente por el kernel -- ver golden_models.py
+# (fft_numpy_reference, renombrada el 24 de septiembre de 2026 desde
+# fft_radix2_numpy_reference precisamente porque no hacía falta escribir
+# uno nuevo: el nombre anterior sugería una referencia específica de
+# radix-2 que no existe, y de hecho confundió al propio Validador LLM, que
+# describió un kernel radix-4 como "el kernel FFT radix-2" en su informe).
+golden_model_id: fft_numpy_reference
+
+restricciones:
+  objetivo_ii: 1            # bajado desde 5 (24 de septiembre de 2026):
+                            # objetivo_ii=5 ya se alcanzó dos veces sin
+                            # ayuda (bit-reversal, latencia=20416, ver
+                            # fft_radix4_ii5_sin_ayuda.json; y digit-reversal
+                            # base-4, latencia=8664, ver
+                            # fft_radix4_ii5_digitreversal.json -- ambos
+                            # respaldados aparte antes de este cambio porque
+                            # guardar_en_catalogo() sobreescribe por nombre
+                            # de bloque). CUIDADO: objetivo_ii=1 ya causó
+                            # timeouts de síntesis repetidos con la FFT
+                            # radix-2 (ver Parte 9 de la bitácora) -- no hay
+                            # garantía de que converja aquí tampoco. Se prueba
+                            # de todas formas porque es el límite teórico (un
+                            # dato por ciclo), y porque interesa ver si el
+                            # pipeline al menos falla de forma informativa
+                            # (timeout claro) en vez de colgarse sin más.
+  throughput_min: 100e6    # muestras/segundo

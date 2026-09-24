@@ -19,6 +19,7 @@ reference) e ajusta los nombres de los argumentos, la lógica no cambia.
 import asyncio
 import json
 import os
+import sys
 import yaml
 
 from claude_agent_sdk import query, ClaudeAgentOptions, AssistantMessage, TextBlock
@@ -719,7 +720,12 @@ def guardar_en_catalogo(spec: dict, codigo: str, metricas: dict | None) -> str:
 
 
 async def main():
-    with open("../../specs/spec_example.yaml") as f:
+    # Por defecto sigue apuntando al spec de la FFT radix-2 de siempre --
+    # pasar una ruta como argumento (p. ej. specs/spec_fft_radix4.yaml) para
+    # probar un bloque distinto sin tocar el comportamiento por defecto
+    # (24 de septiembre de 2026, prueba de generalización).
+    ruta_spec = sys.argv[1] if len(sys.argv) > 1 else "../../specs/spec_example.yaml"
+    with open(ruta_spec) as f:
         spec = yaml.safe_load(f)
 
     historial_errores: list[str] = []

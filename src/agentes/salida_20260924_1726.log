@@ -1,0 +1,91 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Bit-reversal permutation (load-time), N=1024 -> 10 bits ----
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            half_idx: int32 = idx /  ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+L1 (sintaxis y tipos) superado correctamente, pero L2 falla: la comparación numérica contra la referencia 'fft_radix2_numpy_reference' muestra 555 de 1024 índices discrepantes (54%), con desviaciones máximas max|diff_real|=0.09971 y max|diff_imag|=0.09169, muy por encima de la tolerancia tol=0.001. Los primeros índices discrepantes ([7,13,14,15,23,26,28,29,30,31]) sugieren un patrón no aleatorio (posible error de bit-reversal, orden de mariposas o factor twiddle incorrecto en la implementación radix-2), no simple ruido numérico. Revisar la etapa de permutación/bit-reversal y el cálculo de los twiddle factors del kernel FFT antes de reintentar.
+
+=== Iteración de kernel 2/6 (intento global #2) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    PI: float32 = 3.14159265358979
+
+    # ---- Permutacion bit-reversal (10 bits, N=1024) ----
+    for i in range(1024):
+        temp: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            h ...
+    (código completo guardado en debug_iteraciones/intento_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El kernel generado no coincide numéricamente con la referencia numpy en la FFT radix-2: 229 de 1024 índices discrepantes, concentrados en bloques cercanos a fronteras de mariposa (15,31,47,59-63,94,95 — patrón sugestivo de error en el cálculo de twiddle factors o en el bit-reversal de las últimas etapas). max|diff_real|=0.02025 y max|diff_imag|=0.02203 superan la tolerancia de 0.001 en más de un orden de magnitud, lo cual descarta ruido de redondeo de punto flotante y apunta a un error funcional (índice de twiddle mal calculado, etapa de mariposa omitida o permutación bit-reversal incorrecta). Revisar la generación de los coeficientes de twiddle y el orden de las etapas antes de re-ejecutar L2.
+⚠️  2 fallos consecutivos en L2 (umbral=2) -- forzando regeneración desde cero aunque el Validador propuso 'continuar'.
+↻ Regenerando desde cero (se descarta el historial de errores).
+
+=== Iteración de kernel 3/6 (intento global #3) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    perm: int32[1024]
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+
+    # ---- Calcula la tabla de permutacion por digit-reversal base 4 (5 digitos) ----
+    for pi_i in range(1024):
+        tmp: i ...
+    (código completo guardado en debug_iteraciones/intento_3.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El kernel generado no coincide numéricamente con la referencia FFT radix-2 en NumPy: 122 de 1024 índices discrepantes (11.9%), con error máximo real=0.007921 e imaginario=0.007478, ambos por encima de la tolerancia 0.001 (~7.9x y ~7.5x el umbral). Los índices discrepantes iniciales (47, 59-63, 111, 118, 121, 125) sugieren un problema localizado, posiblemente en el manejo de twiddle factors o en una etapa específica de la mariposa (butterfly) radix-2, no un error sistemático global. Revisar la implementación de esa etapa antes de reintentar la validación L2.
+
+=== Iteración de kernel 4/6 (intento global #4) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Bit-reversal permutation: y[i] = x[bitrev10(i)] ----
+    for i in range(1024):
+        idx: int32 = i
+        rev: int32 = 0
+        for b in range(10):
+            bit: int32 = idx % 2
+            ...
+    (código completo guardado en debug_iteraciones/intento_4.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.NINGUNO, decision=DecisionEscalada.CONTINUAR ---
+Todos los niveles L1-L4 pasaron correctamente. El kernel FFT radix-2 es sintácticamente válido, funcionalmente equivalente al modelo dorado (numpy reference), y la equivalencia de schedule fue verificada por allo.verify. Métricas de síntesis HLS extraídas: II=5, latencia peor caso=20416 ciclos, periodo de reloj estimado=2.633 ns (~379.9 MHz), sin uso de BRAM, DSP=76, LUT=43519, FF=58734. No se requiere ninguna acción de regeneración ni ajuste de schedule.
+
+✅ Éxito. Guardado en el catálogo: ../../results/catalogo/fft_radix4.json

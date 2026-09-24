@@ -1,0 +1,22 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024], y_real: float32[1024], y_imag: float32[1024]):
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+
+    # Permutacion digit-reversal base-4 (5 digitos) hacia buf
+    for ip in range(1024):
+        n0: int32 = ip
+        d0: int32 = n0 % 4
+        n1: int32 = n0 /  ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.NINGUNO, decision=DecisionEscalada.CONTINUAR ---
+Todos los niveles L1-L4 pasaron correctamente. El kernel FFT es sintácticamente válido, funcionalmente equivalente al golden model 'fft_numpy_reference', y su schedule fue verificado formalmente (allo.verify). Métricas de síntesis HLS obtenidas: II=5, latencia peor caso=8664 ciclos, periodo de reloj estimado=2.633 ns (~380 MHz), sin uso de BRAM, DSP=256, LUT=67405, FF=96535. No se requiere ninguna acción correctiva; el diseño puede avanzar a la siguiente etapa del pipeline.
+
+✅ Éxito. Guardado en el catálogo: ../../results/catalogo/fft_radix4.json
