@@ -2151,21 +2151,119 @@ apoyado en un `objetivo_ii` realista del spec.
   de forma literal, no confiar solo en que el LLM lo reproduzca fielmente
   en su resumen.
 
-## Pendiente para la siguiente sesión
+## Parte 18 — Barrido de `objetivo_ii` (20→10→5), y segunda y tercera confirmación de cierre L1→L4
 
-- Confirmar el valor real de `TIMEOUT_SINTESIS_L4_SEGUNDOS` que estaba en
-  efecto durante los intentos 1, 3 y 5 de esta corrida (ver observación
-  sin resolver) -- añadir logging explícito del valor antes de volver a
-  confiar en el timeout de 4h para una corrida larga.
-- Decidir si merece la pena intentar un `objetivo_ii` más ajustado sobre
-  este mismo kernel (el margen visto -- 110 min de corrida frente a 4h de
-  timeout, y `Partition.Cyclic(factor=4)` con hueco de sobra -- sugiere
-  que hay margen) para tener un punto de comparación de calidad/tiempo de
-  síntesis, o pasar directamente a generar el catálogo con más bloques
-  ahora que el pipeline entero está demostrado end-to-end.
-- Revisar si el tamaño del repositorio de git sigue siendo un problema
-  real tras el incidente de `test_l4.prj/` en el historial (pendiente
-  desde la Parte 16).
-- Confirmar con el tutor las dos preguntas abiertas desde julio:
-  privacidad del repositorio, y si la síntesis HLS real encaja con el
-  alcance esperado del TFG.
+**Contexto.** La Parte 17 había cerrado `objetivo_ii=20` con `Partition.Cyclic(factor=4)` sobre los cuatro arrays de la mariposa, primera convergencia L1→L4 real del proyecto. Esta parte retoma directamente donde la Parte 17 lo dejó.
+
+### Barrido de `objetivo_ii`: el factor de partición no es un valor fijo
+
+**Herramienta usada: `probar_particion_ii.py`.** En vez de gastar cuota de Pro y horas dejando que el Generador (LLM) adivinara el factor de partición a ciegas para cada nuevo `objetivo_ii` -- el mismo error que ya había costado caro en corridas anteriores --, se aisló la pregunta con un script que reutiliza directamente las funciones del Ejecutor real (`_construir_schedule`, `s.build()`, `vitis_hls -f run.tcl`, `_parsear_reporte_csynth`) sobre el kernel ya verificado, variando solo el factor de `Partition.Cyclic` (4, 8, 16) para un `objetivo_ii` fijo. Sin LLM de por medio: resultado comparable y barato (~2 min por factor).
+
+**Punto 1: `objetivo_ii=10`.** `factor=4` (el mismo que ya funcionaba para II=20) bastó de nuevo: **II=10 real, 125s, LUT=22075, FF=28526**. Subir a factor=8 o 16 no mejoraba el II, solo el gasto de área (LUT=29287/43202, FF=33053/40356). Resultado guardado en `results/catalogo/fft_radix2_ii10.json`.
+
+**Punto 2: `objetivo_ii=5`.** Aquí `factor=4` **ya no basta** -- solo llega a II=8, no a II=5. Hace falta subir a **factor=8** para cerrar II=5 de verdad (107s, LUT=37624, FF=46981); factor=16 da el mismo II=5 pero con casi el doble de recursos, sin ninguna mejora. Resultado guardado en `results/catalogo/fft_radix2_ii5.json`.
+
+Salida completa de esa corrida:
+
+```
+Kernel cargado desde 'kernel_verificado.txt' (10119 caracteres). Sin tocar -- solo se varía el factor de partición del schedule.
+
+=== Probando Partition.Cyclic(factor=4), objetivo_ii=5, timeout=1200s ===
+  -> OK en 107s: II=8, latencia=20132, reloj=2.653ns, BRAM=0, DSP=48, LUT=26307, FF=35433
+  (resultados parciales guardados en resultados_particion_ii_ii5.json)
+
+=== Probando Partition.Cyclic(factor=8), objetivo_ii=5, timeout=1200s ===
+  -> OK en 108s: II=5, latencia=20032, reloj=2.633ns, BRAM=0, DSP=76, LUT=37624, FF=46981
+  (resultados parciales guardados en resultados_particion_ii_ii5.json)
+
+=== Probando Partition.Cyclic(factor=16), objetivo_ii=5, timeout=1200s ===
+  -> OK en 123s: II=5, latencia=20032, reloj=2.633ns, BRAM=0, DSP=76, LUT=54890, FF=60781
+  (resultados parciales guardados en resultados_particion_ii_ii5.json)
+
+=== Resumen ===
+factor=  4: II=8 (107s)
+factor=  8: II=5 (108s)
+factor= 16: II=5 (123s)
+```
+
+**Conclusión (matiza la Parte 17):** el factor de partición necesario no es un valor fijo universal ni siquiera dentro de la familia `Partition.Cyclic` -- escala con lo agresivo que sea `objetivo_ii`. Regla práctica añadida a `orchestrator.py`: empezar por `factor=4`; si el II real resultante es peor que el pedido (no si falla, si simplemente converge a un II peor), subir al siguiente factor de la serie (8, luego 16) en vez de asumir que el patrón de partición está mal.
+
+### Segunda confirmación: cierre de lazo L1→L4 real con `objetivo_ii=5` (kernel congelado)
+
+Con el resultado de `probar_particion_ii.py` ya en mano (`factor=8` para II=5), se relanzó el pipeline completo de agentes (Generador/Ejecutor/Validador vía `orchestrator.py`) con `kernel_verificado.txt` todavía congelado y `objetivo_ii=5` en el spec, para confirmar que el propio Generador, con la regla ya corregida, llega solo a la misma conclusión sin intervención manual:
+
+```bash
+source ~/tools/Vitis_HLS/2023.1/settings64.sh
+cd ~/TFG/src/agentes
+python3 -u orchestrator.py 2>&1 | tee salida_$(date +%Y%m%d_%H%M).log
+```
+
+**Convergió a la primera (intento 1/8)**, sin ningún fallo previo. El Generador fue directo a `factor=8` (ni se molestó en probar 4) y las métricas resultantes son **idénticas** a las del barrido aislado: II=5, latencia=20032, DSP=76, LUT=37624, FF=46981, BRAM=0. Guardado en `results/catalogo/fft_radix2.json` (y respaldado aparte en `fft_radix2_ii5.json`, ya que `guardar_en_catalogo()` sobreescribe por nombre de bloque).
+
+Salida completa de esa corrida:
+
+````
+🔒 Cargado kernel ya verificado desde 'kernel_verificado.txt' -- se arranca directamente en fase de ajuste de schedule, sin gastar presupuesto de generación de kernel desde cero.
+
+=== Intento de ajuste de schedule 1/8 (kernel congelado, intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    # ---- Tabla de twiddle factors (512 entradas), cada una calculada de
+    # forma independiente a partir de su indice k (sin recurrencia) usando
+    # una serie de Taylor de seno/coseno ----
+    twiddle_r ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.NINGUNO, decision=DecisionEscalada.CONTINUAR ---
+Todos los niveles L1-L4 pasaron correctamente. El kernel FFT radix-2 es sintácticamente correcto, funcionalmente equivalente al modelo dorado numpy, mantiene equivalencia de schedule verificada, y la síntesis HLS produjo métricas válidas (II=5, latencia=20032 ciclos, DSP=76, LUT=37624, FF=46981, BRAM=0). No se requiere acción adicional.
+
+✅ Éxito. Guardado en el catálogo: ../../results/catalogo/fft_radix2.json
+```
+````
+
+### Tercera confirmación: sin el atajo del kernel congelado, el Generador escribe la FFT completa desde cero
+
+Para descartar que el atajo de `kernel_verificado.txt` estuviera ocultando algún problema en la generación de kernel (no solo en el ajuste de schedule), se apartó el archivo temporalmente:
+
+```bash
+mv kernel_verificado.txt kernel_verificado_backup.txt
+python3 -u orchestrator.py 2>&1 | tee salida_$(date +%Y%m%d_%H%M).log
+```
+
+Esto fuerza al orquestador a entrar en modo de generación completa (presupuesto `MAX_ITERACIONES=6`, kernel+schedule juntos desde cero cada intento, en vez de `MAX_INTENTOS_SCHEDULE=8` solo para el schedule). **Convergió también a la primera (1/6)**, con II=5 -- pero con un **diseño genuinamente distinto**, no una reproducción del kernel de referencia:
+
+- En vez de precalcular una tabla de 512 twiddle factors (como `kernel_verificado.txt`), este kernel recalcula el seno/coseno por serie de Taylor **en línea, dentro de cada etapa**, a partir del índice `j` de esa etapa -- no existe ningún array de twiddles.
+- Por eso el schedule solo particiona `y_real`/`y_imag` (`factor=8`) -- no hay tabla que particionar.
+- Convención de bit-reversal distinta pero igualmente válida: `y_real[i] = x_real[rev]` en vez de `y_real[rev] = x_real[i]` (ambas son la misma permutación, solo cambia qué índice se usa como destino).
+- Mismo II=5, pero **más caro en recursos**: LUT=44503 (+18% sobre el kernel congelado) y FF=60247 (+28%) -- coherente con recalcular trigonometría por etapa en vez de compartir una tabla precalculada.
+
+Este segundo resultado se guardó aparte en `results/catalogo/fft_radix2_ii5_kernel_generado.json`, sin pisar el respaldo del kernel congelado.
+
+Captura del terminal con el comando (`mv` + relanzamiento) y el resultado de esa corrida (intento 1/6, código generado y el informe del Validador con II=5, LUT=44503, FF=60247):
+
+![Terminal mostrando `mv kernel_verificado.txt kernel_verificado_backup.txt`, el relanzamiento de `orchestrator.py`, y el intento 1/6 con el kernel generado desde cero (tabla de twiddles ausente) convergiendo a II=5](img/2026-09-24_exito-ii5-kernel-desde-cero.png)
+
+**Verificación de que nada estaba mockeado/parcheado** (comprobado, no asumido): las cuatro herramientas del Ejecutor están documentadas en `allo_tools.py` como conectadas de verdad a Allo/Vitis HLS, sin ninguna función `MOCK_*` activa; L3 corre en el subproceso aislado real (`l3_subproceso.py`, por el `SIGABRT` de PAST documentado en la Parte 13); L4 crea un directorio de síntesis nuevo cada vez (`tempfile.mkdtemp`); y el tiempo real entre la generación del código y el log final (~136s en la primera corrida) es coherente con una síntesis real, no con algo instantáneo.
+
+### Decisión: `kernel_verificado.txt` se retira del atajo por defecto, se conserva como evidencia
+
+Dado que el pipeline ya demostró (dos veces) que puede escribir un kernel FFT correcto desde cero, se decide que el atajo de kernel congelado **no debe ser el modo de trabajo por defecto** -- enmascara si el Generador es capaz de resolver el problema completo. `kernel_verificado.txt` se renombra a `kernel_verificado_backup.txt` y se deja fuera de la ruta que `orchestrator.py` comprueba (`RUTA_KERNEL_VERIFICADO`), documentado con un comentario junto a esa constante. Se conserva en el repo como evidencia de una etapa del desarrollo, no para uso activo.
+
+## Aprendizajes para la memoria del TFG (ampliación, Parte 18)
+
+- El factor de partición necesario no es fijo ni siquiera para el mismo kernel: escala con la agresividad de `objetivo_ii`. Aislar la pregunta con un script directo (sin LLM, reutilizando las funciones reales del Ejecutor) es mucho más barato que dejar que el Generador la resuelva a ciegas para cada nuevo `objetivo_ii`.
+- Un cierre de lazo L1-L4 con el kernel congelado no basta para confirmar que la generación de kernel end-to-end funciona -- hay que probarlo también sin el atajo. De hecho el Generador puede llegar a una solución igualmente válida pero estructuralmente distinta (aquí, sin tabla de twiddles) y más cara en recursos -- dato en sí mismo interesante para una comparación de diseños a igualdad de II.
+- Un "atajo" de desarrollo (kernel congelado) que deja de usarse por defecto debe documentarse explícitamente en el propio código (no solo en la bitácora), porque el código es lo primero que lee cualquiera que retome el proyecto.
+
+## Pendiente para la siguiente sesión (ampliación, Parte 18)
+
+- Decidir si se continúa el barrido de `objetivo_ii` por debajo de 5 (con cuidado -- ver Parte 9 sobre los timeouts vistos en `objetivo_ii=1`) o si los tres puntos ya conseguidos (20/10/5) bastan como curva rendimiento/área para la memoria del TFG.
+- Valorar si el "kernel generado desde cero" (`fft_radix2_ii5_kernel_generado.json`) merece entrar como material de la sección de resultados del TFG -- es una comparación real de dos diseños válidos a igual `objetivo_ii` (tabla precalculada vs. recómputo en línea), no solo una curiosidad de esta sesión.
+- Seguía pendiente desde la Parte 17: confirmar el valor real de `TIMEOUT_SINTESIS_L4_SEGUNDOS` efectivamente usado en las corridas con discrepancias de log -- no se ha vuelto a tocar en esta sesión.
