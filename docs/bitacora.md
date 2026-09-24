@@ -1937,18 +1937,235 @@ mockeado). Confirmar esto es la primera tarea de la siguiente sesión.
   metodología de "aislar y reproducir" importa más que fijarse solo en el
   mensaje de error superficial.
 
+## Parte 17 — Primera convergencia L1→L4 100% real: FFT radix-2, y la saga del timeout de síntesis
+
+**Contexto.** El kernel FFT radix-2 (10 etapas desenrolladas a mano + tabla
+de twiddle factors por serie de Taylor) llevaba desde la Parte 16 congelado
+en L1-L3 (sintaxis, funcional y equivalencia de schedule verificadas), a la
+espera de confirmar en una corrida completa si el schedule con
+`Partition.Complete` sobre `y_real`/`y_imag` cerraba de verdad `objetivo_ii`
+en síntesis real. Esta parte documenta esa corrida -- y dos rondas de
+problemas puramente operativos (nada de Allo) antes de conseguirlo.
+
+### Subida de timeout de 1800s a 14400s (4h), y el desliz de sincronización
+
+El timeout de síntesis de L4 (`TIMEOUT_SINTESIS_L4_SEGUNDOS` en
+`allo_tools.py`) llevaba en 1800s (30 min) desde la corrección de la Parte
+16. Se decide subirlo a 14400s (4h) como siguiente paso antes de descartar
+`Partition.Complete`, razonando que el coste de scheduling/mux del solver
+de síntesis ante la partición completa de dos arrays de 1024 elementos
+podía simplemente necesitar más tiempo, no necesariamente indicar un diseño
+irrecuperable.
+
+Al ejecutar con ese cambio se obtuvo igualmente un timeout -- pero resultó
+ser una falsa alarma de infraestructura, no del kernel: el cambio se había
+aplicado sobre una copia de trabajo (la usada por el asistente de Cowork
+para editar el archivo) que nunca se sincronizó de vuelta al repositorio
+real en el portátil (`pablo-UX410UAR`). El archivo en disco seguía en
+1800s. **Lección de metodología:** al trabajar con un asistente que edita
+archivos a través de un enlace remoto al dispositivo, un "ya está cambiado"
+del asistente no es fiable sin confirmar que el archivo en disco cambió de
+verdad (`mtime`/diff) -- se añadió esa verificación explícita al flujo de
+trabajo a partir de aquí.
+
+### `python` vs `python3`, y el buffering de stdout al redirigir a archivo
+
+Con el timeout ya corregido de verdad en disco, el primer intento de
+lanzar la corrida en segundo plano falló al instante:
+
+```
+nohup: fallo al ejecutar la orden 'python': No existe el archivo o el directorio
+```
+
+El sistema solo tiene `python3` en el `PATH` (como ya usa el propio
+`README.md` del repo, `python3 orchestrator.py`) -- error de comando, no de
+Allo ni del pipeline.
+
+Corregido el comando, el segundo intento sí arrancó (PID 4232) pero el log
+se quedó aparentemente vacío varios minutos, y `tail -f` parecía "colgado".
+No lo estaba: es el comportamiento esperado de `tail -f` sobre un archivo
+sin escrituras nuevas. La causa real es que Python usa *buffering por
+bloques* (no por línea) cuando `stdout` no es una terminal sino un archivo
+redirigido (`> "$LOG"`) -- todo lo que `orchestrator.py` iba imprimiendo
+(cabeceras de iteración, código generado, informes del validador) se
+quedaba retenido en memoria sin llegar al archivo. `ps -p 4232` confirmó
+que el proceso sí estaba vivo y consumiendo CPU (imports de Allo/MLIR, que
+son pesados). Se mató ese proceso y se relanzó con `python3 -u` (salida sin
+buffer), esta vez sí con progreso visible en el log en tiempo real:
+
+![Comprobación de que el proceso 4232 seguía vivo, `kill`, y relanzamiento con `python3 -u orchestrator.py` (PID 5168) -- el `-u` fue lo que resolvió el log aparentemente colgado](img/2026-09-20_relanzamiento-unbuffered-pid5168.png)
+
+**Comando final de lanzamiento en segundo plano** (desde `src/agentes`, con
+el entorno de Vitis HLS ya cargado en esa terminal):
+
+```bash
+cd ~/TFG/src/agentes
+source ~/tools/Vitis_HLS/2023.1/settings64.sh
+LOG="salida_$(date +%Y%m%d_%H%M).log"
+nohup python3 -u orchestrator.py > "$LOG" 2>&1 &
+echo "PID: $!  |  log: $LOG"
+disown
+```
+
+`nohup` + `disown` para que el proceso sobreviva al cierre de la terminal
+(protección frente a `SIGHUP`), y `-u` para que el log refleje el progreso
+real en vez de parecer colgado por el buffering de Python al escribir a
+archivo.
+
+### La corrida ganadora: 6 intentos de ajuste de schedule sobre el kernel ya congelado
+
+Con el kernel congelado desde la Parte 16 (`kernel_verificado.txt`), el
+orquestador arranca directamente en fase de ajuste de schedule (sin gastar
+presupuesto de regeneración de kernel):
+
+| Intento | Resultado L4 | Métricas / motivo |
+|---|---|---|
+| 1/8 | Timeout de síntesis | *"la síntesis HLS excedió el timeout de 1800s"* (ver nota sin resolver más abajo) |
+| 2/8 | Síntesis completada, pero rendimiento insuficiente | II=32, latencia=73582 ciclos -- el Validador lo rechaza por no cumplir el `objetivo_ii=20` del spec, aunque la síntesis en sí no falló |
+| 3/8 | Timeout de síntesis | *"la síntesis HLS excedió el timeout de 1800s"* |
+| 4/8 | Síntesis completada, pero rendimiento insuficiente | II=32, latencia=72559 ciclos -- mismo motivo de rechazo que el intento 2 |
+| 5/8 | Timeout de síntesis | *"la síntesis de HLS excedió el timeout de 1800s"* |
+| **6/8** | **✅ Éxito** | **II=20, latencia peor caso=73205 ciclos, reloj estimado=2.846 ns (~351 MHz), BRAM=0, DSP=19, LUT=16299, FF=17542** |
+
+Dato interesante de los intentos 2 y 4: el Validador no se limita a mirar
+si la síntesis "compiló" -- compara el II obtenido contra el
+`objetivo_ii=20` del spec y rechaza un diseño que sintetiza sin errores
+pero no cumple el objetivo de rendimiento, forzando otra ronda de ajuste de
+schedule en vez de darlo por bueno. Es la primera vez que se observa ese
+criterio de rechazo "por rendimiento, no por fallo técnico" en una corrida
+real.
+
+El schedule que por fin cerró (intento 6) abandona `Partition.Complete` --
+la estrategia que llevaba desde la Parte 16 -- en favor de
+`Partition.Cyclic(factor=4)` sobre `twiddle_real`, `twiddle_imag`, `y_real`
+e `y_imag`, apoyándose en el margen que da `objetivo_ii=20` (mucho más laxo
+que II=1) para serializar parcialmente los accesos dentro de la ventana de
+pipeline, más pipelining individual (`initiation_interval=20`) del bucle
+dominante de cada una de las 10 etapas de la mariposa:
+
+```python
+s.partition("kernel:twiddle_real", partition_type=Partition.Cyclic, factor=4)
+s.partition("kernel:twiddle_imag", partition_type=Partition.Cyclic, factor=4)
+s.partition("kernel:y_real", partition_type=Partition.Cyclic, factor=4)
+s.partition("kernel:y_imag", partition_type=Partition.Cyclic, factor=4)
+
+s.pipeline("k", initiation_interval=20)
+s.pipeline("i", initiation_interval=20)
+s.pipeline("g1", initiation_interval=20)
+# ... (un pipeline por etapa, alternando entre "g" o "j" según cuál de los
+#      dos bucles de esa etapa tiene más iteraciones)
+```
+
+Resultado guardado en `results/catalogo/fft_radix2.json` -- primer
+registro **real** del catálogo (el anterior, de la Parte 9, era de cuando
+L4 aún estaba mockeado):
+
+![Cola del log mostrando el intento 5 (timeout de L4) y el intento 6 completo: código generado, informe del validador con las métricas de síntesis reales, y "✅ Éxito. Guardado en el catálogo: ../../results/catalogo/fft_radix2.json"](img/2026-09-20_exito-catalogo-fft-radix2-real.png)
+
+**Duración total de la corrida:** desde el lanzamiento (~13:01) hasta el
+`✅ Éxito` (~14:50) del PID 5168, **~110 minutos** -- muy por debajo del
+timeout de 4h configurado, lo que sugiere que ese timeout tiene margen de
+sobra ahora que el schedule ganador ya no usa `Partition.Complete`.
+
+### Observación sin resolver: el texto "1800s" en los tres intentos fallidos
+
+Los tres informes de timeout de L4 (intentos 1, 3 y 5) citan literalmente
+*"excedió el timeout de 1800s"* -- el valor **anterior** a la subida a
+14400s, pese a que el archivo en disco ya debía tener el valor corregido
+en el momento de lanzar esta corrida (ver sección de sincronización más
+arriba). Dos lecturas posibles, sin confirmar cuál es la correcta:
+
+1. El Validador (un LLM) está parafraseando/alucinando el número en vez de
+   citar literalmente el mensaje crudo del Ejecutor -- el orquestador solo
+   imprime `informe.mensaje_accionable` (el resumen en prosa del
+   Validador), nunca el `salida_cruda` original de la herramienta, así que
+   no hay forma de confirmarlo desde el log tal y como está ahora mismo.
+2. El proceso realmente estaba usando 1800s pese a la sincronización previa
+   (por ejemplo, algún residuo de `__pycache__`, o el archivo se revirtió
+   por algún motivo entre la sincronización y el lanzamiento).
+
+A favor de la lectura (2): la aritmética del tiempo total de la corrida
+cuadra sospechosamente bien con "1800s reales" por cada timeout -- 3
+timeouts de 30 min (90 min) + 3 síntesis completadas (2, 4 y 6, del orden
+de varios minutos cada una según los tiempos vistos en corridas anteriores)
+encajan con los ~110 minutos totales observados. Si el timeout real
+hubiera sido 14400s, un solo timeout ya habría consumido 4h -- muy por
+encima de los 110 minutos que duró la corrida entera.
+
+**Pendiente de verificar en la próxima corrida**, y mejora propuesta para
+no depender de esta ambigüedad otra vez: hacer que `run_l4_hls` imprima
+(o el orquestador loguee) el valor de `TIMEOUT_SINTESIS_L4_SEGUNDOS`
+efectivamente usado al arrancar cada intento de síntesis, y no solo dejar
+que el Validador lo mencione de forma indirecta en su resumen.
+
+### Corrección a la guía de partición (sustituye lo dicho en la Parte 16)
+
+La Parte 16 concluía que los arrays con patrón de stride variable entre
+etapas (`y_real`/`y_imag`) necesitaban `Partition.Complete`, porque un
+factor fijo de `Cyclic`/`Block` no podía servir a 10 strides distintos a
+la vez -- conclusión basada en 7 intentos fallidos de `Cyclic` (factor 2 y
+4) sobre el kernel *anterior*, con bucles generados vía `s.unroll()`. Con
+el kernel actual (10 etapas desenrolladas **a mano** dentro del propio
+KERNEL en vez de con `s.unroll()`), `Partition.Cyclic(factor=4)` sí
+funciona y cierra síntesis en minutos en vez de disparar timeouts. La
+diferencia parece estar en que el patrón de acceso ya no depende de un
+`unroll()` generado dinámicamente por Allo, sino de bloques de Python
+literales por etapa -- el propio Allo maneja mejor la partición cíclica
+sobre ese patrón más explícito.
+
+**Conclusión revisada para futuros kernels:** `Partition.Complete` sobre
+arrays grandes con índices dinámicos sigue siendo sospechoso por defecto
+ante timeouts de L4, pero la solución no es necesariamente subir el
+timeout -- probar antes `Partition.Cyclic` con un factor moderado (4, 8...)
+apoyado en un `objetivo_ii` realista del spec.
+
+## Aprendizajes para la memoria del TFG (ampliación)
+
+- Un "ya está cambiado" de un asistente que edita archivos a través de un
+  enlace remoto al dispositivo no es fiable sin verificar el cambio en
+  disco -- primer incidente real de desincronización entre la copia de
+  trabajo del asistente y el repositorio real, con coste directo (una
+  corrida entera "perdida" persiguiendo un timeout que ya debería estar
+  resuelto).
+- El buffering de `stdout` de Python al redirigir a archivo (en vez de a
+  una terminal) es una trampa clásica y silenciosa en corridas largas en
+  segundo plano -- sin `-u` (o `PYTHONUNBUFFERED=1`), el log puede parecer
+  "colgado" durante minutos aunque el proceso esté avanzando con
+  normalidad; buena práctica fijada para toda corrida futura de
+  `orchestrator.py` en segundo plano.
+- El Validador demostró un criterio de rechazo más exigente de lo
+  esperado: no solo "¿sintetizó?", sino "¿cumple el `objetivo_ii` del
+  spec?" -- rechazó dos síntesis técnicamente válidas (intentos 2 y 4, con
+  II=32) por no alcanzar el rendimiento objetivo, forzando iteración
+  adicional en vez de conformarse con un resultado subóptimo.
+- Primera convergencia L1→L4 100% real del proyecto: confirma que la
+  arquitectura de 3 agentes + cascada de validación + política de
+  escalada (congelar kernel, tocar solo schedule) funciona de punta a
+  punta contra el toolchain real, no solo en las piezas aisladas
+  verificadas hasta ahora.
+- Registrar solo el resumen en prosa del Validador (y no también la salida
+  cruda del Ejecutor) en el log de la corrida deja ambigüedades
+  imposibles de resolver a posteriori (ver observación sin resolver de
+  los "1800s") -- lección de logging para el resto del proyecto: cuando
+  un valor es programático (un timeout, una métrica), imprimirlo también
+  de forma literal, no confiar solo en que el LLM lo reproduzca fielmente
+  en su resumen.
+
 ## Pendiente para la siguiente sesión
 
-- Lanzar una corrida completa con el kernel de 10 etapas desenrolladas a
-  mano + `Partition.Complete`, y confirmar si cierra `objetivo_ii=2` de
-  verdad.
-- Si converge, actualizar `results/catalogo/fft_radix2.json` con el
-  resultado real (sustituyendo el registro mockeado de la Parte 9) y
-  dejarlo explícito como el primer cierre de lazo L1→L4 genuino del
-  proyecto.
-- Revisar si el tamaño del repositorio de git es un problema real tras el
-  incidente de `test_l4.prj/` en el historial.
-- Confirmar con el tutor el estado de las dos preguntas abiertas desde
-  julio: privacidad del repositorio, y si la síntesis HLS real (ya
-  resuelta técnicamente y sin coste de licencia) encaja con el alcance
-  esperado del TFG.
+- Confirmar el valor real de `TIMEOUT_SINTESIS_L4_SEGUNDOS` que estaba en
+  efecto durante los intentos 1, 3 y 5 de esta corrida (ver observación
+  sin resolver) -- añadir logging explícito del valor antes de volver a
+  confiar en el timeout de 4h para una corrida larga.
+- Decidir si merece la pena intentar un `objetivo_ii` más ajustado sobre
+  este mismo kernel (el margen visto -- 110 min de corrida frente a 4h de
+  timeout, y `Partition.Cyclic(factor=4)` con hueco de sobra -- sugiere
+  que hay margen) para tener un punto de comparación de calidad/tiempo de
+  síntesis, o pasar directamente a generar el catálogo con más bloques
+  ahora que el pipeline entero está demostrado end-to-end.
+- Revisar si el tamaño del repositorio de git sigue siendo un problema
+  real tras el incidente de `test_l4.prj/` en el historial (pendiente
+  desde la Parte 16).
+- Confirmar con el tutor las dos preguntas abiertas desde julio:
+  privacidad del repositorio, y si la síntesis HLS real encaja con el
+  alcance esperado del TFG.
