@@ -1,6 +1,6 @@
 # Generación automática de aceleradores hardware mediante LLMs sobre Allo
 
-Trabajo de Fin de Grado (Ingeniería Industrial). Pipeline de agentes LLM
+Pipeline de agentes LLM
 para generar código RTL (sistemas de comunicaciones y procesado de señal —
 5G/6G, radar) restringido al DSL **Allo**, con validación en lazo cerrado
 usando el propio toolchain de Allo como oráculo.
