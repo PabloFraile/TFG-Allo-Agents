@@ -1,6 +1,6 @@
 # Generación automática de aceleradores hardware mediante LLMs sobre Allo
 
-Pipeline de agentes LLM
+Trabajo de Fin de Grado (Ingeniería Industrial). Pipeline de agentes LLM
 para generar código RTL (sistemas de comunicaciones y procesado de señal —
 5G/6G, radar) restringido al DSL **Allo**, con validación en lazo cerrado
 usando el propio toolchain de Allo como oráculo.
@@ -78,7 +78,7 @@ Docker documentada en `docs/SETUP_DOCKER.md`, pero no llegó a funcionar en
 Windows por problemas de virtualización — Linux nativo es la vía validada.
 
 ```bash
-git clone --recurse-submodules <url-del-repo> TFG
+git clone --recurse-submodules https://github.com/PabloFraile/TFG-Allo-Agents.git TFG
 cd TFG/src/agentes
 pip install --break-system-packages -r requirements.txt
 
