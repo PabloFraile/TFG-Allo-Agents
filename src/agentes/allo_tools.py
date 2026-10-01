@@ -16,16 +16,15 @@ Estado actual:
                             la llamada, y el wrapper lo captura y lo mete en
                             salida_cruda para que el Validador tenga contexto
                             real del mismatch, no solo un ok=False.
-                            OJO (6 de agosto de 2026): ante un error fatal de
-                            parseo interno, PAST puede abortar con SystemExit
-                            en vez de una excepción Python normal -- ver
+                            OJO: ante un error fatal de parseo interno, PAST
+                            puede abortar con SystemExit en vez de una
+                            excepción Python normal -- ver
                             ERRORES_CAPTURABLES más abajo y el manejo
                             especial de SystemExit dentro de esta función.
   - run_l4_hls          -> CONECTADO A VITIS HLS REAL (síntesis csyn).
-                            OJO (12 de agosto de 2026, ver docs/bitacora.md
-                            y docs/SETUP_VITIS.md): NO se usa mod() tal cual
-                            lo genera s.build(target="vivado_hls", ...) --
-                            ese Makefile invoca un binario llamado
+                            OJO (ver docs/SETUP_VITIS.md): NO se usa mod()
+                            tal cual lo genera s.build(target="vivado_hls",
+                            ...) -- ese Makefile invoca un binario llamado
                             'vivado_hls', discontinuado por Xilinx desde
                             Vitis 2020.2+ (ahora se llama 'vitis_hls', con
                             una estructura interna distinta). En vez de eso,
@@ -36,10 +35,6 @@ Estado actual:
                             roto. Confirmado empíricamente contra una
                             síntesis real (kernel trivial de suma de
                             vectores) en Vitis HLS 2023.1.
-
-Para las que siguen mockeadas: sustituye el cuerpo de cada función `MOCK_*`
-por la llamada real (se indica con un comentario "# TODO: reemplazar por").
-La firma (nombre, descripción, parámetros) puede quedarse igual.
 """
 
 import json
@@ -67,16 +62,14 @@ from golden_models import GOLDEN_MODELS, generar_vectores_test
 
 
 # ---------------------------------------------------------------------------
-# IMPORTANTE -- descubierto el 6 de agosto de 2026 (ver docs/bitacora.md):
-# algunos componentes internos de Allo (en concreto, se observó en el
+# IMPORTANTE: algunos componentes internos de Allo (en concreto, el
 # verificador PAST invocado por allo.verify() en L3, ante un error fatal de
 # parseo del código C generado) NO lanzan una excepción Python normal ante
 # un fallo -- llaman a algo equivalente a sys.exit(1), que produce un
 # SystemExit. SystemExit hereda de BaseException, NO de Exception, así que
 # un simple "except Exception as e:" lo deja pasar de largo: la excepción
 # se propaga sin capturar y mata TODO el proceso de orchestrator.py (con un
-# código de salida, sin traceback de Python visible -- así es como se
-# detectó: un "echo $?" devolviendo 1 justo tras un cuelgue silencioso).
+# código de salida, sin traceback de Python visible).
 #
 # Por eso las herramientas de la cascada capturan (Exception, SystemExit)
 # en vez de solo Exception. Deliberadamente NO se captura BaseException a
@@ -92,50 +85,20 @@ ERRORES_CAPTURABLES = (Exception, SystemExit)
 # ---------------------------------------------------------------------------
 NOMBRE_PROYECTO_VITIS = "out.prj"  # fijo -- así lo nombra Allo internamente,
                                      # independientemente del project= que le pasemos
-TIMEOUT_SINTESIS_L4_SEGUNDOS = 1800  # 30 min. BAJADO OTRA VEZ (24 de
-                                      # septiembre de 2026, ver
-                                      # docs/bitacora.md): la corrida del 23
-                                      # con el timeout ya corregido de
-                                      # verdad a 14400 (4h) demostró que
-                                      # subirlo no ayuda cuando el schedule
-                                      # está mal planteado -- 3 de 5
-                                      # intentos agotaron las 4h completas
-                                      # sin converger (12h solo en esos
-                                      # tres), y el único que sí completó
-                                      # volvió a caer en II=32 (sin
-                                      # partición, mismo techo de siempre).
-                                      # Evidencia de que un schedule que SI
-                                      # va a converger lo hace rápido: los 3
-                                      # intentos que cerraron con éxito en
-                                      # la corrida del 20 de septiembre
-                                      # (II=20) tardaron ~5-7 min cada uno de
-                                      # media, no horas. 1800s da margen de
-                                      # sobra (4-6x) sobre eso sin quemar
-                                      # horas en diseños que nunca van a
-                                      # cerrar -- deja gastar el presupuesto
-                                      # de 8 intentos de ajuste de schedule
-                                      # en probar variantes de verdad en vez
-                                      # de quedarse colgado en 1-2.
-                                      # Exploración más rápida y barata
-                                      # (sin gastar cuota de Pro ni horas)
-                                      # del factor de partición necesario
-                                      # para bajar de II=20: ver
-                                      # probar_particion_ii.py, que reutiliza
-                                      # estas mismas funciones fuera del
-                                      # bucle de agentes.
-                                      #
-                                      # Regla que se queda (24 de sept.):
-                                      # tras editar este archivo vía el
-                                      # asistente, NO volver a hacer stage
-                                      # del mismo path antes de mandarlo de
-                                      # vuelta con SendUserFile -- verificar
-                                      # el commit releyendo el archivo en una
-                                      # llamada posterior separada, nunca
-                                      # entre la edición y el envío (bug real
-                                      # encontrado el 23 de sept. que dejó
-                                      # este mismo timeout atascado en 1800
-                                      # varios días pese a "confirmarse"
-                                      # subido a 14400).
+
+# 30 min. Da margen de sobra (4-6x) sobre el tiempo real que tarda un
+# schedule que sí va a converger (~5-7 min de media), sin quemar horas en
+# diseños que nunca van a cerrar -- un intento que no ha terminado en 30
+# min es casi con toda seguridad un diseño que no va a converger, no uno
+# "a punto de cerrar". Esto deja gastar el presupuesto de intentos de
+# ajuste de schedule en probar variantes de verdad en vez de quedarse
+# colgado en uno o dos.
+#
+# Para explorar el factor de partición necesario para un objetivo_ii dado
+# de forma más rápida y barata (sin gastar cuota de Pro ni horas), ver
+# probar_particion_ii.py, que reutiliza estas mismas funciones fuera del
+# bucle de agentes.
+TIMEOUT_SINTESIS_L4_SEGUNDOS = 1800
 
 
 def _formatear_error(e: BaseException, log_stdout: str = "") -> str:
@@ -143,14 +106,13 @@ def _formatear_error(e: BaseException, log_stdout: str = "") -> str:
     cascada (L1/L2), incluyendo el log de stdout de Python capturado durante
     la llamada (si lo hay).
 
-    Nota importante (6 de agosto de 2026, ver docs/bitacora.md): cuando el
-    error es un SystemExit, Allo suele haber impreso ya un panel de
-    diagnóstico rico (el recuadro "Traceback (most recent call last):
-    Line: N" con el código fuente resaltado que se ve en la consola). PERO
-    ese panel puede escribirse a nivel de file descriptor nativo (C++), no
-    a través de sys.stdout de Python -- en cuyo caso NO aparecerá en
-    log_stdout aunque sí sea visible en la terminal real. Se documenta esto
-    explícitamente en vez de fingir que siempre se captura.
+    Nota: cuando el error es un SystemExit, Allo suele haber impreso ya un
+    panel de diagnóstico rico (el recuadro "Traceback (most recent call
+    last): Line: N" con el código fuente resaltado que se ve en la
+    consola). PERO ese panel puede escribirse a nivel de file descriptor
+    nativo (C++), no a través de sys.stdout de Python -- en cuyo caso NO
+    aparecerá en log_stdout aunque sí sea visible en la terminal real. Se
+    documenta esto explícitamente en vez de fingir que siempre se captura.
     """
     if isinstance(e, SystemExit):
         base = (
@@ -203,14 +165,13 @@ def _extraer_bloques(codigo_texto: str) -> tuple[str, str]:
     ejecutables: (código del kernel, código del schedule). Quita fences de
     markdown (```python ... ```) si el modelo los ha metido.
 
-    NUEVO (20 de agosto de 2026, ver docs/bitacora.md): _limpiar() ya no
-    asume que las vallas de markdown están SOLO al principio/final del
-    bloque -- se vio un caso real donde el Generador dejó una valla suelta
-    en medio del archivo (probablemente narración o un fence adicional que
-    no se depuró), lo que colaba una línea "```" literal en el .py escrito
-    a disco y rompía la sintaxis Python en L1. Ahora se elimina CUALQUIER
-    línea que sea puramente una valla de markdown (con o sin especificador
-    de lenguaje, p.ej. "```" o "```python"), esté donde esté en el bloque."""
+    No asume que las vallas de markdown están solo al principio/final del
+    bloque: el Generador puede dejar una valla suelta en medio del texto
+    (narración, o un fence adicional sin depurar), lo que colaría una línea
+    "```" literal en el .py escrito a disco y rompería la sintaxis Python
+    en L1. Por eso se elimina CUALQUIER línea que sea puramente una valla
+    de markdown (con o sin especificador de lenguaje, p. ej. "```" o
+    "```python"), esté donde esté en el bloque."""
     if "### SCHEDULE" not in codigo_texto:
         raise ValueError("Falta la cabecera '### SCHEDULE' en la salida del Generador")
     antes, schedule_src = codigo_texto.split("### SCHEDULE", 1)
@@ -312,9 +273,8 @@ async def run_l1_parse_types(args: dict[str, Any]) -> dict[str, Any]:
 )
 async def run_l2_functional(args: dict[str, Any]) -> dict[str, Any]:
     """
-    NUEVO (19 de septiembre de 2026, ver docs/bitacora.md): 'n_puntos' es
-    opcional (por defecto 1024, el tamaño del spec real) -- se añadió para
-    poder probar la cascada L1-L4 completa contra un ejemplo mínimo (p. ej.
+    'n_puntos' es opcional (por defecto 1024, el tamaño del spec real) --
+    permite probar la cascada L1-L4 completa contra un ejemplo mínimo (p. ej.
     una FFT de 8 puntos) sin que L2 intente comparar contra vectores de
     prueba de 1024 elementos generados para un kernel mucho más pequeño.
     No cambia nada para las llamadas existentes que no pasan 'n_puntos'.
@@ -384,9 +344,8 @@ async def run_l2_functional(args: dict[str, Any]) -> dict[str, Any]:
 )
 async def run_l3_equivalence(args: dict[str, Any]) -> dict[str, Any]:
     """
-    IMPORTANTE (15 de agosto de 2026, ver docs/bitacora.md): esta función
-    YA NO llama a allo.verify() directamente en este proceso. El
-    verificador PAST tiene reglas gramaticales sin implementar
+    IMPORTANTE: esta función NO llama a allo.verify() directamente en este
+    proceso. El verificador PAST tiene reglas gramaticales sin implementar
     ("[PAST][Parser] Rule 7 not implemented!") que en ciertos kernels no
     solo producen un árbol incompleto, sino que además disparan un
     assert() de C++ ("core/past.c:2489: set_parent_pref: Assertion
@@ -395,7 +354,7 @@ async def run_l3_equivalence(args: dict[str, Any]) -> dict[str, Any]:
     ERRORES_CAPTURABLES, que solo cubre excepciones de Python +
     SystemExit -- un abort() ni siquiera pasa por ahí). Sin aislamiento,
     un crash de PAST se llevaba por delante todo orchestrator.py y el
-    progreso de las 6 iteraciones de golpe.
+    progreso de las iteraciones de golpe.
 
     Por eso allo.verify() se ejecuta ahora en un SUBPROCESO separado
     (l3_subproceso.py, en esta misma carpeta) vía subprocess.run(). Si el
@@ -404,9 +363,9 @@ async def run_l3_equivalence(args: dict[str, Any]) -> dict[str, Any]:
     orquestador) sigue vivo, y se puede decidir continuar/regenerar con
     normalidad en vez de morir con él.
 
-    API real de fondo (confirmada contra `help(allo.verify)` el 5 de
-    agosto de 2026): verify(schedule_a, schedule_b) -> bool. Ver
-    l3_subproceso.py para el uso exacto.
+    API real de fondo (confirmada contra `help(allo.verify)`):
+    verify(schedule_a, schedule_b) -> bool. Ver l3_subproceso.py para el
+    uso exacto.
     """
     codigo = args["codigo_allo"]
 
@@ -427,16 +386,12 @@ async def run_l3_equivalence(args: dict[str, Any]) -> dict[str, Any]:
                  "salida_cruda": "allo.verify() excedió el timeout de 180s en el subproceso aislado."})}]
         }
 
-    # NUEVO (16 de agosto de 2026, ver docs/bitacora.md): ya NO se
-    # intenta parsear el JSON desde stdout del subproceso -- el panel de
-    # diagnóstico nativo de PAST (C++) puede mezclarse de forma
+    # No se intenta parsear el JSON desde stdout del subproceso -- el panel
+    # de diagnóstico nativo de PAST (C++) puede mezclarse de forma
     # impredecible con cualquier salida de Python en el mismo stream,
     # produciendo JSON corrupto incluso cuando la verificación en sí tuvo
-    # éxito (visto el 15/16 de agosto: el log crudo mostraba
-    # "[PAST][AI][Equivalence] Success" pero el parseo fallaba igualmente
-    # por bytes intercalados). l3_subproceso.py ahora escribe su
-    # resultado a un ARCHIVO dedicado (ruta_resultado), completamente
-    # aislado de stdout/stderr.
+    # éxito. l3_subproceso.py escribe su resultado a un ARCHIVO dedicado
+    # (ruta_resultado), completamente aislado de stdout/stderr.
     stdout_str = resultado_bytes.stdout.decode("utf-8", errors="replace")
     stderr_str = resultado_bytes.stderr.decode("utf-8", errors="replace")
 
@@ -447,7 +402,7 @@ async def run_l3_equivalence(args: dict[str, Any]) -> dict[str, Any]:
         salida = (
             f"El subproceso de verificación L3 terminó de forma anómala "
             f"(returncode={resultado_bytes.returncode}"
-            f"{' -- probablemente SIGABRT, crash nativo de PAST, ver docs/bitacora.md 15 de agosto' if resultado_bytes.returncode < 0 else ''}"
+            f"{' -- probablemente SIGABRT, crash nativo de PAST' if resultado_bytes.returncode < 0 else ''}"
             f").\nstderr (últimas líneas):\n{stderr_str[-2000:]}"
         )
         return {
@@ -479,27 +434,21 @@ def _vitis_hls_disponible() -> bool:
 def _parsear_reporte_csynth(ruta_xml: Path) -> dict:
     """Parsea el informe XML de síntesis (<project>/out.prj/solution1/syn/
     report/kernel_csynth.xml). Etiquetas confirmadas contra una síntesis
-    real en Vitis HLS 2023.1 el 12 de agosto de 2026 (ver docs/bitacora.md)
-    -- NO son las que trae la documentación oficial para otras versiones,
-    que puede variar ligeramente.
+    real en Vitis HLS 2023.1 -- no son necesariamente las que trae la
+    documentación oficial para otras versiones, que puede variar
+    ligeramente.
 
-    CORREGIDO (19 de septiembre de 2026, ver docs/bitacora.md): esta es la
-    causa real de "II: null" en TODAS las corridas de L4 del proyecto desde
-    agosto, confirmada leyendo a mano el árbol de un proyecto de síntesis
-    real. kernel_csynth.xml (el único fichero que se leía aquí) NO tiene
-    ninguna sección <SummaryOfLoopLatency> en absoluto cuando el kernel se
-    descompone en varios submódulos pipelineados -- y eso pasa siempre que
-    el kernel tiene más de un bucle con s.pipeline() (o sea, prácticamente
-    cualquier kernel real de este proyecto, incluida la FFT). Cada bucle se
-    sintetiza como su propio submódulo con su PROPIO informe separado,
-    kernel_Pipeline_<nombre_del_bucle>_csynth.xml, en el mismo directorio
-    -- ese fichero sí tiene <SummaryOfLoopLatency><PipelineII> con el valor
-    real (confirmado: II=1 para un bucle, II=12 para otro, en la misma
-    síntesis donde el nivel superior devolvía la lista vacía). Así que
-    'ii_minimo = min(iis) if iis else None' daba None SIEMPRE que hubiera
-    más de un bucle pipelineado, con independencia de si la síntesis había
-    cerrado un II perfectamente válido -- el problema nunca fue (solo) el
-    diseño, fue que nunca se miraba donde estaba el dato real.
+    IMPORTANTE sobre el cálculo de II: kernel_csynth.xml (el informe de
+    nivel superior) NO tiene ninguna sección <SummaryOfLoopLatency> cuando
+    el kernel se descompone en varios submódulos pipelineados -- y eso pasa
+    siempre que el kernel tiene más de un bucle con s.pipeline(). Cada
+    bucle se sintetiza como su propio submódulo con su PROPIO informe
+    separado, kernel_Pipeline_<nombre_del_bucle>_csynth.xml, en el mismo
+    directorio -- ese fichero sí tiene <SummaryOfLoopLatency><PipelineII>
+    con el valor real. Por eso hace falta recorrer también los informes de
+    los submódulos: mirar solo el informe de nivel superior da una lista
+    de IIs vacía (y por tanto II=None) en cuanto hay más de un bucle
+    pipelineado, con independencia de si la síntesis cerró un II válido.
     """
     root = ET.parse(ruta_xml).getroot()
 
@@ -530,11 +479,9 @@ def _parsear_reporte_csynth(ruta_xml: Path) -> dict:
 
     # Con varias etapas ejecutadas en secuencia (una por bucle pipelineado),
     # el throughput real del diseño lo marca el PEOR (mayor) II de todas,
-    # no el mejor -- de ahí max() en vez del min() que había antes. min()
-    # solo tenía sentido bajo la premisa de que hubiera un único "bucle
-    # crítico" que mirar, premisa que en la práctica nunca se llegó a
-    # comprobar porque la lista de IIs estaba vacía en todas las corridas
-    # anteriores.
+    # no el mejor -- de ahí max() en vez de min(). min() solo tendría
+    # sentido bajo la premisa de que hubiera un único "bucle crítico" que
+    # mirar.
     ii_peor_caso = max(iis) if iis else None
 
     return {
@@ -556,15 +503,15 @@ def _parsear_reporte_csynth(ruta_xml: Path) -> dict:
 )
 async def run_l4_hls(args: dict[str, Any]) -> dict[str, Any]:
     """
-    OJO (12 de agosto de 2026, ver docs/bitacora.md y docs/SETUP_VITIS.md
-    para el detalle completo): esta función NO llama a mod() tal cual lo
-    devuelve s.build(target="vivado_hls", mode="csyn", ...). Ese mod()
-    dispara un Makefile generado por Allo que invoca literalmente el
-    binario 'vivado_hls' -- discontinuado por Xilinx desde Vitis 2020.2+ (el
-    binario actual se llama 'vitis_hls' y tiene una estructura interna de
-    instalación distinta; un symlink vivado_hls -> vitis_hls NO basta,
-    porque vitis_hls intenta localizar un ejecutable "unwrapped" en una
-    subcarpeta que ya no existe en su propio árbol de instalación).
+    OJO (ver docs/SETUP_VITIS.md para el detalle completo): esta función
+    NO llama a mod() tal cual lo devuelve s.build(target="vivado_hls",
+    mode="csyn", ...). Ese mod() dispara un Makefile generado por Allo que
+    invoca literalmente el binario 'vivado_hls' -- discontinuado por
+    Xilinx desde Vitis 2020.2+ (el binario actual se llama 'vitis_hls' y
+    tiene una estructura interna de instalación distinta; un symlink
+    vivado_hls -> vitis_hls no basta, porque vitis_hls intenta localizar
+    un ejecutable "unwrapped" en una subcarpeta que ya no existe en su
+    propio árbol de instalación).
 
     En vez de eso:
       1. Se deja que s.build() genere el proyecto HLS en disco (run.tcl,

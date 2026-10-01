@@ -1,5 +1,5 @@
-# Ejemplo de "contrato de entrada a nivel de bloque" (ver correo del proyecto).
-# Esto es lo que recibe el agente Generador para escribir el kernel Allo.
+# Contrato de entrada a nivel de bloque: lo que recibe el agente Generador
+# para escribir el kernel Allo.
 
 bloque: fft_radix2
 descripcion: >
@@ -22,30 +22,8 @@ salidas:
     tipo: allo.float32
     forma: [1024]
 
-golden_model_id: fft_numpy_reference   # renombrado desde fft_radix2_numpy_reference
-                                        # (24 de septiembre de 2026): el nombre
-                                        # anterior sugería que la referencia era
-                                        # especifica de radix-2, pero es agnóstica
-                                        # al radix (np.fft.fft sin más) -- ver
-                                        # golden_models.py. Los catálogos/logs
-                                        # guardados antes de este cambio siguen
-                                        # citando el id antiguo, es evidencia
-                                        # histórica y no se reescribe.
+golden_model_id: fft_numpy_reference
 
 restricciones:
-  objetivo_ii: 5            # bajado desde 10 (24 de septiembre de 2026):
-                            # segundo punto del mismo barrido de objetivo_ii
-                            # para la curva rendimiento/area del TFG (20 -> 10
-                            # -> 5). El resultado de II=10 (Partition.Cyclic,
-                            # factor=4, confirmado real en
-                            # src/agentes/probar_particion_ii.py) ya esta
-                            # respaldado en
-                            # results/catalogo/fft_radix2_ii10.json antes de
-                            # este cambio, porque guardar_en_catalogo()
-                            # sobreescribe por nombre de bloque. Paso
-                            # conservador (10 -> 5, no directo a 1) por la
-                            # misma razon que el paso anterior: objetivo_ii=1
-                            # ya causo timeouts de sintesis repetidos en
-                            # corridas anteriores (ver Parte 9 de la
-                            # bitacora).
-  throughput_min: 100e6   # muestras/segundo
+  objetivo_ii: 5            # initiation interval objetivo para la síntesis HLS
+  throughput_min: 100e6     # muestras/segundo

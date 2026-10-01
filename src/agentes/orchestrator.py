@@ -1,20 +1,4 @@
-"""
-Bucle principal del pipeline de 3 agentes.
 
-    Generador  --código Allo-->  Ejecutor  --resultado crudo-->  Validador
-        ^                                                            |
-        +---------------- informe de error / decisión --------------+
-
-Cada "agente" es una llamada distinta a query() del Claude Agent SDK, con un
-system prompt y unas herramientas distintas. El estado (historial de
-errores, si hay que regenerar desde cero, etc.) lo lleva ESTE script, no el
-SDK -- por eso se llama "orquestación explícita".
-
-NOTA: los nombres exactos de parámetros de ClaudeAgentOptions pueden variar
-ligeramente entre versiones del SDK. Si algo no coincide con lo que ves aquí,
-revisa la referencia actual en la documentación (Agent SDK -> Python SDK
-reference) e ajusta los nombres de los argumentos, la lógica no cambia.
-"""
 
 import asyncio
 import json
@@ -31,61 +15,28 @@ from allo_tools import (
     run_l3_equivalence,
     run_l4_hls,
 )
-# NOTA: allo_tools_server (el servidor MCP en proceso) ya no se usa aquí --
-# ver el docstring de llamar_ejecutor() para el porqué del cambio de
-# arquitectura (17 de septiembre de 2026). Se deja definido en
-# allo_tools.py por si se necesita reintroducir el patrón MCP en el futuro.
+
 from schemas import InformeValidacion, DecisionEscalada, NivelFallo
 
-MAX_ITERACIONES = 6  # generación completa de kernel+schedule desde cero
-MAX_INTENTOS_SCHEDULE = 8  # NUEVO 16 agosto 2026: ajustes de schedule sobre un
-                            # kernel YA congelado/verificado -- ver docs/bitacora.md.
-                            # Antes, cada ajuste de schedule consumía una de las
-                            # MAX_ITERACIONES totales, igual que una regeneración
-                            # completa de kernel -- pero afinar pipeline/partition
-                            # sobre un diseño ya validado en L1-L3 es mucho más
-                            # barato y necesita más intentos que generar un kernel
-                            # desde cero, así que tiene su propio presupuesto.
-MAX_ITERACIONES_TOTAL = 25  # tope de seguridad absoluto (kernel + schedule
-                             # combinados), por si el estado se comporta de forma
-                             # inesperada -- nunca debería alcanzarse en la práctica
-MAX_FALLOS_L2_SEGUIDOS = 2  # a partir de aquí, regenerar desde cero
+MAX_ITERACIONES = 6  # intentos de generación completa de kernel+schedule desde cero
+MAX_INTENTOS_SCHEDULE = 8  # intentos de ajuste de schedule sobre un kernel ya congelado/verificado
+MAX_ITERACIONES_TOTAL = 25  # tope de seguridad absoluto combinando ambos presupuestos
+MAX_FALLOS_L2_SEGUIDOS = 2  # fallos consecutivos en L2 antes de forzar una regeneración completa
 
 # Carpeta donde se persisten los kernels validados con éxito.
 DIR_CATALOGO = "../../results/catalogo"
 
-# NUEVO (17 de septiembre de 2026, ver docs/bitacora.md): archivo opcional
-# con un kernel YA verificado (pasó L1-L3 en una corrida anterior) para
-# arrancar directamente en fase de ajuste de schedule, sin gastar
-# presupuesto de MAX_ITERACIONES (ni cuota de Pro) redescubriendo desde
-# cero una lógica de FFT que ya se demostró correcta antes. Si el archivo
-# no existe, el comportamiento es exactamente el de siempre (generación
-# libre desde el primer intento). Debe contener SOLO el código Python del
-# kernel (el mismo texto que _extraer_bloques() habría devuelto como
-# kernel_src -- sin cabecera '### KERNEL' ni vallas de markdown).
+# Archivo opcional con un kernel ya verificado (pasó L1-L3 en una corrida
+# anterior), para arrancar directamente en la fase de ajuste de schedule
+# sin gastar presupuesto de generación de kernel desde cero.
 RUTA_KERNEL_VERIFICADO = "kernel_verificado.txt"
 
-# DECISIÓN (24 de septiembre de 2026): esta ruta se deja SIN archivo por
-# defecto a propósito -- nadie debería depender del atajo de kernel
-# congelado como modo normal de trabajo, precisamente porque enmascara si
-# el Generador es capaz de escribir el kernel completo desde cero (ver
-# results/catalogo/fft_radix2_ii5_kernel_generado.json, la corrida que
-# confirmó que sí lo es, con un diseño distinto al de este archivo: sin
-# tabla de twiddles precalculada, recomputando la trigonometría en línea
-# en cada etapa). El kernel que SÍ pasó L1-L3 a mano y sirvió para
-# aislar el ajuste de schedule (ver probar_particion_ii.py y
-# results/catalogo/fft_radix2_ii10.json / fft_radix2_ii5.json) se
-# conserva como evidencia del TFG en
-# src/agentes/kernel_verificado_backup.txt -- NO renombrar de vuelta a
-# kernel_verificado.txt salvo que se quiera repetir deliberadamente ese
-# atajo para una depuración puntual del schedule, sabiendo que así se
-# deja de probar la generación de kernel end-to-end.
+# Esta ruta se deja sin archivo por defecto a propósito: el atajo de kernel
+# congelado no es el modo de trabajo normal del pipeline. El kernel de
+# referencia archivado vive en kernel_verificado_backup.txt.
 
 
-# ---------------------------------------------------------------------------
-# Prompts de rol. Esto es lo que distingue a cada "agente" -- no hay tres
-# programas distintos, hay tres configuraciones distintas de la misma API.
-# ---------------------------------------------------------------------------
+# Prompts de agentes
 
 SYSTEM_PROMPT_GENERADOR = """\
 Eres un generador de código Allo (DSL sobre Python para aceleradores de
@@ -117,10 +68,9 @@ PROHIBIDO usar una conversión de tipo como llamada inline dentro de una
 expresión aritmética -- p. ej. NUNCA escribas algo como
 "TWO_PI * float32(k) / 1024.0" o "float32(idx) * x". Esta forma de cast
 inline hace fallar el inferenciador de tipos de Allo con un error interno
-(AttributeError: 'Float' object has no attribute '__name__'), detectado
-repetidamente en pruebas. En su lugar, SIEMPRE asigna primero el valor a
-una variable con anotación de tipo explícita, y usa esa variable en la
-expresión:
+(AttributeError: 'Float' object has no attribute '__name__'). En su lugar,
+SIEMPRE asigna primero el valor a una variable con anotación de tipo
+explícita, y usa esa variable en la expresión:
 
     # MAL -- provoca un fallo interno de Allo:
     theta: float32 = TWO_PI * float32(k) / 1024.0
@@ -175,21 +125,16 @@ Reglas OBLIGATORIAS de cada bloque:
    de este bloque.
 
 PRIMITIVAS DE SCHEDULE VÁLIDAS PARA CONSEGUIR EL OBJETIVO_II (confirmadas
-el 13 de agosto de 2026 contra `help()` de la instalación real -- ver
-docs/bitacora.md; NO uses ninguna otra ni inventes nombres de parámetros
-distintos a estos):
+contra `help()` de la instalación real; NO uses ninguna otra ni inventes
+nombres de parámetros distintos a estos):
 
     s.pipeline(axis: str, initiation_interval: int = 1, rewind: bool = False)
         Pipelinea el bucle cuyo índice se llama 'axis' (el nombre de la
         variable del bucle tal como aparece en el KERNEL, p. ej. "i" en
         "for i in range(N)"). initiation_interval es el II objetivo.
 
-        OBLIGATORIO (confirmado el 11 de septiembre de 2026, tras una
-        corrida real donde TODAS las llamadas a s.pipeline() del SCHEDULE
-        usaban initiation_interval=1 pese a que la especificación pedía
-        restricciones.objetivo_ii=20, causando timeout de síntesis -- ver
-        docs/bitacora.md): el valor que pongas en initiation_interval DEBE
-        ser SIEMPRE el número real que veas en el campo
+        OBLIGATORIO: el valor que pongas en initiation_interval DEBE ser
+        SIEMPRE el número real que veas en el campo
         "restricciones.objetivo_ii" de la especificación del bloque (el
         JSON que recibes al principio de este prompt), en TODAS tus
         llamadas a s.pipeline() sin excepción -- nunca un valor fijo
@@ -198,9 +143,8 @@ distintos a estos):
         valor a reutilizar literalmente. Si la especificación dice
         objetivo_ii=20, escribe initiation_interval=20 en cada
         s.pipeline() que hagas -- pedir siempre II=1 (el objetivo más
-        agresivo posible) sin mirar la especificación ya ha producido
-        timeouts de síntesis reales que un objetivo más laxo habría
-        evitado.
+        agresivo posible) sin mirar la especificación puede producir
+        timeouts de síntesis que un objetivo más laxo evitaría.
         Ejemplo de FORMA de la llamada (sustituye el 1 por tu objetivo_ii real):
         s.pipeline("i", initiation_interval=1)
 
@@ -209,13 +153,12 @@ distintos a estos):
         a menudo para que pipeline() alcance II=1 cuando hay accesos a
         BRAM que si no quedan serializados).
 
-        IMPORTANTE sobre 'target' (confirmado el 13 de agosto de 2026 tras
-        reproducir el fallo real -- ver docs/bitacora.md): NO es solo el
-        nombre del array como string simple (p.ej. "x_real" -- ESO FALLA
-        con 'ValueError: not enough values to unpack', porque Allo hace
-        internamente func_name, buf_name = target.split(":")). El formato
-        correcto es SIEMPRE "nombre_funcion:nombre_array", con dos puntos
-        de separador. Como el kernel se llama SIEMPRE 'kernel' (regla 1 de
+        IMPORTANTE sobre 'target': no es solo el nombre del array como
+        string simple (p. ej. "x_real" -- ESO FALLA con 'ValueError: not
+        enough values to unpack', porque Allo hace internamente
+        func_name, buf_name = target.split(":")). El formato correcto es
+        SIEMPRE "nombre_funcion:nombre_array", con dos puntos de
+        separador. Como el kernel se llama SIEMPRE 'kernel' (regla 1 de
         arriba), en la práctica esto significa: el nombre del array
         SIEMPRE debe ir precedido de "kernel:". Ejemplos:
             s.partition("kernel:x_real", partition_type=Partition.Complete)
@@ -226,8 +169,7 @@ distintos a estos):
         partition_type usa el enum importado así:
             from allo.customize import Partition
         con estos tres valores válidos (y SOLO estos -- NO existe
-        'allo.PartitionType', eso fue una alucinación detectada y
-        descartada el 13 de agosto de 2026):
+        'allo.PartitionType'):
             Partition.Complete = 0   (particiona completamente, un
                                        registro por elemento)
             Partition.Block = 1      (particiona en bloques contiguos)
@@ -260,10 +202,8 @@ prefiere resolver el objetivo_ii combinando solo pipeline/partition/unroll
 con las firmas exactas de arriba.
 
 REGLA CRÍTICA sobre bucles exteriores con pocas iteraciones cuyo CUERPO
-tiene límites (bounds) que dependen de la variable de ese bucle exterior
-(confirmado el 20 de agosto de 2026 tras rastrear un fallo real de síntesis
-hasta el C++ generado -- ver docs/bitacora.md): si tu KERNEL tiene una
-estructura como
+tiene límites (bounds) que dependen de la variable de ese bucle exterior:
+si tu KERNEL tiene una estructura como
 
     m: int32 = 1
     for s in range(10):          # bucle exterior, pocas iteraciones (aquí 10)
@@ -287,8 +227,7 @@ el trip count real, NO es un dato de hardware genuino ni un error de nadie
 que lea el informe.
 
 SOLUCIÓN OBLIGATORIA cuando detectes este patrón: NO uses s.unroll() en el
-SCHEDULE para desenrollar este bucle exterior -- PROHIBIDO. Confirmado
-repetidamente (20 y 21 de agosto de 2026, ver docs/bitacora.md):
+SCHEDULE para desenrollar este bucle exterior -- PROHIBIDO.
 s.unroll("nombre_del_bucle", factor=0) sobre este tipo de bucle exterior
 falla de forma intermitente con un crash real del compilador de Allo
 ("error: Cannot find Stage S_<nombre>_2", "failed to legalize operation
@@ -320,20 +259,18 @@ j2... o g0, g1, g2...) para que cada una sea una etiqueta de Stage
 independiente y sin ambigüedad en Allo. Este patrón (repetir el cuerpo 10
 veces con constantes ya resueltas) es más largo de escribir pero es el que
 ha demostrado funcionar de forma fiable hasta síntesis real -- el patrón
-con s.unroll() sobre el bucle exterior es más corto pero ha fallado varias
-veces de forma intermitente y no debe usarse.
+con s.unroll() sobre el bucle exterior es más corto pero falla de forma
+intermitente y no debe usarse.
 
 Aplica esta regla de forma proactiva al escribir el KERNEL de este tipo de
 diseño (FFT iterativa por etapas, o cualquier estructura similar con pocas
 iteraciones exteriores y bounds internos dependientes), no solo cuando el
 Validador ya te haya reportado el problema.
 
-REGLA CRÍTICA sobre tablas calculadas por RECURRENCIA (confirmado el 20 de
-agosto de 2026 tras rastrear 5 fallos consecutivos de ajuste de schedule
-con 'II=null' hasta esta causa raíz -- ver docs/bitacora.md): está
-PROHIBIDO calcular cualquier tabla dentro del KERNEL (twiddle factors,
-coeficientes, etc.) mediante una RECURRENCIA que encadene cada elemento al
-anterior, como este patrón:
+REGLA CRÍTICA sobre tablas calculadas por RECURRENCIA: está PROHIBIDO
+calcular cualquier tabla dentro del KERNEL (twiddle factors, coeficientes,
+etc.) mediante una RECURRENCIA que encadene cada elemento al anterior,
+como este patrón:
 
     # PROHIBIDO -- crea una dependencia secuencial real entre iteraciones,
     # que NINGÚN pragma de pipeline/partition puede romper después:
@@ -366,65 +303,28 @@ rendimiento (objetivo_ii), no solo cuando el Validador ya lo haya
 reportado.
 
 REGLA CRÍTICA sobre partición de arrays con STRIDE VARIABLE entre copias
-desenrolladas -- CORREGIDA (evidencia en results/catalogo/fft_radix2_ii10.json
-y en src/agentes/probar_particion_ii.py; pendiente de anotar formalmente en
-docs/bitacora.md como Parte 17/18 -- de momento no está documentada allí).
-
-Historia: la primera versión de esta regla, del 21 de agosto de 2026, decía
-que Partition.Cyclic/Block con un factor fijo NO podía servir para un array
-cuyo patrón de acceso cambia de stride entre copias desenrolladas (p.ej. la
-FFT radix-2, donde 'half' vale 1, 2, 4, 8... 512 según la etapa), tras 7
-intentos fallidos, y mandaba usar Partition.Complete en su lugar. Esa
-conclusión se sacó dejando que el Generador (el LLM) adivinase el schedule a
-ciegas -- y esos 7 intentos fallidos incluían timeouts de L4 que en realidad
-eran un bug de sincronización del harness (timeout atascado en 1800s en vez
-del valor real configurado), no un límite real del propio diseño; ver el
-docstring de probar_particion_ii.py.
-
-Para aislar la pregunta de si el factor fijo realmente no podía funcionar,
-se probó directamente (sin ningún LLM de por medio, con
-src/agentes/probar_particion_ii.py, reutilizando las mismas funciones que
-usa el Ejecutor real) el mismo kernel verificado con
-Partition.Cyclic(factor=4/8/16) fijo sobre los 4 arrays de la mariposa
-(twiddle_real, twiddle_imag, y_real, y_imag). Resultado real, guardado en
-results/catalogo/fft_radix2_ii10.json: factor=4 SÍ cierra II=10 (125s,
-LUT=22075, FF=28526) -- de hecho con MENOS recursos que factor=8 (mismo
-II=10, LUT=29287, FF=33053) o factor=16 (mismo II=10, LUT=43202, FF=40356);
-subir el factor por encima de 4 no baja el II más, solo gasta área de más.
-factor=4 es el mismo que ya había funcionado antes a objetivo_ii=20.
-
-USA ESTO POR DEFECTO para este patrón de stride variable, empezando por
-factor=4:
+desenrolladas: para un array cuyo patrón de acceso cambia de stride entre
+copias desenrolladas (p. ej. la FFT radix-2, donde 'half' vale 1, 2, 4,
+8... 512 según la etapa), usa Partition.Cyclic con un factor fijo sobre
+ese array, empezando por factor=4:
 
     s.partition("kernel:NOMBRE_ARRAY", partition_type=Partition.Cyclic, factor=4)
 
-IMPORTANTE -- actualización con un segundo punto de datos (objetivo_ii=5,
-ver results/catalogo/fft_radix2_ii5.json y
-src/agentes/resultados_particion_ii_ii5.json): el factor de partición NO
-es un valor fijo universal, depende de lo agresivo que sea objetivo_ii.
-factor=4 bastaba para objetivo_ii=10 (II=10 real, 125s), pero para
-objetivo_ii=5 ese mismo factor=4 se queda corto (solo llega a II=8, no
-II=5) -- hace falta factor=8 para cerrar II=5 de verdad (107s), y subir a
-factor=16 no mejora nada más sobre factor=8 (mismo II=5, pero con casi el
-doble de LUT/FF). Regla práctica: prueba factor=4 primero; si el II real
-resultante es peor que el objetivo_ii pedido (no si falla, si simplemente
-converge a un II peor), sube al siguiente factor de la serie (8, luego 16)
-en vez de asumir que el patrón de partición está mal -- vuelve a intentar
-con src/agentes/probar_particion_ii.py si hace falta acotar esto de forma
-aislada antes de gastar una corrida completa del pipeline.
+El factor necesario no es un valor fijo universal -- depende de lo
+agresivo que sea objetivo_ii. Un factor=4 puede bastar para un objetivo_ii
+moderado, pero un objetivo_ii más agresivo puede quedarse corto con ese
+mismo factor y necesitar subir a factor=8 o factor=16. Regla práctica:
+prueba factor=4 primero; si el II real resultante es peor que el
+objetivo_ii pedido (no si falla, si simplemente converge a un II peor),
+sube al siguiente factor de la serie (8, luego 16) en vez de asumir que el
+patrón de partición está mal.
 
 Usa Partition.Complete solo como último recurso, si ni siquiera factor=16
-cierra el II pedido en L4 -- y antes de concluir que falla de verdad,
-descarta primero que sea el mismo tipo de falso negativo de
-infraestructura (timeout mal configurado, cuota de Pro agotada -- ver
-docs/bitacora.md Parte 16) que motivó la regla original.
+cierra el II pedido en L4.
 
 REGLA CRÍTICA sobre qué eje pipelinear en un nido `for g in range(G): for j
-in range(J):` con G*J constante (confirmado el 9 de septiembre de 2026 tras
-diagnosticar una corrida real con objetivo_ii=20 que agotaba el timeout de
-síntesis o devolvía 'II=null' en TODOS los intentos de schedule -- ver
-docs/bitacora.md): en un diseño de mariposa FFT por etapas donde cada etapa
-desenrollada a mano (ver regla anterior) tiene un nido
+in range(J):` con G*J constante: en un diseño de mariposa FFT por etapas
+donde cada etapa desenrollada a mano (ver regla anterior) tiene un nido
 `for g in range(NUM_GROUPS): for j in range(HALF):` con NUM_GROUPS*HALF
 constante (p. ej. 512), NUNCA asumas que el bucle a pipelinear con
 `s.pipeline(...)` es siempre el mismo (p. ej. siempre el interior 'j') en
@@ -507,18 +407,11 @@ async def llamar_generador(
     spec: dict, historial_errores: list[str], kernel_congelado: str | None = None
 ) -> str:
     if kernel_congelado:
-        # NUEVO (16 de agosto de 2026, ver docs/bitacora.md): antes, cuando
-        # el Validador decidía SOLO_TOCAR_SCHEDULE, solo se le decía al
-        # Generador EN PROSA "el kernel es correcto, no lo toques" -- pero
-        # sin el código real delante, el modelo simplemente escribía un
-        # kernel nuevo desde cero cada vez (confirmado comparando
-        # debug_iteraciones/iteracion_3.txt vs iteracion_6.txt de la
-        # corrida del 15/16 de agosto: usaban algoritmos completamente
-        # distintos -- DFT directa O(N^2) en una, mariposas radix-2 en
-        # otra). El "candado" era solo una sugerencia, no una restricción
-        # real. Ahora se le pasa el KERNEL literal a reutilizar carácter
-        # por carácter, y el Generador solo tiene que escribir un
-        # ### SCHEDULE nuevo.
+        # Cuando el Validador decide SOLO_TOCAR_SCHEDULE, se le pasa al
+        # Generador el KERNEL literal a reutilizar (no solo una indicación
+        # en prosa de "no lo toques"), para que no pueda reescribirlo por
+        # su cuenta. El Generador solo tiene que escribir un ### SCHEDULE
+        # nuevo.
         contexto_errores = (
             "\n\nIMPORTANTE: el KERNEL de abajo YA PASÓ L1 (sintaxis/tipos), "
             "L2 (equivalencia funcional contra el golden model) y L3 "
@@ -542,22 +435,20 @@ async def llamar_generador(
         )
     prompt = f"Especificación del bloque:\n{json.dumps(spec, indent=2)}{contexto_errores}"
 
-    # IMPORTANTE: el Generador NO debe tener acceso a ninguna herramienta
-    # (Bash, edición de archivos, etc.). Solo escribe texto. Darle acceso a
+    # El Generador no debe tener acceso a ninguna herramienta (Bash,
+    # edición de archivos, etc.): solo escribe texto. Darle acceso a
     # herramientas de ejecución le permitiría "hacer trampa" comprobando su
     # propio resultado en vez de dejar que lo valide el Ejecutor de forma
     # independiente -- ver docs/arquitectura.md, decisión #1.
     #
-    # allowed_tools=[] por sí solo NO basta para evitar que el modelo
+    # allowed_tools=[] por sí solo no basta para evitar que el modelo
     # INTENTE pedir otra herramienta -- solo dice qué se aprueba sin
     # preguntar. Si el modelo pide algo fuera de esa lista y no hay
     # permission_mode/can_use_tool que lo resuelva, el SDK se queda
     # esperando una decisión de permiso que nunca llega en un script no
     # interactivo, y el proceso se cuelga en silencio. Con
     # permission_mode="dontAsk", cualquier petición fuera de allowed_tools
-    # se DENIEGA directamente en vez de esperar -- ver docs/bitacora.md,
-    # incidente del Generador con Bash (5 de agosto) y el mismo patrón
-    # repetido en el Ejecutor más abajo.
+    # se deniega directamente en vez de esperar.
     opciones = ClaudeAgentOptions(
         system_prompt=SYSTEM_PROMPT_GENERADOR,
         allowed_tools=[],
@@ -577,10 +468,9 @@ async def llamar_generador(
 
     # Validación local barata: comprobar que estén las dos cabeceras antes
     # de gastar una vuelta entera de Ejecutor+Validador en un error ya
-    # conocido y repetido (Iteraciones 1 y 6 de la corrida del 6 de agosto
-    # fallaron solo por esto). Si falta alguna, un único reintento con un
-    # recordatorio explícito -- más barato que descubrirlo tres pasos
-    # después en el Validador.
+    # conocido. Si falta alguna, un único reintento con un recordatorio
+    # explícito -- más barato que descubrirlo tres pasos después en el
+    # Validador.
     if "### KERNEL" not in texto_completo or "### SCHEDULE" not in texto_completo:
         recordatorio = (
             prompt
@@ -596,37 +486,18 @@ async def llamar_generador(
 
 
 async def llamar_ejecutor(codigo_allo: str, spec: dict) -> dict:
-    """Ejecuta la cascada L1->L4 llamando DIRECTAMENTE a las herramientas de
-    allo_tools.py desde Python -- ya NO pasa por una llamada LLM intermedia.
+    """Ejecuta la cascada L1->L4 llamando directamente a las herramientas de
+    allo_tools.py desde Python, sin pasar por una llamada LLM intermedia.
     Se detiene en el primer nivel que falle.
 
-    CAMBIO DE ARQUITECTURA (17 de septiembre de 2026, ver docs/bitacora.md):
-    antes, esta función delegaba en un agente Ejecutor (una llamada
-    query() con SYSTEM_PROMPT_EJECUTOR) que recibía el código Allo como
-    texto dentro de su prompt y tenía que reproducirlo ÍNTEGRO como
-    argumento 'codigo_allo' de la llamada MCP a run_l1_parse_types. Se
-    confirmó un fallo real donde _extraer_bloques() fallaba dentro de la
-    herramienta reportando que faltaba '### SCHEDULE', pese a que el texto
-    guardado en debug_iteraciones/ (la respuesta cruda del Generador,
-    escrita a disco directamente por Python, sin pasar por el Ejecutor)
-    tenía las dos cabeceras completas y bien formadas. La única explicación
-    consistente es que el LLM del Ejecutor truncó o resumió el bloque de
-    código al tener que "copiarlo" dentro del argumento de la tool call --
-    un modo de fallo conocido al pedirle a un LLM que reproduzca texto
-    largo verbatim dentro de una llamada a herramienta, y más probable
-    cuanto más largo es el texto (los kernels+schedules crecieron con las
-    reglas nuevas del Generador).
-
-    El propio SYSTEM_PROMPT_EJECUTOR ya describía este rol como puramente
-    mecánico ("llama, EN ORDEN, a las 4 herramientas... no razones, no
-    investigues") -- exactamente el tipo de paso que no necesita un LLM en
-    absoluto. Llamar aquí directamente a `.handler(...)` de cada
-    herramienta (mismo patrón ya confirmado en las pruebas aisladas de L3
-    de agosto, ver docs/bitacora.md) elimina la clase entera de fallo
-    (nadie "copia" el código, así que no hay nada que truncar) y ahorra
-    además una llamada completa de API por iteración -- relevante dado el
-    volumen de llamadas automatizadas y los límites de cuota de Pro ya
-    confirmados empíricamente.
+    Llamar aquí directamente a `.handler(...)` de cada herramienta evita que
+    un LLM intermedio tenga que "copiar" el código Allo dentro del
+    argumento de una tool call -- con textos largos (kernel+schedule
+    completos) ese paso de copia es un punto de fallo real (truncamiento o
+    resumen del texto) y, al ser un paso puramente mecánico, no aporta
+    nada: no hace falta razonamiento para llamar a las 4 herramientas en
+    orden y reportar el resultado tal cual. Llamar directamente también
+    ahorra una llamada completa de API por iteración.
 
     SYSTEM_PROMPT_EJECUTOR se deja declarado más arriba únicamente como
     documentación del contrato original del rol -- ya no se usa aquí.
@@ -720,10 +591,9 @@ def guardar_en_catalogo(spec: dict, codigo: str, metricas: dict | None) -> str:
 
 
 async def main():
-    # Por defecto sigue apuntando al spec de la FFT radix-2 de siempre --
-    # pasar una ruta como argumento (p. ej. specs/spec_fft_radix4.yaml) para
-    # probar un bloque distinto sin tocar el comportamiento por defecto
-    # (24 de septiembre de 2026, prueba de generalización).
+    # Por defecto apunta al spec de la FFT radix-2; pasar una ruta como
+    # argumento (p. ej. specs/spec_fft_radix4.yaml) permite probar un
+    # bloque distinto sin cambiar el comportamiento por defecto.
     ruta_spec = sys.argv[1] if len(sys.argv) > 1 else "../../specs/spec_example.yaml"
     with open(ruta_spec) as f:
         spec = yaml.safe_load(f)
@@ -740,16 +610,11 @@ async def main():
               f"presupuesto de generación de kernel desde cero.")
     catalogo_validados = []  # espejo en memoria de lo que también se escribe a disco
 
-    # NUEVO (16 de agosto de 2026, ver docs/bitacora.md): presupuestos
-    # separados para "generar un kernel nuevo" vs "ajustar el schedule de
-    # un kernel ya congelado/verificado". Antes, cada ajuste de schedule
-    # consumía una de las MAX_ITERACIONES totales igual que una
-    # regeneración completa -- pero afinar pipeline/partition sobre un
-    # diseño que ya pasó L1-L3 es mucho más barato y necesita más
-    # intentos que generar un kernel desde cero (visto el 16 de agosto:
-    # el kernel convergió a la primera, pero el schedule osciló entre
-    # timeout de síntesis e II=null durante 6/6 intentos sin margen para
-    # encontrar el punto intermedio).
+    # Presupuestos separados para "generar un kernel nuevo" vs "ajustar el
+    # schedule de un kernel ya congelado/verificado": afinar
+    # pipeline/partition sobre un diseño que ya pasó L1-L3 es mucho más
+    # barato que generar un kernel desde cero, y en la práctica necesita
+    # más intentos para encontrar el punto óptimo.
     intentos_kernel = 0
     intentos_schedule = 0
     intentos_totales = 0
@@ -779,31 +644,29 @@ async def main():
                 kernel_congelado = None
                 intentos_schedule = 0
                 historial_errores = []
-                # NUEVO (15 de septiembre de 2026, ver docs/bitacora.md): un
-                # kernel NUEVO no hereda los fallos de L2 del diseño anterior
-                # -- sin este reset, fallos_l2_seguidos sigue subiendo
-                # indefinidamente a través de regeneraciones completamente
-                # distintas y acaba disparando para siempre el umbral de
-                # MAX_FALLOS_L2_SEGUIDOS más abajo, bloqueando permanentemente
-                # la vía CONTINUAR (corrección incremental con historial_errores)
-                # aunque el kernel nuevo nunca haya fallado L2 todavía.
+                # Un kernel nuevo no hereda los fallos de L2 del diseño
+                # anterior -- sin este reset, fallos_l2_seguidos seguiría
+                # subiendo indefinidamente a través de regeneraciones
+                # completamente distintas y acabaría disparando para
+                # siempre el umbral de MAX_FALLOS_L2_SEGUIDOS más abajo,
+                # bloqueando permanentemente la vía CONTINUAR (corrección
+                # incremental con historial_errores) aunque el kernel
+                # nuevo nunca haya fallado L2 todavía.
                 fallos_l2_seguidos = 0
                 continue
             print(f"\n=== Intento de ajuste de schedule {intentos_schedule}/"
                   f"{MAX_INTENTOS_SCHEDULE} (kernel congelado, intento global "
                   f"#{intentos_totales}) ===")
 
-        # IMPORTANTE (6 de agosto de 2026, ver docs/bitacora.md; ampliado 12
-        # de agosto tras verlo saltar también dentro de llamar_generador):
-        # el propio SDK tiene un bug conocido (issue #1031 en
+        # El propio SDK tiene un bug conocido (issue #1031 en
         # anthropics/claude-agent-sdk-python) por el que, ante un fallo a
         # nivel de API (posiblemente un límite de cuota de la suscripción
         # Pro, dado el volumen de llamadas automatizadas), lanza una
         # excepción con el mensaje engañoso "Claude Code returned an error
         # result: success" -- el mensaje humano real queda descartado
-        # internamente por el SDK, así que no podemos recuperarlo aquí.
+        # internamente por el SDK, así que no se puede recuperar aquí.
         #
-        # Este bug puede saltar en CUALQUIERA de los tres agentes -- por eso
+        # Este bug puede saltar en cualquiera de los tres agentes -- por eso
         # las TRES llamadas de la iteración (Generador, Ejecutor, Validador)
         # viven dentro del mismo bloque protegido: un fallo de
         # infraestructura en cualquiera de las tres se trata como
@@ -813,15 +676,13 @@ async def main():
             print("--- Código generado ---")
             print(codigo[:400], "..." if len(codigo) > 400 else "")
 
-            # NUEVO (13 de agosto de 2026, ver docs/bitacora.md): el print
-            # de arriba solo muestra los primeros 400 caracteres, que en la
-            # práctica SIEMPRE caen dentro del bloque KERNEL (más largo que
-            # el SCHEDULE) -- el bloque SCHEDULE, que es donde han estado
-            # ocurriendo los errores de desempaquetado más recientes, nunca
-            # llegaba a verse ni en pantalla ni en el log. Se guarda el
-            # código COMPLETO de cada iteración a un archivo aparte para
-            # poder diagnosticar sin depender de capturas de pantalla ni de
-            # volver a lanzar el pipeline entero.
+            # El print de arriba solo muestra los primeros 400 caracteres,
+            # que en la práctica siempre caen dentro del bloque KERNEL (más
+            # largo que el SCHEDULE) -- el bloque SCHEDULE no llegaría a
+            # verse ni en pantalla ni en el log. Se guarda el código
+            # completo de cada iteración a un archivo aparte para poder
+            # diagnosticar sin depender de volver a lanzar el pipeline
+            # entero.
             os.makedirs("debug_iteraciones", exist_ok=True)
             ruta_debug = f"debug_iteraciones/intento_{intentos_totales}.txt"
             with open(ruta_debug, "w") as f:
@@ -846,16 +707,12 @@ async def main():
         print(informe.mensaje_accionable)
 
         if informe.nivel_fallo == NivelFallo.NINGUNO:
-            # GUARDA DE SEGURIDAD (17 de septiembre de 2026, ver docs/bitacora.md):
-            # se confirmó una corrida real donde el Validador devolvió
-            # nivel_fallo=NINGUNO sin que la cascada L1-L4 hubiera corrido de
-            # verdad (el Ejecutor no reportó salida de validación real, el
-            # informe llegó igualmente con NINGUNO, y el catálogo terminó con
-            # metricas_hls=null). Un éxito genuino solo puede darse si la
-            # cascada llegó hasta L4, y metricas_hls SOLO se rellena al llegar
-            # a L4 (ver schemas.py) -- así que si no está presente, no hay
-            # evidencia real de que se validó nada. Se descarta el informe y
-            # se reintenta en vez de guardar un catálogo falso.
+            # Guarda de seguridad: un éxito genuino solo puede darse si la
+            # cascada llegó hasta L4, y metricas_hls solo se rellena al
+            # llegar a L4 (ver schemas.py). Si el Validador devuelve
+            # nivel_fallo=NINGUNO sin metricas_hls, no hay evidencia real
+            # de que la cascada L1-L4 corrió de verdad -- se descarta el
+            # informe y se reintenta en vez de guardar un catálogo falso.
             if informe.metricas_hls is None:
                 print(f"\n⚠️  El Validador reportó nivel_fallo=NINGUNO pero sin "
                       f"metricas_hls -- no hay evidencia de que la cascada L1-L4 "
@@ -878,17 +735,12 @@ async def main():
         else:
             fallos_l2_seguidos = 0
 
-        # NUEVO (9 de septiembre de 2026): MAX_FALLOS_L2_SEGUIDOS estaba
-        # declarada arriba pero no se comprobaba en ningún sitio -- la
-        # política "a partir de aquí, regenerar desde cero" dependía por
-        # completo de que el Validador (un LLM que solo ve "Fallos
-        # consecutivos en L2 hasta ahora: N" como texto en su prompt)
-        # decidiera por su cuenta que N ya era "demasiados", sin que se le
-        # dijera nunca cuál era el umbral real -- en la práctica, una
-        # constante muerta. Se aplica aquí como comprobación determinista,
-        # en la misma línea que la decisión de arquitectura #3 (esquema
-        # tipado en vez de confiar en juicio de lenguaje libre para las
-        # decisiones de escalada): si se alcanza el umbral, se fuerza la
+        # MAX_FALLOS_L2_SEGUIDOS se comprueba aquí como salvaguarda
+        # determinista: la política "a partir de aquí, regenerar desde
+        # cero" no debe depender solo de que el Validador (un LLM que
+        # únicamente ve "Fallos consecutivos en L2 hasta ahora: N" como
+        # texto en su prompt) decida por su cuenta que N ya es
+        # "demasiados". Si se alcanza el umbral, se fuerza la
         # regeneración aunque el Validador haya propuesto otra cosa.
         if (fallos_l2_seguidos >= MAX_FALLOS_L2_SEGUIDOS
                 and informe.decision_escalada != DecisionEscalada.REGENERAR_DESDE_CERO):
@@ -903,19 +755,15 @@ async def main():
             historial_errores = []
             kernel_congelado = None
             intentos_schedule = 0
-            # NUEVO (15 de septiembre de 2026, ver docs/bitacora.md): mismo
-            # motivo que el reset de arriba -- un kernel regenerado desde
-            # cero es un diseño nuevo y no relacionado con el anterior, así
-            # que no debe arrastrar los fallos de L2 de la implementación
-            # descartada. Sin este reset, una vez cruzado el umbral una
-            # vez, el contador nunca vuelve a bajar de él en el resto de la
-            # corrida (siempre sube en cada fallo de L2, nunca se resetea
-            # salvo aquí) y el check de MAX_FALLOS_L2_SEGUIDOS de más abajo
-            # fuerza "regenerar" en el primer fallo de L2 de CADA kernel
-            # nuevo, sin darle nunca al Generador la oportunidad de
-            # autocorregirse vía CONTINUAR con historial_errores -- esto es
-            # justo lo que causó que una corrida real encadenara 5
-            # regeneraciones seguidas en vez de correcciones incrementales.
+            # Un kernel regenerado desde cero es un diseño nuevo y no
+            # relacionado con el anterior, así que no debe arrastrar los
+            # fallos de L2 de la implementación descartada -- de lo
+            # contrario, una vez cruzado el umbral una vez, el contador
+            # nunca volvería a bajar de él en el resto de la corrida y el
+            # check de MAX_FALLOS_L2_SEGUIDOS de más abajo forzaría
+            # "regenerar" en el primer fallo de L2 de cada kernel nuevo,
+            # sin darle nunca al Generador la oportunidad de
+            # autocorregirse vía CONTINUAR con historial_errores.
             fallos_l2_seguidos = 0
         elif informe.decision_escalada == DecisionEscalada.SOLO_TOCAR_SCHEDULE:
             print("🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.")

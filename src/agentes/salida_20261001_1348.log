@@ -1,0 +1,67 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+
+    # ---- Step 1: base-4 digit-reversal permutation (5 digits, 4^5 = 1024) ----
+    for n in range(1024):
+        temp: int32 = n
+        rev: int32 = ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El kernel generado no coincide numéricamente con la referencia FFT (numpy): 246 de 1024 índices fuera de tolerancia (tol=0.001), concentrados en bloques que sugieren un problema sistemático en una etapa de mariposa (butterfly) o en el bit-reversal/twiddle factors, no ruido aleatorio de redondeo. max|diff_real|=0.006107, max|diff_imag|=0.007431, ambos ~6-7x por encima de la tolerancia. Revisar indexación de twiddle factors y orden de combinación en las etapas afectadas antes de reintentar.
+
+=== Iteración de kernel 2/6 (intento global #2) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+
+    # ---- base-4 digit-reversal permutation (5 digits, since 4^5 = 1024) ----
+    for i in range(1024):
+        i0: int32 = i
+        q0: int32 = i0 /  ...
+    (código completo guardado en debug_iteraciones/intento_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+L1-L3 pasaron correctamente: la sintaxis, la equivalencia funcional contra el golden model y la equivalencia de schedule están verificadas. El fallo está en L4 (síntesis HLS): el II=16 obtenido no cumple el objetivo de rendimiento. El kernel es funcionalmente correcto, por lo que no hace falta regenerar código ni tocar la lógica del algoritmo; basta con ajustar las directivas de schedule (pipeline/unroll/partition de arrays) para reducir el II y/o la latencia sin alterar la semántica ya verificada en L3.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 1/8 (kernel congelado, intento global #3) ===
+--- Código generado ---
+### KERNEL
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+
+    # ---- base-4 digit-reversal permutation (5 digits, since 4^5 = 1024) ----
+    for i in range(1024):
+        i0: int32 = i
+        q0: int32 = i0 / 4
+         ...
+    (código completo guardado en debug_iteraciones/intento_3.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.NINGUNO, decision=DecisionEscalada.CONTINUAR ---
+Todos los niveles L1-L4 pasaron correctamente. El kernel FFT fue verificado funcionalmente contra 'fft_numpy_reference', la equivalencia de schedule fue confirmada por allo.verify, y la síntesis HLS se completó con métricas dentro de rangos esperables (II=5, LUT/FF/DSP/BRAM moderados). No se requiere acción adicional.
+
+✅ Éxito. Guardado en el catálogo: ../../results/catalogo/fft_radix4.json

@@ -1,0 +1,83 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    TWO_PI: float32 = 6.283185307179586
+
+    buf0_real: float32[1024]
+    buf0_imag: float32[1024]
+    buf1_real: float32[1024]
+    buf1_imag: float32[1024]
+
+    # ---- Digit-reversal (base-4, 5 digits) permut ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+La verificación numérica L2 falló: la salida del kernel difiere de la referencia 'fft_numpy_reference' en 737 de 1024 índices (72% de discrepancia), superando ampliamente la tolerancia de 0.001. Los primeros índices discrepantes ([3,7,10,11,12,13,14,15,19,23,...]) sugieren un patrón no aleatorio (posible error sistemático en el orden bit-reversal, en el factor twiddle, o en el escalado/normalización de la FFT) más que ruido de precisión numérica. Revisar la implementación del kernel antes de reintentar; aún no se considera fallo recurrente (0 fallos previos registrados), por lo que se recomienda corregir y volver a ejecutar L2 antes de escalar a regeneración completa.
+
+=== Iteración de kernel 2/6 (intento global #2) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    TWO_PI: float32 = 6.283185307179586
+
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+
+    # ---- digit-reversal (base-4) permutation of the input ----
+    for i0 in range(1024):
+        idx: int32  ...
+    (código completo guardado en debug_iteraciones/intento_2.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L4_HLS, decision=DecisionEscalada.SOLO_TOCAR_SCHEDULE ---
+El kernel fue validado correctamente en L1 (sintaxis/tipos), L2 (equivalencia funcional contra 'fft_numpy_reference') y L3 (equivalencia de schedule verificada con allo.verify). El fallo ocurre exclusivamente en L4: la síntesis HLS no completó dentro del timeout de 1800s. Esto indica que el schedule actual genera un espacio de diseño demasiado grande o directivas de síntesis ineficientes (posible falta de pipelining/tiling adecuado), no un error de corrección del kernel. Se recomienda ajustar el schedule (p.ej. reducir el grado de unrolling, introducir tiling más agresivo, o simplificar directivas de fusión de bucles) para acelerar la convergencia de la síntesis, sin modificar la lógica del kernel.
+🔒 Kernel congelado — el siguiente intento solo debe tocar el schedule.
+
+=== Intento de ajuste de schedule 1/8 (kernel congelado, intento global #3) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    TWO_PI: float32 = 6.283185307179586
+
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+
+    # ---- digit-reversal (base-4) permutation of the input ----
+    for i0 in range(1024):
+        idx: int32  ...
+    (código completo guardado en debug_iteraciones/intento_3.txt)
+--- Informe del validador: nivel_fallo=NivelFallo.L2_FUNCIONAL, decision=DecisionEscalada.CONTINUAR ---
+El kernel generado no coincide numéricamente con la referencia 'fft_numpy_reference': 448 de 1024 índices discrepantes, comenzando en el índice 32 (bloque contiguo desde ahí). Discrepancia máxima muy alta (max|diff_real|=45.17, max|diff_imag|=74.35) frente a tol=0.001, lo que descarta un simple error de redondeo o precisión de punto flotante. El patrón (falla a partir de un índice fijo, en bloque) sugiere un error estructural en el kernel: indexación incorrecta de mariposas (butterfly), orden de bit-reversal mal aplicado, o un stage de la FFT mal implementado a partir de esa etapa. Revisar la lógica de descomposición/combinación de la FFT en el kernel, no solo ajustar tolerancias.
+
+=== Intento de ajuste de schedule 2/8 (kernel congelado, intento global #4) ===
+--- Código generado ---
+Voy a simular exactamente este algoritmo en Python (fuera de Allo) contra numpy.fft para localizar el bug estructural antes de tocar nada.### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+    TWO_PI: float32 = 6.283185307179586
+
+    buf_real: float32[1024]
+   ...
+    (código completo guardado en debug_iteraciones/intento_4.txt)

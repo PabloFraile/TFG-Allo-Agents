@@ -1,0 +1,19 @@
+
+=== Iteración de kernel 1/6 (intento global #1) ===
+--- Código generado ---
+### KERNEL
+```python
+import allo
+from allo.ir.types import float32, int32
+
+def kernel(x_real: float32[1024], x_imag: float32[1024],
+           y_real: float32[1024], y_imag: float32[1024]):
+
+    buf_real: float32[1024]
+    buf_imag: float32[1024]
+    buf2_real: float32[1024]
+    buf2_imag: float32[1024]
+
+    # ---------------------------------------------------------------
+    # Paso 0: permutacio ...
+    (código completo guardado en debug_iteraciones/intento_1.txt)
