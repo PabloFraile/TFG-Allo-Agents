@@ -1,10 +1,10 @@
 # Instalación de Allo desde fuente — Guía de referencia
 
 Guía completa para instalar el toolchain de **Allo** (github.com/cornell-zhang/allo)
-desde fuente en Linux, sustituyendo las funciones mockeadas de `allo_tools.py`
-por el compilador real. Incluye al final los errores encontrados durante la
-instalación en este proyecto y cómo se resolvieron, por si se repite en otra
-máquina.
+desde fuente en Linux — el proceso usado para dejar el compilador real
+conectado al pipeline (`allo_tools.py` lo invoca directamente, sin mocks).
+Incluye al final los errores encontrados durante la instalación en este
+proyecto y cómo se resolvieron, por si se repite en otra máquina.
 
 > Entorno de referencia: Ubuntu (Linux nativo), Python 3.12, CMake 3.28,
 > Ninja 1.11.1. Allo depende de compilar LLVM/MLIR y solo tiene soporte

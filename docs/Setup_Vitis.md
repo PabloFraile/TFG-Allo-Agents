@@ -181,10 +181,11 @@ echo 'source ~/tools/Vitis_HLS/2023.1/settings64.sh' >> ~/.bashrc
 Vitis HLS - High-Level Synthesis from C, C++ and OpenCL v2023.1 (64-bit)
 ```
 
-## Pendiente
+## L4 conectado al pipeline real
 
-- Sustituir el mock de `run_l4_hls` en `allo_tools.py` por la llamada real
-  (`allo.customize(...).build(target="vivado_hls", mode="csyn", project=...)`)
-  y confirmar la ruta exacta del informe `*_csynth.xml` generado por esta
-  versión concreta (2023.1) — puede variar respecto a lo documentado para
-  otras versiones.
+`run_l4_hls` en `allo_tools.py` invoca directamente `vitis_hls -f run.tcl`
+sobre el proyecto que genera `allo.customize(...).build(target="vivado_hls",
+mode="csyn", project=...)`, saltándose el Makefile de Allo (ver
+`docs/arquitectura.md`, decisión 7, sobre por qué). El informe de síntesis
+se lee de `<project>/out.prj/solution1/syn/report/kernel_csynth.xml` —
+ruta confirmada para esta versión concreta (2023.1).
