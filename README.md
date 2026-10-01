@@ -1,4 +1,4 @@
-# TFG: Generación automática de aceleradores hardware mediante LLMs sobre Allo
+# Generación automática de aceleradores hardware mediante LLMs sobre Allo
 
 Trabajo de Fin de Grado (Ingeniería Industrial). Pipeline de agentes LLM
 para generar código RTL (sistemas de comunicaciones y procesado de señal —
@@ -6,7 +6,9 @@ para generar código RTL (sistemas de comunicaciones y procesado de señal —
 usando el propio toolchain de Allo como oráculo.
 
 > Repositorio privado. Ver `docs/bitacora.md` para el diario completo de
-> decisiones y problemas resueltos durante el desarrollo.
+> decisiones y problemas resueltos durante el desarrollo, y
+> `docs/arquitectura.md` para el mismo contenido en formato de consulta
+> rápida.
 
 ## Idea del proyecto
 
@@ -33,42 +35,47 @@ Un orquestador explícito en Python conecta los tres: por cada iteración,
 llama al Generador, pasa su salida al Ejecutor, pasa el resultado al
 Validador, y decide si continuar, regenerar desde cero, o congelar el
 kernel y tocar solo el schedule — hasta convergencia o agotar el
-presupuesto `K` de iteraciones.
+presupuesto de iteraciones.
 
 Detalle completo de por qué se eligió esta separación de roles (en vez de
-un solo agente) en `docs/bitacora.md`, entrada del 27 de julio de 2026.
+un solo agente) en `docs/bitacora.md`.
 
 ## Estructura del repositorio
 
 ```
 TFG/
-├── README.md                  <- este archivo
+├── README.md                      <- este archivo
 ├── docs/
-│   ├── bitacora.md             <- diario de decisiones, fechado
-│   └── SETUP_DOCKER.md         <- entorno unificado en Docker (Linux/WSL2)
-├── docker/
-│   └── Dockerfile              <- Allo + Node + Claude Agent SDK en una imagen
+│   ├── bitacora.md                 <- diario de decisiones, fechado
+│   ├── arquitectura.md             <- las mismas decisiones en formato de consulta rápida
+│   ├── setup_allo.md               <- instalación de Allo en Linux nativo
+│   ├── Setup_Vitis.md              <- instalación de Vitis HLS 2023.1
+│   └── SETUP_DOCKER.md             <- alternativa en Docker (no soportada en Windows)
 ├── src/
 │   └── agentes/
-│       ├── orchestrator.py     <- el bucle: Generador -> Ejecutor -> Validador
-│       ├── allo_tools.py       <- herramientas del Ejecutor (cascada L1-L4)
-│       ├── schemas.py          <- esquema tipado del informe del Validador
-│       ├── test_minimo.py      <- prueba mínima de que el SDK/login funcionan
+│       ├── orchestrator.py         <- el bucle: Generador -> Ejecutor -> Validador
+│       ├── allo_tools.py           <- herramientas del Ejecutor (cascada L1-L4)
+│       ├── golden_models.py        <- modelos de referencia NumPy para L2
+│       ├── l3_subproceso.py        <- allo.verify() aislado en proceso propio
+│       ├── schemas.py              <- esquema tipado del informe del Validador
+│       ├── probar_particion_ii.py  <- exploración aislada del factor de partición para bajar II
+│       ├── test_minimo.py          <- prueba mínima de que el SDK/login funcionan
 │       └── requirements.txt
 ├── specs/
-│   └── spec_example.yaml       <- specs de bloques (una por archivo, según crezca)
+│   ├── spec_example.yaml           <- FFT radix-2
+│   └── spec_fft_radix4.yaml        <- FFT radix-4
 ├── external/
-│   └── allo/                   <- Allo (Cornell) como git submodule
+│   └── allo/                       <- Allo (Cornell) como git submodule
 └── results/
-    └── catalogo/                <- kernels validados + métricas (se va llenando)
+    └── catalogo/                   <- kernels validados + métricas HLS (se va llenando)
 ```
 
 ## Cómo reproducir el entorno
 
-**Recomendado: Linux nativo** (Allo depende de compilar LLVM/MLIR y solo
-tiene soporte oficial en Linux — en Windows se puede intentar vía
-Docker/WSL2, pero puede haber problemas de virtualización según el
-equipo; ver nota en `docs/SETUP_DOCKER.md`).
+**Linux nativo** (Allo depende de compilar LLVM/MLIR y solo tiene soporte
+oficial en Linux; ver `docs/setup_allo.md`). Existe una alternativa en
+Docker documentada en `docs/SETUP_DOCKER.md`, pero no llegó a funcionar en
+Windows por problemas de virtualización — Linux nativo es la vía validada.
 
 ```bash
 git clone --recurse-submodules <url-del-repo> TFG
@@ -79,30 +86,38 @@ pip install --break-system-packages -r requirements.txt
 sudo npm install -g @anthropic-ai/claude-code
 claude login
 
-# Prueba mínima de que todo funciona
-python3 test_minimo.py
-
-# Pipeline completo (por ahora con la cascada de Allo mockeada)
-python3 orchestrator.py
-```
-
-Para instalar Allo de verdad (sustituyendo las funciones `MOCK_*` de
-`allo_tools.py`):
-
-```bash
+# Allo, desde el submodule
 cd ../../external/allo
 python3 -m pip install --break-system-packages -v -e .
+
+# Vitis HLS 2023.1 (ver docs/Setup_Vitis.md para la instalación completa)
+source ~/tools/Vitis_HLS/2023.1/settings64.sh
+
+# Prueba mínima de que todo funciona
+cd ../../src/agentes
+python3 test_minimo.py
+
+# Pipeline completo contra el toolchain real (sin mocks)
+python3 -u orchestrator.py ../../specs/spec_example.yaml
 ```
 
 ## Estado actual
 
-Ver la última entrada de `docs/bitacora.md` para el estado exacto y los
+El pipeline corre de extremo a extremo contra el toolchain real — Allo y
+Vitis HLS 2023.1, sin ninguna herramienta mockeada — y ha quedado
+validado tanto para la mariposa FFT radix-2 original como para su
+generalización a radix-4 (mismo golden model, agnóstico al radix usado
+internamente por el kernel). Ver la última entrada de `docs/bitacora.md`
+para el estado exacto, el barrido de initiation interval conseguido y los
 próximos pasos pendientes.
 
-## Notas para la memoria del TFG
+## Notas
 
 - Allo se referencia como **git submodule**, no como copia — permite citar
   el commit exacto usado para reproducibilidad.
 - La bitácora (`docs/bitacora.md`) documenta el "por qué" de cada decisión
   de diseño a medida que se tomó, para poder citarlo directamente en la
   memoria sin reconstruirlo de memoria al final del proyecto.
+- `results/catalogo/` guarda, por bloque, el kernel validado y sus métricas
+  de síntesis (II, latencia, LUT/FF/BRAM/DSP) — es la evidencia cruda
+  detrás de cualquier cifra citada en la memoria.
