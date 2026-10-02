@@ -86,7 +86,7 @@ dpkg -l | grep -E "libtinfo5|libncurses5|libncursesw5"
 # ii  libtinfo5:amd64      6.4-4   shared low-level terminfo library (legacy version)
 ```
 
-**Lección para la memoria del TFG:** aunque son paquetes de Debian (no
+Aunque son paquetes de Debian (no
 Ubuntu), son binariamente compatibles porque comparten la misma ABI de glibc
 en amd64 — la fuente del `.deb` importa menos que tener **todas las
 dependencias cruzadas en la misma versión exacta**.
