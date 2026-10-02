@@ -1,41 +1,4 @@
-"""
-Herramientas del agente EJECUTOR.
 
-Cada función de aquí abajo es una herramienta que el agente Ejecutor puede
-llamar.
-
-Estado actual:
-  - run_l1_parse_types  -> CONECTADO A ALLO REAL (allo.customize())
-  - run_l2_functional   -> CONECTADO A ALLO REAL (s.build(target='llvm') +
-                            comparación contra golden model real)
-  - run_l3_equivalence  -> CONECTADO A ALLO REAL (allo.verify(s, s_orig)).
-                            Contrato confirmado con `help(allo.verify)` en el
-                            entorno instalado: devuelve bool, y Allo mismo
-                            escribe un diff del código generado si falla --
-                            ese diagnóstico (PAST) sale por stdout durante
-                            la llamada, y el wrapper lo captura y lo mete en
-                            salida_cruda para que el Validador tenga contexto
-                            real del mismatch, no solo un ok=False.
-                            OJO: ante un error fatal de parseo interno, PAST
-                            puede abortar con SystemExit en vez de una
-                            excepción Python normal -- ver
-                            ERRORES_CAPTURABLES más abajo y el manejo
-                            especial de SystemExit dentro de esta función.
-  - run_l4_hls          -> CONECTADO A VITIS HLS REAL (síntesis csyn).
-                            OJO (ver docs/SETUP_VITIS.md): NO se usa mod()
-                            tal cual lo genera s.build(target="vivado_hls",
-                            ...) -- ese Makefile invoca un binario llamado
-                            'vivado_hls', discontinuado por Xilinx desde
-                            Vitis 2020.2+ (ahora se llama 'vitis_hls', con
-                            una estructura interna distinta). En vez de eso,
-                            se deja que s.build() genere el proyecto HLS en
-                            disco (que NO requiere vitis_hls todavía) y
-                            luego se lanza `vitis_hls -f run.tcl` nosotros
-                            mismos con subprocess, saltándonos el Makefile
-                            roto. Confirmado empíricamente contra una
-                            síntesis real (kernel trivial de suma de
-                            vectores) en Vitis HLS 2023.1.
-"""
 
 import json
 import re
@@ -61,43 +24,13 @@ from claude_agent_sdk import tool, create_sdk_mcp_server
 from golden_models import GOLDEN_MODELS, generar_vectores_test
 
 
-# ---------------------------------------------------------------------------
-# IMPORTANTE: algunos componentes internos de Allo (en concreto, el
-# verificador PAST invocado por allo.verify() en L3, ante un error fatal de
-# parseo del código C generado) NO lanzan una excepción Python normal ante
-# un fallo -- llaman a algo equivalente a sys.exit(1), que produce un
-# SystemExit. SystemExit hereda de BaseException, NO de Exception, así que
-# un simple "except Exception as e:" lo deja pasar de largo: la excepción
-# se propaga sin capturar y mata TODO el proceso de orchestrator.py (con un
-# código de salida, sin traceback de Python visible).
-#
-# Por eso las herramientas de la cascada capturan (Exception, SystemExit)
-# en vez de solo Exception. Deliberadamente NO se captura BaseException a
-# secas, para no absorber también KeyboardInterrupt (Ctrl+C) -- eso seguiría
-# interrumpiendo el proceso si hace falta pararlo a mano.
-# ---------------------------------------------------------------------------
+
+
 ERRORES_CAPTURABLES = (Exception, SystemExit)
 
-
-# ---------------------------------------------------------------------------
-# Constantes de L4 (ver docs/SETUP_VITIS.md para el detalle completo de la
-# instalación y el bache del binario 'vivado_hls' discontinuado)
-# ---------------------------------------------------------------------------
 NOMBRE_PROYECTO_VITIS = "out.prj"  # fijo -- así lo nombra Allo internamente,
                                      # independientemente del project= que le pasemos
 
-# 30 min. Da margen de sobra (4-6x) sobre el tiempo real que tarda un
-# schedule que sí va a converger (~5-7 min de media), sin quemar horas en
-# diseños que nunca van a cerrar -- un intento que no ha terminado en 30
-# min es casi con toda seguridad un diseño que no va a converger, no uno
-# "a punto de cerrar". Esto deja gastar el presupuesto de intentos de
-# ajuste de schedule en probar variantes de verdad en vez de quedarse
-# colgado en uno o dos.
-#
-# Para explorar el factor de partición necesario para un objetivo_ii dado
-# de forma más rápida y barata (sin gastar cuota de Pro ni horas), ver
-# probar_particion_ii.py, que reutiliza estas mismas funciones fuera del
-# bucle de agentes.
 TIMEOUT_SINTESIS_L4_SEGUNDOS = 1800
 
 
@@ -142,23 +75,6 @@ def _formatear_error(e: BaseException, log_stdout: str = "") -> str:
     return base
 
 
-# ---------------------------------------------------------------------------
-# Utilidades compartidas para pasar del texto crudo del Generador (con
-# cabeceras "### KERNEL" / "### SCHEDULE") a objetos Python que Allo pueda
-# procesar. Se reutilizan desde varios niveles de la cascada (L1, L2, ...).
-#
-# IMPORTANTE: allo.customize() usa inspect.getsource() internamente sobre la
-# función del kernel. inspect.getsource() necesita un archivo .py real en
-# disco -- una función creada con exec() en memoria no tiene ese respaldo y
-# falla con "OSError: could not get source code". Por eso el kernel se
-# escribe a un archivo temporal real y se importa como módulo, en vez de
-# ejecutarlo directamente en un namespace en memoria.
-#
-# Convención asumida: el Generador SIEMPRE nombra la función del kernel
-# 'kernel' (ver SYSTEM_PROMPT_GENERADOR en orchestrator.py). Si en algún
-# momento el Generador empieza a fallar aquí de forma sistemática, lo primero
-# a revisar es si sigue respetando esa convención.
-# ---------------------------------------------------------------------------
 
 def _extraer_bloques(codigo_texto: str) -> tuple[str, str]:
     """Separa el texto crudo del Generador en dos fragmentos de código Python
