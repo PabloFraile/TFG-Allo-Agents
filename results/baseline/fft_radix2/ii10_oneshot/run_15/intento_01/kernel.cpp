@@ -1,0 +1,111 @@
+// kernel.cpp
+// Radix-2 Cooley-Tukey FFT (Decimation-In-Time), N = 1024 points.
+// Target: AMD/Xilinx Vitis HLS 2023.1, xcu280-fsvh2892-2L-e, clk period 3.33 ns.
+// Design goals:
+//   - II <= 10 on every pipelined loop (bit-reverse reorder, twiddle table
+//     generation, butterfly stage, output writeback).
+//   - Local working buffers are fully partitioned (register file) so that
+//     the butterfly loop has no memory-port contention and can reach
+//     II = 1 regardless of the (data-independent) index pattern.
+
+#include <hls_math.h>
+
+static const int FFT_N     = 1024;
+static const int FFT_LOG2N = 10;   // log2(1024)
+static const float PI_F    = 3.14159265358979323846f;
+
+// Compile-time-fixed 10-bit reversal, fully unrolled (combinational).
+static inline int bit_reverse10(int v) {
+#pragma HLS INLINE
+    int rev = 0;
+    int tmp = v;
+    for (int b = 0; b < FFT_LOG2N; b++) {
+#pragma HLS UNROLL
+        rev = (rev << 1) | (tmp & 0x1);
+        tmp >>= 1;
+    }
+    return rev;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024])
+{
+    // Working buffers: fully partitioned -> behave as individual registers,
+    // so arbitrary (data-dependent) indices real[idx1]/real[idx2] can be
+    // accessed every cycle without BRAM port conflicts.
+    float real[FFT_N];
+    float imag[FFT_N];
+#pragma HLS ARRAY_PARTITION variable=real complete dim=1
+#pragma HLS ARRAY_PARTITION variable=imag complete dim=1
+
+    // Twiddle factor table: W_N^k = exp(-2*pi*i*k/N), k = 0 .. N/2-1.
+    // Only ever read once per butterfly iteration (single port is enough).
+    float tw_real[FFT_N / 2];
+    float tw_imag[FFT_N / 2];
+
+    // ---------------------------------------------------------------
+    // Stage 0: generate twiddle factor table.
+    // ---------------------------------------------------------------
+    for (int k = 0; k < FFT_N / 2; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = (-2.0f * PI_F * (float)k) / (float)FFT_N;
+        tw_real[k] = hls::cosf(angle);
+        tw_imag[k] = hls::sinf(angle);
+    }
+
+    // ---------------------------------------------------------------
+    // Stage 1: bit-reversal reorder of the input into the work buffers.
+    // ---------------------------------------------------------------
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        int rev = bit_reverse10(i);
+        real[rev] = x_real[i];
+        imag[rev] = x_imag[i];
+    }
+
+    // ---------------------------------------------------------------
+    // Stage 2: iterative radix-2 DIT butterfly network, log2(N) stages.
+    // ---------------------------------------------------------------
+    for (int stage = 1; stage <= FFT_LOG2N; stage++) {
+        int m      = 1 << stage;   // group size at this stage
+        int half   = m >> 1;       // half group size
+        int stride = FFT_N / m;    // step into the twiddle table
+
+        for (int k = 0; k < FFT_N; k += m) {
+            for (int j = 0; j < half; j++) {
+#pragma HLS PIPELINE II=1
+                int idx1  = k + j;
+                int idx2  = idx1 + half;
+                int twIdx = j * stride;
+
+                float wr = tw_real[twIdx];
+                float wi = tw_imag[twIdx];
+
+                float xr2 = real[idx2];
+                float xi2 = imag[idx2];
+                float xr1 = real[idx1];
+                float xi1 = imag[idx1];
+
+                float tr = wr * xr2 - wi * xi2;
+                float ti = wr * xi2 + wi * xr2;
+
+                real[idx1] = xr1 + tr;
+                imag[idx1] = xi1 + ti;
+                real[idx2] = xr1 - tr;
+                imag[idx2] = xi1 - ti;
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // Stage 3: write results out to the output arrays.
+    // ---------------------------------------------------------------
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = real[i];
+        y_imag[i] = imag[i];
+    }
+}

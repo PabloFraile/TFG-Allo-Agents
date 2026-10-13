@@ -1,0 +1,102 @@
+// kernel.cpp
+// FFT radix-2 (Cooley-Tukey, decimation en tiempo) iterativa, N = 1024 puntos.
+// Firma de top exactamente como la especificada por el testbench.
+
+#include <hls_math.h>
+
+#define FFT_N    1024
+#define FFT_LOGN 10
+
+// Inversión de bits de un índice de FFT_LOGN bits.
+// Totalmente desenrollado -> lógica combinacional pequeña, se puede inlinear
+// dentro del bucle de permutación sin romper el pipeline.
+static int bit_reverse10(int x) {
+#pragma HLS INLINE
+    int result = 0;
+    for (int i = 0; i < FFT_LOGN; i++) {
+#pragma HLS UNROLL
+        result = (result << 1) | (x & 0x1);
+        x >>= 1;
+    }
+    return result;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+) {
+    // Cada mariposa de una etapa necesita leer y escribir simultáneamente
+    // dos posiciones (t1, t2) de y_real/y_imag. Particionamos totalmente
+    // estos arrays (registros individuales) para eliminar conflictos de
+    // puerto de memoria y permitir II=1 en el bucle de mariposas.
+#pragma HLS ARRAY_PARTITION variable=y_real complete dim=1
+#pragma HLS ARRAY_PARTITION variable=y_imag complete dim=1
+
+    const float PI = 3.14159265358979323846f;
+
+    // Tabla de factores de giro (twiddle factors) W_N^k = exp(-j*2*pi*k/N),
+    // k = 0 .. N/2-1. Solo se lee un elemento por ciclo en el bucle de
+    // mariposas, así que no necesita partición (una BRAM de puerto simple
+    // es suficiente).
+    float cos_tab[FFT_N / 2];
+    float sin_tab[FFT_N / 2];
+
+    twiddle_gen:
+    for (int k = 0; k < FFT_N / 2; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = (2.0f * PI * (float)k) / (float)FFT_N;
+        cos_tab[k] = hls::cosf(angle);
+        sin_tab[k] = hls::sinf(angle);
+    }
+
+    // Permutación de entrada en orden bit-inverso: y[i] = x[bitrev(i)].
+    // (bit_reverse10 es su propia inversa, por lo que esta forma es
+    // equivalente a y[bitrev(i)] = x[i].)
+    bitrev:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        int r = bit_reverse10(i);
+        y_real[i] = x_real[r];
+        y_imag[i] = x_imag[r];
+    }
+
+    // log2(N) etapas de mariposas radix-2, decimación en tiempo (DIT),
+    // in-place sobre y_real/y_imag.
+    stage_loop:
+    for (int s = 1; s <= FFT_LOGN; s++) {
+        int half_m = 1 << (s - 1);     // distancia entre los dos elementos de la mariposa
+        int shift  = s - 1;
+        int mask   = half_m - 1;
+        int step   = FFT_N >> s;       // paso de índice dentro de la tabla de twiddles
+
+        butterfly_loop:
+        for (int i = 0; i < FFT_N / 2; i++) {
+#pragma HLS PIPELINE II=1
+            int j   = i & mask;
+            int k   = (i >> shift) << s;
+            int t1  = k + j;
+            int t2  = t1 + half_m;
+            int idx = j * step;
+
+            float wr =  cos_tab[idx];
+            float wi = -sin_tab[idx];
+
+            float ar = y_real[t1];
+            float ai = y_imag[t1];
+            float br = y_real[t2];
+            float bi = y_imag[t2];
+
+            // Producto complejo b * W
+            float tr = br * wr - bi * wi;
+            float ti = br * wi + bi * wr;
+
+            // Mariposa: a' = a + b*W ; b' = a - b*W
+            y_real[t1] = ar + tr;
+            y_imag[t1] = ai + ti;
+            y_real[t2] = ar - tr;
+            y_imag[t2] = ai - ti;
+        }
+    }
+}

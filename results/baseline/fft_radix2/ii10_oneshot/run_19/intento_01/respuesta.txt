@@ -1,0 +1,101 @@
+```cpp
+// kernel.cpp
+// Radix-2 Cooley-Tukey FFT (Decimation In Time), N = 1024 puntos, complejo.
+// Target: xcu280-fsvh2892-2L-e, periodo de reloj 3.33 ns, II <= 10 en todos
+// los bucles pipelineados.
+
+#include <cmath>
+
+static const int N = 1024;
+static const int LOGN = 10;                       // log2(N)
+static const float PI = 3.14159265358979323846f;
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024])
+{
+    float real[N];
+    float imag[N];
+    float tw_real[N / 2];
+    float tw_imag[N / 2];
+
+    // ---------------------------------------------------------------
+    // 1) Carga de entrada con reordenado por inversión de bits
+    // ---------------------------------------------------------------
+    bitrev_load:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=10
+        int rev = 0;
+        int idx = i;
+        for (int b = 0; b < LOGN; b++) {
+            rev = (rev << 1) | (idx & 0x1);
+            idx >>= 1;
+        }
+        real[i] = x_real[rev];
+        imag[i] = x_imag[rev];
+    }
+
+    // ---------------------------------------------------------------
+    // 2) Precalculo de factores "twiddle": W_N^k = exp(-j*2*pi*k/N)
+    //    Solo se necesitan N/2 valores (se reutilizan en todas las etapas)
+    // ---------------------------------------------------------------
+    twiddle_gen:
+    for (int k = 0; k < N / 2; k++) {
+#pragma HLS PIPELINE II=10
+        float angle = -2.0f * PI * (float)k / (float)N;
+        tw_real[k] = cosf(angle);
+        tw_imag[k] = sinf(angle);
+    }
+
+    // ---------------------------------------------------------------
+    // 3) FFT iterativa radix-2 DIT (Cooley-Tukey), LOGN etapas
+    // ---------------------------------------------------------------
+    for (int s = 1; s <= LOGN; s++) {
+        int m       = 1 << s;   // tamanio de la sub-FFT en esta etapa
+        int half_m  = m >> 1;
+        int tw_step = N / m;    // paso dentro de la tabla global de twiddles
+
+        stage_loop:
+        for (int k = 0; k < N; k += m) {
+
+            butterfly_loop:
+            for (int j = 0; j < half_m; j++) {
+#pragma HLS PIPELINE II=10
+                int tw_idx = j * tw_step;
+                float wr = tw_real[tw_idx];
+                float wi = tw_imag[tw_idx];
+
+                int idx1 = k + j;
+                int idx2 = idx1 + half_m;
+
+                float xr2 = real[idx2];
+                float xi2 = imag[idx2];
+                float xr1 = real[idx1];
+                float xi1 = imag[idx1];
+
+                // Multiplicacion compleja: (xr2 + j*xi2) * (wr + j*wi)
+                float tr = xr2 * wr - xi2 * wi;
+                float ti = xr2 * wi + xi2 * wr;
+
+                // Mariposa radix-2
+                real[idx1] = xr1 + tr;
+                imag[idx1] = xi1 + ti;
+                real[idx2] = xr1 - tr;
+                imag[idx2] = xi1 - ti;
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // 4) Escritura de la salida
+    // ---------------------------------------------------------------
+    store_out:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=10
+        y_real[i] = real[i];
+        y_imag[i] = imag[i];
+    }
+}
+```

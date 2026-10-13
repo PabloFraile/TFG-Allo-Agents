@@ -1,0 +1,101 @@
+```cpp
+#include <cmath>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+// Kernel de FFT radix-2 (Cooley-Tukey), decimacion en tiempo, iterativa,
+// N = 1024 puntos, entrada/salida complejas (real/imag) en float32.
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+)
+{
+    const int N      = 1024;
+    const int LOGN   = 10;      // log2(N)
+    const int HALFN  = N / 2;   // 512
+
+    float real[N];
+    float imag[N];
+    float tw_real[HALFN];
+    float tw_imag[HALFN];
+
+    // --------------------------------------------------------------
+    // Precalculo de factores "twiddle" W_N^k = exp(-j*2*pi*k/N)
+    // para k = 0 .. N/2-1. Se reutilizan en todas las etapas mediante
+    // indexado j * (N/m).
+    // --------------------------------------------------------------
+    TWIDDLE: for (int k = 0; k < HALFN; k++) {
+        #pragma HLS PIPELINE II=1
+        float angle = -2.0f * (float)M_PI * (float)k / (float)N;
+        tw_real[k] = cosf(angle);
+        tw_imag[k] = sinf(angle);
+    }
+
+    // --------------------------------------------------------------
+    // Permutacion por inversion de bits (bit-reversal) al cargar
+    // --------------------------------------------------------------
+    BITREV: for (int i = 0; i < N; i++) {
+        #pragma HLS PIPELINE II=1
+        int rev = 0;
+        int ii  = i;
+        BITS: for (int b = 0; b < LOGN; b++) {
+            #pragma HLS UNROLL
+            rev = (rev << 1) | (ii & 1);
+            ii >>= 1;
+        }
+        real[i] = x_real[rev];
+        imag[i] = x_imag[rev];
+    }
+
+    // --------------------------------------------------------------
+    // Etapas iterativas Cooley-Tukey (decimacion en tiempo, in-place)
+    // --------------------------------------------------------------
+    STAGE: for (int s = 1; s <= LOGN; s++) {
+        int shift      = s - 1;
+        int half_m     = 1 << shift;      // m/2
+        int m          = half_m << 1;     // tamanio de grupo
+        int num_groups = N >> s;          // N/m
+
+        BUTTERFLY: for (int k = 0; k < HALFN; k++) {
+            #pragma HLS PIPELINE II=1
+
+            int group = k >> shift;            // k / half_m
+            int j     = k & (half_m - 1);       // k % half_m
+
+            int idx1   = group * m + j;
+            int idx2   = idx1 + half_m;
+            int tw_idx = j * num_groups;
+
+            float wr = tw_real[tw_idx];
+            float wi = tw_imag[tw_idx];
+
+            float xr2 = real[idx2];
+            float xi2 = imag[idx2];
+
+            float tr = xr2 * wr - xi2 * wi;
+            float ti = xr2 * wi + xi2 * wr;
+
+            float ur = real[idx1];
+            float ui = imag[idx1];
+
+            real[idx1] = ur + tr;
+            imag[idx1] = ui + ti;
+            real[idx2] = ur - tr;
+            imag[idx2] = ui - ti;
+        }
+    }
+
+    // --------------------------------------------------------------
+    // Escritura de resultados
+    // --------------------------------------------------------------
+    OUTPUT: for (int i = 0; i < N; i++) {
+        #pragma HLS PIPELINE II=1
+        y_real[i] = real[i];
+        y_imag[i] = imag[i];
+    }
+}
+```

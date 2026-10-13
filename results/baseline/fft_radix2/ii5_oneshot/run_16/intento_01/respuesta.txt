@@ -1,0 +1,114 @@
+```cpp
+// kernel.cpp
+// Radix-2 Cooley-Tukey FFT (1024 puntos), formato complejo separado
+// (real/imag), decimación en tiempo (DIT), iterativa.
+//
+// Flujo:
+//   1) Pre-cálculo de factores de giro (twiddle factors) W_N^k, k=0..N/2-1
+//   2) Reordenamiento bit-reversed de la entrada
+//   3) log2(N) etapas de mariposas radix-2 in-place
+//   4) Copia a las salidas
+//
+// Convención: FFT directa (sin normalización), compatible con
+// numpy.fft.fft (exponente -2*pi*i*k*n/N).
+
+#include "hls_math.h"
+
+#define FFT_N    1024
+#define FFT_LOGN 10
+
+static const float FFT_PI = 3.14159265358979323846f;
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+)
+{
+    float real_buf[FFT_N];
+    float imag_buf[FFT_N];
+
+    float tw_real[FFT_N / 2];
+    float tw_imag[FFT_N / 2];
+
+    // ---------------------------------------------------------------
+    // 1) Generación de los factores de giro W_N^k = exp(-j*2*pi*k/N)
+    // ---------------------------------------------------------------
+TWIDDLE_GEN:
+    for (int k = 0; k < FFT_N / 2; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = -2.0f * FFT_PI * (float)k / (float)FFT_N;
+        tw_real[k] = hls::cosf(angle);
+        tw_imag[k] = hls::sinf(angle);
+    }
+
+    // ---------------------------------------------------------------
+    // 2) Reordenamiento bit-reversed de la entrada hacia los buffers
+    //    de trabajo (donde se hace la FFT in-place etapa a etapa)
+    // ---------------------------------------------------------------
+BITREV:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        int rev = 0;
+        int ii  = i;
+BITREV_BITS:
+        for (int b = 0; b < FFT_LOGN; b++) {
+#pragma HLS UNROLL
+            rev = (rev << 1) | (ii & 1);
+            ii >>= 1;
+        }
+        real_buf[rev] = x_real[i];
+        imag_buf[rev] = x_imag[i];
+    }
+
+    // ---------------------------------------------------------------
+    // 3) Etapas de mariposas radix-2 (Cooley-Tukey, DIT, in-place)
+    // ---------------------------------------------------------------
+STAGE:
+    for (int stage = 0; stage < FFT_LOGN; stage++) {
+        int m        = 1 << (stage + 1); // tamano de grupo de mariposas
+        int half_m   = m >> 1;
+        int tw_stride = FFT_N / m;
+
+    BUTTERFLY:
+        for (int k = 0; k < FFT_N / 2; k++) {
+#pragma HLS PIPELINE II=1
+            int group = k / half_m;
+            int j     = k % half_m;
+            int base  = group * m;
+            int idx0  = base + j;
+            int idx1  = base + j + half_m;
+            int tw_idx = j * tw_stride;
+
+            float wr = tw_real[tw_idx];
+            float wi = tw_imag[tw_idx];
+
+            float ur = real_buf[idx0];
+            float ui = imag_buf[idx0];
+            float vr = real_buf[idx1];
+            float vi = imag_buf[idx1];
+
+            // producto complejo v * W
+            float tr = vr * wr - vi * wi;
+            float ti = vr * wi + vi * wr;
+
+            // mariposa
+            real_buf[idx0] = ur + tr;
+            imag_buf[idx0] = ui + ti;
+            real_buf[idx1] = ur - tr;
+            imag_buf[idx1] = ui - ti;
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // 4) Escritura de resultados
+    // ---------------------------------------------------------------
+OUTPUT:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = real_buf[i];
+        y_imag[i] = imag_buf[i];
+    }
+}
+```

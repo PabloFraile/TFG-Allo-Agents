@@ -1,0 +1,604 @@
+
+****** Vitis HLS - High-Level Synthesis from C, C++ and OpenCL v2023.1 (64-bit)
+  **** SW Build 3854077 on May  4 2023
+  **** IP Build 3864474 on Sun May  7 20:36:21 MDT 2023
+  **** SharedData Build 3865790 on Sun May 07 13:33:03 MDT 2023
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source /home/pablo/tools/Vitis_HLS/2023.1/scripts/vitis_hls/hls.tcl -notrace
+INFO: [HLS 200-10] Running '/home/pablo/tools/Vitis_HLS/2023.1/bin/unwrapped/lnx64.o/vitis_hls'
+INFO: [HLS 200-10] For user 'pablo' on host 'pablo-UX410UAR' (Linux_x86_64 version 7.0.0-34-generic) on Mon Oct 12 18:51:17 CEST 2026
+INFO: [HLS 200-10] On os Ubuntu 24.04.4 LTS
+INFO: [HLS 200-10] In directory '/home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_17/intento_01'
+Sourcing Tcl script 'run.tcl'
+INFO: [HLS 200-1510] Running: open_project proj -reset 
+INFO: [HLS 200-10] Creating and opening project '/home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_17/intento_01/proj'.
+INFO: [HLS 200-1510] Running: open_solution -reset solution1 -flow_target vivado 
+INFO: [HLS 200-10] Creating and opening solution '/home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_17/intento_01/proj/solution1'.
+INFO: [HLS 200-10] Cleaning up the solution database.
+INFO: [HLS 200-1505] Using flow_target 'vivado'
+Resolution: For help on HLS 200-1505 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-1505.html
+INFO: [HLS 200-1510] Running: set_top fft_radix2 
+INFO: [HLS 200-1510] Running: add_files kernel.cpp 
+INFO: [HLS 200-10] Adding design file 'kernel.cpp' to the project
+INFO: [HLS 200-1510] Running: add_files -tb tb.cpp 
+INFO: [HLS 200-10] Adding test bench file 'tb.cpp' to the project
+INFO: [HLS 200-1510] Running: add_files -tb vectores.h 
+INFO: [HLS 200-10] Adding test bench file 'vectores.h' to the project
+INFO: [HLS 200-1510] Running: set_part xcu280-fsvh2892-2L-e 
+INFO: [HLS 200-1611] Setting target device to 'xcu280-fsvh2892-2L-e'
+INFO: [HLS 200-1510] Running: create_clock -period 3.33 
+INFO: [SYN 201-201] Setting up clock 'default' with a period of 3.33ns.
+INFO: [HLS 200-1510] Running: csim_design -ldflags -B/usr/bin/ 
+INFO: [SIM 211-2] *************** CSIM start ***************
+INFO: [SIM 211-4] CSIM will launch GCC as the compiler.
+INFO: [HLS 200-2036] Building debug C Simulation binaries
+   Compiling ../../../../tb.cpp in debug mode
+   Compiling ../../../../kernel.cpp in debug mode
+   Generating csim.exe
+BASELINE_VEC 0 salida=y_real discrepantes=0/1024 max_abs_diff=3.8147e-05 tol=0.001
+BASELINE_VEC 0 salida=y_imag discrepantes=0/1024 max_abs_diff=3.33786e-05 tol=0.001
+BASELINE_RESULT PASS
+INFO: [SIM 211-1] CSim done with 0 errors.
+INFO: [SIM 211-3] *************** CSIM finish ***************
+INFO: [HLS 200-111] Finished Command csim_design CPU user time: 5.66 seconds. CPU system time: 0.44 seconds. Elapsed time: 6.12 seconds; current allocated memory: 0.000 MB.
+BASELINE_CSIM_DONE
+INFO: [HLS 200-1510] Running: csynth_design 
+INFO: [HLS 200-111] Finished File checks and directory preparation: CPU user time: 0.07 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.08 seconds; current allocated memory: 202.375 MB.
+INFO: [HLS 200-10] Analyzing design file 'kernel.cpp' ... 
+INFO: [HLS 200-111] Finished Source Code Analysis and Preprocessing: CPU user time: 19.8 seconds. CPU system time: 1.36 seconds. Elapsed time: 21.38 seconds; current allocated memory: 208.672 MB.
+INFO: [HLS 200-777] Using interface defaults for 'Vivado' flow target.
+INFO: [HLS 200-1995] There were 21,291 instructions in the design after the 'Compile/Link' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_17/intento_01/proj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 612 instructions in the design after the 'Unroll/Inline' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_17/intento_01/proj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 891 instructions in the design after the 'Performance/Pipeline' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_17/intento_01/proj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 984 instructions in the design after the 'Optimizations' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_17/intento_01/proj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 214-131] Inlining function 'bitrev10(int)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:88:10)
+INFO: [HLS 214-131] Inlining function 'void fft_stage<512, 1>(float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:103:5)
+INFO: [HLS 214-131] Inlining function 'void fft_stage<256, 2>(float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:102:5)
+INFO: [HLS 214-131] Inlining function 'void fft_stage<128, 4>(float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:101:5)
+INFO: [HLS 214-131] Inlining function 'void fft_stage<64, 8>(float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:100:5)
+INFO: [HLS 214-131] Inlining function 'void fft_stage<32, 16>(float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:99:5)
+INFO: [HLS 214-131] Inlining function 'void fft_stage<16, 32>(float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:98:5)
+INFO: [HLS 214-131] Inlining function 'void fft_stage<8, 64>(float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:97:5)
+INFO: [HLS 214-131] Inlining function 'void fft_stage<4, 128>(float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:96:5)
+INFO: [HLS 214-131] Inlining function 'void fft_stage<2, 256>(float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:95:5)
+INFO: [HLS 214-131] Inlining function 'void fft_stage<1, 512>(float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:94:5)
+INFO: [HLS 214-291] Loop 'BITREV_BITS' is marked as complete unroll implied by the pipeline pragma (kernel.cpp:22:5)
+INFO: [HLS 214-186] Unrolling loop 'BITREV_BITS' (kernel.cpp:22:5) in function 'fft_radix2' completely with a factor of 10 (kernel.cpp:68:0)
+INFO: [HLS 214-270] Inferring pragma 'array_partition type=cyclic factor=3 dim=1' for array 'xr' due to pipeline pragma (kernel.cpp:40:9)
+INFO: [HLS 214-270] Inferring pragma 'array_partition type=cyclic factor=3 dim=1' for array 'xi' due to pipeline pragma (kernel.cpp:40:9)
+INFO: [HLS 214-248] Applying array_partition to 'xr': Cyclic partitioning with factor 3 on dimension 1. (kernel.cpp:69:11)
+INFO: [HLS 214-248] Applying array_partition to 'xi': Cyclic partitioning with factor 3 on dimension 1. (kernel.cpp:70:11)
+INFO: [HLS 200-111] Finished Compiling Optimization and Transform: CPU user time: 3.63 seconds. CPU system time: 0.48 seconds. Elapsed time: 8.11 seconds; current allocated memory: 209.098 MB.
+INFO: [HLS 200-111] Finished Checking Pragmas: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0 seconds; current allocated memory: 209.098 MB.
+INFO: [HLS 200-10] Starting code transformations ...
+INFO: [HLS 200-111] Finished Standard Transforms: CPU user time: 0.05 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.05 seconds; current allocated memory: 211.891 MB.
+INFO: [HLS 200-10] Checking synthesizability ...
+INFO: [HLS 200-111] Finished Checking Synthesizability: CPU user time: 0.05 seconds. CPU system time: 0 seconds. Elapsed time: 0.06 seconds; current allocated memory: 213.973 MB.
+INFO: [HLS 200-111] Finished Loop, function and other optimizations: CPU user time: 0.22 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.24 seconds; current allocated memory: 241.133 MB.
+INFO: [HLS 200-111] Finished Architecture Synthesis: CPU user time: 0.29 seconds. CPU system time: 0.04 seconds. Elapsed time: 0.31 seconds; current allocated memory: 350.094 MB.
+INFO: [HLS 200-10] Starting hardware synthesis ...
+INFO: [HLS 200-10] Synthesizing 'fft_radix2' ...
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_BITREV_LOOP' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'BITREV_LOOP'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 15, loop 'BITREV_LOOP'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 0.23 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.25 seconds; current allocated memory: 352.023 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.18 seconds. CPU system time: 0 seconds. Elapsed time: 0.17 seconds; current allocated memory: 352.023 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_STAGE_LOOP' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'STAGE_LOOP'.
+INFO: [SCHED 204-61] Discarding stage scheduling solution.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 22, loop 'STAGE_LOOP'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 1.59 seconds. CPU system time: 0 seconds. Elapsed time: 1.61 seconds; current allocated memory: 353.242 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.26 seconds. CPU system time: 0 seconds. Elapsed time: 0.26 seconds; current allocated memory: 353.242 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_STAGE_LOOP1' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'STAGE_LOOP'.
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP1' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 1, distance = 1, offset = 1) between 'store' operation ('xi_addr_3_write_ln57', kernel.cpp:57->kernel.cpp:95) of variable 'add22_i2', kernel.cpp:57->kernel.cpp:95 on array 'xi' and 'load' operation ('xi_load_2', kernel.cpp:47->kernel.cpp:95) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP1' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 2, distance = 1, offset = 1) between 'store' operation ('xi_addr_3_write_ln57', kernel.cpp:57->kernel.cpp:95) of variable 'add22_i2', kernel.cpp:57->kernel.cpp:95 on array 'xi' and 'load' operation ('xi_load_2', kernel.cpp:47->kernel.cpp:95) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP1' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 3, distance = 1, offset = 1) between 'store' operation ('xi_addr_3_write_ln57', kernel.cpp:57->kernel.cpp:95) of variable 'add22_i2', kernel.cpp:57->kernel.cpp:95 on array 'xi' and 'load' operation ('xi_load_2', kernel.cpp:47->kernel.cpp:95) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP1' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 4, distance = 1, offset = 1) between 'store' operation ('xi_addr_3_write_ln57', kernel.cpp:57->kernel.cpp:95) of variable 'add22_i2', kernel.cpp:57->kernel.cpp:95 on array 'xi' and 'load' operation ('xi_load_2', kernel.cpp:47->kernel.cpp:95) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP1' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 11, distance = 1, offset = 1) between 'store' operation ('xi_addr_4_write_ln59', kernel.cpp:59->kernel.cpp:95) of variable 'sub29_i2', kernel.cpp:59->kernel.cpp:95 on array 'xi' and 'load' operation ('xi_load_3', kernel.cpp:49->kernel.cpp:95) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP1' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 12, distance = 1, offset = 1) between 'store' operation ('xi_addr_4_write_ln59', kernel.cpp:59->kernel.cpp:95) of variable 'sub29_i2', kernel.cpp:59->kernel.cpp:95 on array 'xi' and 'load' operation ('xi_load_3', kernel.cpp:49->kernel.cpp:95) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 13, Depth = 25, loop 'STAGE_LOOP'
+WARNING: [HLS 200-871] Estimated clock period (4.405 ns) exceeds the target (target clock period: 3.330 ns, clock uncertainty: 0.899 ns, effective delay budget: 2.431 ns).
+Resolution: For help on HLS 200-871 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-871.html
+WARNING: [HLS 200-1016] The critical path in module 'fft_radix2_Pipeline_STAGE_LOOP1' consists of the following:
+	'fmul' operation ('mul14_i1', kernel.cpp:53->kernel.cpp:95) [69]  (2.322 ns)
+	multiplexor before operation 'fsub' with delay (0.729 ns)
+'fsub' operation ('tr', kernel.cpp:53->kernel.cpp:95) [71]  (1.354 ns)
+
+Resolution: For help on HLS 200-1016 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-1016.html
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 2.09 seconds. CPU system time: 0.01 seconds. Elapsed time: 2.13 seconds; current allocated memory: 354.086 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.27 seconds. CPU system time: 0 seconds. Elapsed time: 0.27 seconds; current allocated memory: 354.086 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_STAGE_LOOP2' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'STAGE_LOOP'.
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP2' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 1, distance = 1, offset = 1) between 'store' operation ('xi_addr_5_write_ln57', kernel.cpp:57->kernel.cpp:96) of variable 'add22_i3', kernel.cpp:57->kernel.cpp:96 on array 'xi' and 'load' operation ('xi_load_4', kernel.cpp:47->kernel.cpp:96) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP2' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 2, distance = 1, offset = 1) between 'store' operation ('xi_addr_5_write_ln57', kernel.cpp:57->kernel.cpp:96) of variable 'add22_i3', kernel.cpp:57->kernel.cpp:96 on array 'xi' and 'load' operation ('xi_load_4', kernel.cpp:47->kernel.cpp:96) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP2' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 3, distance = 1, offset = 1) between 'store' operation ('xi_addr_5_write_ln57', kernel.cpp:57->kernel.cpp:96) of variable 'add22_i3', kernel.cpp:57->kernel.cpp:96 on array 'xi' and 'load' operation ('xi_load_4', kernel.cpp:47->kernel.cpp:96) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP2' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 4, distance = 1, offset = 1) between 'store' operation ('xi_addr_5_write_ln57', kernel.cpp:57->kernel.cpp:96) of variable 'add22_i3', kernel.cpp:57->kernel.cpp:96 on array 'xi' and 'load' operation ('xi_load_4', kernel.cpp:47->kernel.cpp:96) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP2' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 11, distance = 1, offset = 1) between 'store' operation ('xi_addr_6_write_ln59', kernel.cpp:59->kernel.cpp:96) of variable 'sub29_i3', kernel.cpp:59->kernel.cpp:96 on array 'xi' and 'load' operation ('xi_load_5', kernel.cpp:49->kernel.cpp:96) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP2' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 12, distance = 1, offset = 1) between 'store' operation ('xi_addr_6_write_ln59', kernel.cpp:59->kernel.cpp:96) of variable 'sub29_i3', kernel.cpp:59->kernel.cpp:96 on array 'xi' and 'load' operation ('xi_load_5', kernel.cpp:49->kernel.cpp:96) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 13, Depth = 25, loop 'STAGE_LOOP'
+WARNING: [HLS 200-871] Estimated clock period (4.405 ns) exceeds the target (target clock period: 3.330 ns, clock uncertainty: 0.899 ns, effective delay budget: 2.431 ns).
+Resolution: For help on HLS 200-871 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-871.html
+WARNING: [HLS 200-1016] The critical path in module 'fft_radix2_Pipeline_STAGE_LOOP2' consists of the following:
+	'fmul' operation ('mul14_i2', kernel.cpp:53->kernel.cpp:96) [69]  (2.322 ns)
+	multiplexor before operation 'fsub' with delay (0.729 ns)
+'fsub' operation ('tr', kernel.cpp:53->kernel.cpp:96) [71]  (1.354 ns)
+
+Resolution: For help on HLS 200-1016 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-1016.html
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 2.12 seconds. CPU system time: 0 seconds. Elapsed time: 2.16 seconds; current allocated memory: 355.082 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.26 seconds. CPU system time: 0 seconds. Elapsed time: 0.27 seconds; current allocated memory: 355.082 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_STAGE_LOOP3' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'STAGE_LOOP'.
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP3' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 1, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:97) of variable 'add22_i4', kernel.cpp:57->kernel.cpp:97 on array 'xi' and 'load' operation ('xi_load_6', kernel.cpp:47->kernel.cpp:97) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP3' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 2, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:97) of variable 'add22_i4', kernel.cpp:57->kernel.cpp:97 on array 'xi' and 'load' operation ('xi_load_6', kernel.cpp:47->kernel.cpp:97) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP3' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 3, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:97) of variable 'add22_i4', kernel.cpp:57->kernel.cpp:97 on array 'xi' and 'load' operation ('xi_load_6', kernel.cpp:47->kernel.cpp:97) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP3' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 4, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:97) of variable 'add22_i4', kernel.cpp:57->kernel.cpp:97 on array 'xi' and 'load' operation ('xi_load_6', kernel.cpp:47->kernel.cpp:97) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP3' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 11, distance = 1, offset = 1) between 'store' operation ('xi_addr_7_write_ln59', kernel.cpp:59->kernel.cpp:97) of variable 'sub29_i4', kernel.cpp:59->kernel.cpp:97 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:49->kernel.cpp:97) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP3' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 12, distance = 1, offset = 1) between 'store' operation ('xi_addr_7_write_ln59', kernel.cpp:59->kernel.cpp:97) of variable 'sub29_i4', kernel.cpp:59->kernel.cpp:97 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:49->kernel.cpp:97) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 13, Depth = 25, loop 'STAGE_LOOP'
+WARNING: [HLS 200-871] Estimated clock period (4.405 ns) exceeds the target (target clock period: 3.330 ns, clock uncertainty: 0.899 ns, effective delay budget: 2.431 ns).
+Resolution: For help on HLS 200-871 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-871.html
+WARNING: [HLS 200-1016] The critical path in module 'fft_radix2_Pipeline_STAGE_LOOP3' consists of the following:
+	'fmul' operation ('mul14_i3', kernel.cpp:53->kernel.cpp:97) [69]  (2.322 ns)
+	multiplexor before operation 'fsub' with delay (0.729 ns)
+'fsub' operation ('tr', kernel.cpp:53->kernel.cpp:97) [71]  (1.354 ns)
+
+Resolution: For help on HLS 200-1016 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-1016.html
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 2.13 seconds. CPU system time: 0 seconds. Elapsed time: 2.15 seconds; current allocated memory: 356.062 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.27 seconds. CPU system time: 0 seconds. Elapsed time: 0.27 seconds; current allocated memory: 356.062 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_STAGE_LOOP4' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'STAGE_LOOP'.
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP4' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 1, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:98) of variable 'add22_i5', kernel.cpp:57->kernel.cpp:98 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:98) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP4' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 2, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:98) of variable 'add22_i5', kernel.cpp:57->kernel.cpp:98 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:98) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP4' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 3, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:98) of variable 'add22_i5', kernel.cpp:57->kernel.cpp:98 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:98) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP4' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 4, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:98) of variable 'add22_i5', kernel.cpp:57->kernel.cpp:98 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:98) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP4' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 11, distance = 1, offset = 1) between 'store' operation ('xi_addr_6_write_ln59', kernel.cpp:59->kernel.cpp:98) of variable 'sub29_i5', kernel.cpp:59->kernel.cpp:98 on array 'xi' and 'load' operation ('xi_load_6', kernel.cpp:49->kernel.cpp:98) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP4' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 12, distance = 1, offset = 1) between 'store' operation ('xi_addr_6_write_ln59', kernel.cpp:59->kernel.cpp:98) of variable 'sub29_i5', kernel.cpp:59->kernel.cpp:98 on array 'xi' and 'load' operation ('xi_load_6', kernel.cpp:49->kernel.cpp:98) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 13, Depth = 25, loop 'STAGE_LOOP'
+WARNING: [HLS 200-871] Estimated clock period (4.405 ns) exceeds the target (target clock period: 3.330 ns, clock uncertainty: 0.899 ns, effective delay budget: 2.431 ns).
+Resolution: For help on HLS 200-871 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-871.html
+WARNING: [HLS 200-1016] The critical path in module 'fft_radix2_Pipeline_STAGE_LOOP4' consists of the following:
+	'fmul' operation ('mul14_i4', kernel.cpp:53->kernel.cpp:98) [69]  (2.322 ns)
+	multiplexor before operation 'fsub' with delay (0.729 ns)
+'fsub' operation ('tr', kernel.cpp:53->kernel.cpp:98) [71]  (1.354 ns)
+
+Resolution: For help on HLS 200-1016 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-1016.html
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 2.13 seconds. CPU system time: 0 seconds. Elapsed time: 2.14 seconds; current allocated memory: 357.027 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.26 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.27 seconds; current allocated memory: 357.027 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_STAGE_LOOP5' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'STAGE_LOOP'.
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP5' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 1, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:99) of variable 'add22_i6', kernel.cpp:57->kernel.cpp:99 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:99) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP5' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 2, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:99) of variable 'add22_i6', kernel.cpp:57->kernel.cpp:99 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:99) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP5' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 3, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:99) of variable 'add22_i6', kernel.cpp:57->kernel.cpp:99 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:99) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP5' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 4, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:99) of variable 'add22_i6', kernel.cpp:57->kernel.cpp:99 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:99) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP5' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 11, distance = 1, offset = 1) between 'store' operation ('xi_addr_5_write_ln59', kernel.cpp:59->kernel.cpp:99) of variable 'sub29_i6', kernel.cpp:59->kernel.cpp:99 on array 'xi' and 'load' operation ('xi_load_5', kernel.cpp:49->kernel.cpp:99) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP5' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 12, distance = 1, offset = 1) between 'store' operation ('xi_addr_5_write_ln59', kernel.cpp:59->kernel.cpp:99) of variable 'sub29_i6', kernel.cpp:59->kernel.cpp:99 on array 'xi' and 'load' operation ('xi_load_5', kernel.cpp:49->kernel.cpp:99) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 13, Depth = 25, loop 'STAGE_LOOP'
+WARNING: [HLS 200-871] Estimated clock period (4.405 ns) exceeds the target (target clock period: 3.330 ns, clock uncertainty: 0.899 ns, effective delay budget: 2.431 ns).
+Resolution: For help on HLS 200-871 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-871.html
+WARNING: [HLS 200-1016] The critical path in module 'fft_radix2_Pipeline_STAGE_LOOP5' consists of the following:
+	'fmul' operation ('mul14_i5', kernel.cpp:53->kernel.cpp:99) [69]  (2.322 ns)
+	multiplexor before operation 'fsub' with delay (0.729 ns)
+'fsub' operation ('tr', kernel.cpp:53->kernel.cpp:99) [71]  (1.354 ns)
+
+Resolution: For help on HLS 200-1016 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-1016.html
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 2.15 seconds. CPU system time: 0.01 seconds. Elapsed time: 2.17 seconds; current allocated memory: 358.090 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.27 seconds. CPU system time: 0 seconds. Elapsed time: 0.28 seconds; current allocated memory: 358.090 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_STAGE_LOOP6' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'STAGE_LOOP'.
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP6' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 1, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:100) of variable 'add22_i7', kernel.cpp:57->kernel.cpp:100 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:100) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP6' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 2, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:100) of variable 'add22_i7', kernel.cpp:57->kernel.cpp:100 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:100) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP6' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 3, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:100) of variable 'add22_i7', kernel.cpp:57->kernel.cpp:100 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:100) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP6' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 4, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:100) of variable 'add22_i7', kernel.cpp:57->kernel.cpp:100 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:100) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP6' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 11, distance = 1, offset = 1) between 'store' operation ('xi_addr_4_write_ln59', kernel.cpp:59->kernel.cpp:100) of variable 'sub29_i7', kernel.cpp:59->kernel.cpp:100 on array 'xi' and 'load' operation ('xi_load_4', kernel.cpp:49->kernel.cpp:100) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP6' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 12, distance = 1, offset = 1) between 'store' operation ('xi_addr_4_write_ln59', kernel.cpp:59->kernel.cpp:100) of variable 'sub29_i7', kernel.cpp:59->kernel.cpp:100 on array 'xi' and 'load' operation ('xi_load_4', kernel.cpp:49->kernel.cpp:100) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 13, Depth = 25, loop 'STAGE_LOOP'
+WARNING: [HLS 200-871] Estimated clock period (4.405 ns) exceeds the target (target clock period: 3.330 ns, clock uncertainty: 0.899 ns, effective delay budget: 2.431 ns).
+Resolution: For help on HLS 200-871 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-871.html
+WARNING: [HLS 200-1016] The critical path in module 'fft_radix2_Pipeline_STAGE_LOOP6' consists of the following:
+	'fmul' operation ('mul14_i6', kernel.cpp:53->kernel.cpp:100) [69]  (2.322 ns)
+	multiplexor before operation 'fsub' with delay (0.729 ns)
+'fsub' operation ('tr', kernel.cpp:53->kernel.cpp:100) [71]  (1.354 ns)
+
+Resolution: For help on HLS 200-1016 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-1016.html
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 2.18 seconds. CPU system time: 0 seconds. Elapsed time: 2.22 seconds; current allocated memory: 359.172 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.28 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.28 seconds; current allocated memory: 359.172 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_STAGE_LOOP7' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'STAGE_LOOP'.
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP7' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 1, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:101) of variable 'add22_i8', kernel.cpp:57->kernel.cpp:101 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:101) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP7' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 2, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:101) of variable 'add22_i8', kernel.cpp:57->kernel.cpp:101 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:101) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP7' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 3, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:101) of variable 'add22_i8', kernel.cpp:57->kernel.cpp:101 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:101) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP7' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 4, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:101) of variable 'add22_i8', kernel.cpp:57->kernel.cpp:101 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:101) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP7' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 11, distance = 1, offset = 1) between 'store' operation ('xi_addr_3_write_ln59', kernel.cpp:59->kernel.cpp:101) of variable 'sub29_i8', kernel.cpp:59->kernel.cpp:101 on array 'xi' and 'load' operation ('xi_load_3', kernel.cpp:49->kernel.cpp:101) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP7' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 12, distance = 1, offset = 1) between 'store' operation ('xi_addr_3_write_ln59', kernel.cpp:59->kernel.cpp:101) of variable 'sub29_i8', kernel.cpp:59->kernel.cpp:101 on array 'xi' and 'load' operation ('xi_load_3', kernel.cpp:49->kernel.cpp:101) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 13, Depth = 25, loop 'STAGE_LOOP'
+WARNING: [HLS 200-871] Estimated clock period (4.405 ns) exceeds the target (target clock period: 3.330 ns, clock uncertainty: 0.899 ns, effective delay budget: 2.431 ns).
+Resolution: For help on HLS 200-871 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-871.html
+WARNING: [HLS 200-1016] The critical path in module 'fft_radix2_Pipeline_STAGE_LOOP7' consists of the following:
+	'fmul' operation ('mul14_i7', kernel.cpp:53->kernel.cpp:101) [69]  (2.322 ns)
+	multiplexor before operation 'fsub' with delay (0.729 ns)
+'fsub' operation ('tr', kernel.cpp:53->kernel.cpp:101) [71]  (1.354 ns)
+
+Resolution: For help on HLS 200-1016 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-1016.html
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 2.2 seconds. CPU system time: 0 seconds. Elapsed time: 2.23 seconds; current allocated memory: 360.219 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.27 seconds. CPU system time: 0 seconds. Elapsed time: 0.28 seconds; current allocated memory: 360.219 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_STAGE_LOOP8' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'STAGE_LOOP'.
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP8' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 1, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:102) of variable 'add22_i9', kernel.cpp:57->kernel.cpp:102 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:102) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP8' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 2, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:102) of variable 'add22_i9', kernel.cpp:57->kernel.cpp:102 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:102) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP8' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 3, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:102) of variable 'add22_i9', kernel.cpp:57->kernel.cpp:102 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:102) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP8' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 4, distance = 1, offset = 1) between 'store' operation ('xi_addr_write_ln57', kernel.cpp:57->kernel.cpp:102) of variable 'add22_i9', kernel.cpp:57->kernel.cpp:102 on array 'xi' and 'load' operation ('xi_load', kernel.cpp:47->kernel.cpp:102) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP8' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 11, distance = 1, offset = 1) between 'store' operation ('xi_addr_2_write_ln59', kernel.cpp:59->kernel.cpp:102) of variable 'sub29_i9', kernel.cpp:59->kernel.cpp:102 on array 'xi' and 'load' operation ('xi_load_2', kernel.cpp:49->kernel.cpp:102) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+WARNING: [HLS 200-880] The II Violation in module 'fft_radix2_Pipeline_STAGE_LOOP8' (loop 'STAGE_LOOP'): Unable to enforce a carried dependence constraint (II = 12, distance = 1, offset = 1) between 'store' operation ('xi_addr_2_write_ln59', kernel.cpp:59->kernel.cpp:102) of variable 'sub29_i9', kernel.cpp:59->kernel.cpp:102 on array 'xi' and 'load' operation ('xi_load_2', kernel.cpp:49->kernel.cpp:102) on array 'xi'.
+Resolution: For help on HLS 200-880 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-880.html
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 13, Depth = 25, loop 'STAGE_LOOP'
+WARNING: [HLS 200-871] Estimated clock period (4.405 ns) exceeds the target (target clock period: 3.330 ns, clock uncertainty: 0.899 ns, effective delay budget: 2.431 ns).
+Resolution: For help on HLS 200-871 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-871.html
+WARNING: [HLS 200-1016] The critical path in module 'fft_radix2_Pipeline_STAGE_LOOP8' consists of the following:
+	'fmul' operation ('mul14_i8', kernel.cpp:53->kernel.cpp:102) [69]  (2.322 ns)
+	multiplexor before operation 'fsub' with delay (0.729 ns)
+'fsub' operation ('tr', kernel.cpp:53->kernel.cpp:102) [71]  (1.354 ns)
+
+Resolution: For help on HLS 200-1016 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-1016.html
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 2.29 seconds. CPU system time: 0.02 seconds. Elapsed time: 2.31 seconds; current allocated memory: 361.188 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.27 seconds. CPU system time: 0 seconds. Elapsed time: 0.28 seconds; current allocated memory: 361.188 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_STAGE_LOOP9' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'STAGE_LOOP'.
+INFO: [SCHED 204-61] Discarding stage scheduling solution.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 22, loop 'STAGE_LOOP'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 1.78 seconds. CPU system time: 0 seconds. Elapsed time: 1.8 seconds; current allocated memory: 362.191 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.28 seconds. CPU system time: 0 seconds. Elapsed time: 0.28 seconds; current allocated memory: 362.191 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_OUT_LOOP' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'OUT_LOOP'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 4, loop 'OUT_LOOP'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 0.23 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.25 seconds; current allocated memory: 362.730 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.06 seconds. CPU system time: 0 seconds. Elapsed time: 0.06 seconds; current allocated memory: 362.730 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 0.14 seconds. CPU system time: 0 seconds. Elapsed time: 0.14 seconds; current allocated memory: 363.027 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.38 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.38 seconds; current allocated memory: 363.027 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_BITREV_LOOP' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_BITREV_LOOP' pipeline 'BITREV_LOOP' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'mul_10ns_12ns_21_1_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'urem_10ns_3ns_2_14_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_BITREV_LOOP'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.18 seconds. CPU system time: 0 seconds. Elapsed time: 0.17 seconds; current allocated memory: 363.270 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_STAGE_LOOP' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+WARNING: [HLS 200-2049] Adding the rewind optimization to the pipelined process 'STAGE_LOOP' with inout ports inside a dataflow region can result in the creation of loop-carried dependencies and errors. Use caution when adding the rewind optimization to such loops.
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_STAGE_LOOP' pipeline 'STAGE_LOOP' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 3 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 3 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mul_10ns_12ns_21_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_3_2_32_1_1': 4 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_STAGE_LOOP'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.16 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.18 seconds; current allocated memory: 365.828 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_STAGE_LOOP1' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+WARNING: [HLS 200-2049] Adding the rewind optimization to the pipelined process 'STAGE_LOOP' with inout ports inside a dataflow region can result in the creation of loop-carried dependencies and errors. Use caution when adding the rewind optimization to such loops.
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_STAGE_LOOP1' pipeline 'STAGE_LOOP' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_5_no_dsp_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mul_10ns_12ns_21_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_3_2_32_1_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'urem_10ns_3ns_2_14_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_STAGE_LOOP1'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.48 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.49 seconds; current allocated memory: 368.719 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_STAGE_LOOP2' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+WARNING: [HLS 200-2049] Adding the rewind optimization to the pipelined process 'STAGE_LOOP' with inout ports inside a dataflow region can result in the creation of loop-carried dependencies and errors. Use caution when adding the rewind optimization to such loops.
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_STAGE_LOOP2' pipeline 'STAGE_LOOP' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_5_no_dsp_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mul_10ns_12ns_21_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_3_2_32_1_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'urem_10ns_3ns_2_14_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_STAGE_LOOP2'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.21 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.22 seconds; current allocated memory: 371.633 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_STAGE_LOOP3' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+WARNING: [HLS 200-2049] Adding the rewind optimization to the pipelined process 'STAGE_LOOP' with inout ports inside a dataflow region can result in the creation of loop-carried dependencies and errors. Use caution when adding the rewind optimization to such loops.
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_STAGE_LOOP3' pipeline 'STAGE_LOOP' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_5_no_dsp_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mul_10ns_12ns_21_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_3_2_32_1_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'urem_10ns_3ns_2_14_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_STAGE_LOOP3'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.21 seconds. CPU system time: 0 seconds. Elapsed time: 0.21 seconds; current allocated memory: 374.473 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_STAGE_LOOP4' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+WARNING: [HLS 200-2049] Adding the rewind optimization to the pipelined process 'STAGE_LOOP' with inout ports inside a dataflow region can result in the creation of loop-carried dependencies and errors. Use caution when adding the rewind optimization to such loops.
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_STAGE_LOOP4' pipeline 'STAGE_LOOP' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_5_no_dsp_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mul_10ns_12ns_21_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_3_2_32_1_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'urem_10ns_3ns_2_14_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_STAGE_LOOP4'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.21 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.21 seconds; current allocated memory: 377.359 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_STAGE_LOOP5' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+WARNING: [HLS 200-2049] Adding the rewind optimization to the pipelined process 'STAGE_LOOP' with inout ports inside a dataflow region can result in the creation of loop-carried dependencies and errors. Use caution when adding the rewind optimization to such loops.
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_STAGE_LOOP5' pipeline 'STAGE_LOOP' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_5_no_dsp_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mul_10ns_12ns_21_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_3_2_32_1_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'urem_10ns_3ns_2_14_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_STAGE_LOOP5'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.21 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.22 seconds; current allocated memory: 380.215 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_STAGE_LOOP6' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+WARNING: [HLS 200-2049] Adding the rewind optimization to the pipelined process 'STAGE_LOOP' with inout ports inside a dataflow region can result in the creation of loop-carried dependencies and errors. Use caution when adding the rewind optimization to such loops.
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_STAGE_LOOP6' pipeline 'STAGE_LOOP' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_5_no_dsp_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mul_10ns_12ns_21_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_3_2_32_1_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'urem_10ns_3ns_2_14_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_STAGE_LOOP6'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.21 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.22 seconds; current allocated memory: 383.129 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_STAGE_LOOP7' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+WARNING: [HLS 200-2049] Adding the rewind optimization to the pipelined process 'STAGE_LOOP' with inout ports inside a dataflow region can result in the creation of loop-carried dependencies and errors. Use caution when adding the rewind optimization to such loops.
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_STAGE_LOOP7' pipeline 'STAGE_LOOP' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_5_no_dsp_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mul_10ns_12ns_21_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_3_2_32_1_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'urem_10ns_3ns_2_14_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_STAGE_LOOP7'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.21 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.22 seconds; current allocated memory: 385.973 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_STAGE_LOOP8' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+WARNING: [HLS 200-2049] Adding the rewind optimization to the pipelined process 'STAGE_LOOP' with inout ports inside a dataflow region can result in the creation of loop-carried dependencies and errors. Use caution when adding the rewind optimization to such loops.
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_STAGE_LOOP8' pipeline 'STAGE_LOOP' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_5_no_dsp_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mul_10ns_12ns_21_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_3_2_32_1_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'urem_10ns_3ns_2_14_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_STAGE_LOOP8'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.22 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.23 seconds; current allocated memory: 388.871 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_STAGE_LOOP9' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+WARNING: [HLS 200-2049] Adding the rewind optimization to the pipelined process 'STAGE_LOOP' with inout ports inside a dataflow region can result in the creation of loop-carried dependencies and errors. Use caution when adding the rewind optimization to such loops.
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_STAGE_LOOP9' pipeline 'STAGE_LOOP' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 3 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 3 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mul_10ns_12ns_21_1_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_3_2_32_1_1': 4 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_STAGE_LOOP9'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.22 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.24 seconds; current allocated memory: 392.316 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_OUT_LOOP' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_OUT_LOOP' pipeline 'OUT_LOOP' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'mux_3_2_32_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_OUT_LOOP'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.41 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.42 seconds; current allocated memory: 394.629 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-500] Setting interface mode on port 'fft_radix2/x_real' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'fft_radix2/x_imag' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'fft_radix2/y_real' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'fft_radix2/y_imag' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on function 'fft_radix2' to 'ap_ctrl_hs'.
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 3 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_5_no_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_5_no_dsp_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 3 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2'.
+INFO: [RTMG 210-279] Implementing memory 'fft_radix2_twr_ROM_AUTO_1R' using auto ROMs.
+INFO: [RTMG 210-279] Implementing memory 'fft_radix2_twi_ROM_AUTO_1R' using auto ROMs.
+INFO: [RTMG 210-278] Implementing memory 'fft_radix2_xr_RAM_AUTO_1R1W' using auto RAMs.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.19 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.21 seconds; current allocated memory: 400.152 MB.
+INFO: [HLS 200-111] Finished Generating all RTL models: CPU user time: 0.96 seconds. CPU system time: 0.02 seconds. Elapsed time: 1.02 seconds; current allocated memory: 403.594 MB.
+INFO: [HLS 200-111] Finished Updating report files: CPU user time: 0.59 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.62 seconds; current allocated memory: 409.207 MB.
+INFO: [VHDL 208-304] Generating VHDL RTL for fft_radix2.
+INFO: [VLOG 209-307] Generating Verilog RTL for fft_radix2.
+INFO: [HLS 200-790] **** Loop Constraint Status: All loop constraints were NOT satisfied.
+INFO: [HLS 200-789] **** Estimated Fmax: 227.01 MHz
+INFO: [HLS 200-111] Finished Command csynth_design CPU user time: 53.45 seconds. CPU system time: 2.17 seconds. Elapsed time: 60.18 seconds; current allocated memory: 208.309 MB.
+BASELINE_CSYNTH_DONE
+INFO: [HLS 200-112] Total CPU user time: 60.28 seconds. Total CPU system time: 2.82 seconds. Total elapsed time: 67.48 seconds; peak allocated memory: 410.410 MB.
+INFO: [Common 17-206] Exiting vitis_hls at Mon Oct 12 18:52:24 2026...

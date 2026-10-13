@@ -1,0 +1,105 @@
+// kernel.cpp
+// Radix-2 Cooley-Tukey FFT (decimation-in-time), N = 1024 points,
+// complex input (x_real, x_imag) -> complex output (y_real, y_imag).
+// Target: AMD/Xilinx Vitis HLS 2023.1, xcu280-fsvh2892-2L-e, clk period 3.33 ns,
+// II <= 20 on every pipelined loop.
+
+#include "hls_math.h"
+
+static const int   FFT_N    = 1024;
+static const int   FFT_LOGN = 10;     // log2(1024)
+static const float PI_F     = 3.14159265358979323846f;
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+) {
+    // Working buffers (will hold bit-reversed data, then be updated in place
+    // stage by stage). Fully partitioned so each butterfly can perform its
+    // two reads + two writes per side (real/imag) in a single cycle,
+    // enabling II=1 on the butterfly loop.
+    float real_buf[1024];
+    float imag_buf[1024];
+#pragma HLS ARRAY_PARTITION variable=real_buf complete dim=1
+#pragma HLS ARRAY_PARTITION variable=imag_buf complete dim=1
+
+    // Twiddle factor table: W_N^k = exp(-j*2*pi*k/N), k = 0 .. N/2-1
+    float tw_real[512];
+    float tw_imag[512];
+#pragma HLS ARRAY_PARTITION variable=tw_real complete dim=1
+#pragma HLS ARRAY_PARTITION variable=tw_imag complete dim=1
+
+    // ---------------------------------------------------------------
+    // Stage 0: load input with bit-reversal permutation
+    // ---------------------------------------------------------------
+    bitrev_load: for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        int rev = 0;
+        int ii  = i;
+        for (int b = 0; b < FFT_LOGN; b++) {
+            rev = (rev << 1) | (ii & 0x1);
+            ii >>= 1;
+        }
+        real_buf[rev] = x_real[i];
+        imag_buf[rev] = x_imag[i];
+    }
+
+    // ---------------------------------------------------------------
+    // Precompute twiddle factors once
+    // ---------------------------------------------------------------
+    twiddle_calc: for (int k = 0; k < FFT_N / 2; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = (-2.0f * PI_F * (float)k) / (float)FFT_N;
+        tw_real[k] = hls::cosf(angle);
+        tw_imag[k] = hls::sinf(angle);
+    }
+
+    // ---------------------------------------------------------------
+    // LOGN butterfly stages (iterative, in-place, DIT)
+    // ---------------------------------------------------------------
+    for (int s = 0; s < FFT_LOGN; s++) {
+        int m       = 1 << (s + 1); // current sub-FFT length
+        int half_m  = m >> 1;       // distance between paired elements
+        int tw_step = FFT_N / m;    // stride into twiddle table
+
+        stage_loop: for (int k = 0; k < FFT_N / 2; k++) {
+#pragma HLS PIPELINE II=1
+            int group = k / half_m;
+            int j     = k % half_m;
+            int base  = group * m;
+
+            int idx_top = base + j;
+            int idx_bot = idx_top + half_m;
+            int tw_idx  = j * tw_step;
+
+            float tr = tw_real[tw_idx];
+            float ti = tw_imag[tw_idx];
+
+            float xr = real_buf[idx_bot];
+            float xi = imag_buf[idx_bot];
+
+            // complex multiply: (xr + j*xi) * (tr + j*ti)
+            float pr = xr * tr - xi * ti;
+            float pi = xr * ti + xi * tr;
+
+            float ar = real_buf[idx_top];
+            float ai = imag_buf[idx_top];
+
+            real_buf[idx_top] = ar + pr;
+            imag_buf[idx_top] = ai + pi;
+            real_buf[idx_bot] = ar - pr;
+            imag_buf[idx_bot] = ai - pi;
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // Write results out
+    // ---------------------------------------------------------------
+    output_store: for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = real_buf[i];
+        y_imag[i] = imag_buf[i];
+    }
+}

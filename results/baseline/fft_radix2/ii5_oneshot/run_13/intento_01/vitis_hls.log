@@ -1,0 +1,1437 @@
+
+****** Vitis HLS - High-Level Synthesis from C, C++ and OpenCL v2023.1 (64-bit)
+  **** SW Build 3854077 on May  4 2023
+  **** IP Build 3864474 on Sun May  7 20:36:21 MDT 2023
+  **** SharedData Build 3865790 on Sun May 07 13:33:03 MDT 2023
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source /home/pablo/tools/Vitis_HLS/2023.1/scripts/vitis_hls/hls.tcl -notrace
+INFO: [HLS 200-10] Running '/home/pablo/tools/Vitis_HLS/2023.1/bin/unwrapped/lnx64.o/vitis_hls'
+INFO: [HLS 200-10] For user 'pablo' on host 'pablo-UX410UAR' (Linux_x86_64 version 7.0.0-34-generic) on Tue Oct 13 15:35:08 CEST 2026
+INFO: [HLS 200-10] On os Ubuntu 24.04.4 LTS
+INFO: [HLS 200-10] In directory '/home/pablo/TFG/results/baseline/fft_radix2/ii5_oneshot/run_13/intento_01'
+Sourcing Tcl script 'run.tcl'
+INFO: [HLS 200-1510] Running: open_project proj -reset 
+INFO: [HLS 200-10] Creating and opening project '/home/pablo/TFG/results/baseline/fft_radix2/ii5_oneshot/run_13/intento_01/proj'.
+INFO: [HLS 200-1510] Running: open_solution -reset solution1 -flow_target vivado 
+INFO: [HLS 200-10] Creating and opening solution '/home/pablo/TFG/results/baseline/fft_radix2/ii5_oneshot/run_13/intento_01/proj/solution1'.
+INFO: [HLS 200-10] Cleaning up the solution database.
+INFO: [HLS 200-1505] Using flow_target 'vivado'
+Resolution: For help on HLS 200-1505 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-1505.html
+INFO: [HLS 200-1510] Running: set_top fft_radix2 
+INFO: [HLS 200-1510] Running: add_files kernel.cpp 
+INFO: [HLS 200-10] Adding design file 'kernel.cpp' to the project
+INFO: [HLS 200-1510] Running: add_files -tb tb.cpp 
+INFO: [HLS 200-10] Adding test bench file 'tb.cpp' to the project
+INFO: [HLS 200-1510] Running: add_files -tb vectores.h 
+INFO: [HLS 200-10] Adding test bench file 'vectores.h' to the project
+INFO: [HLS 200-1510] Running: set_part xcu280-fsvh2892-2L-e 
+INFO: [HLS 200-1611] Setting target device to 'xcu280-fsvh2892-2L-e'
+INFO: [HLS 200-1510] Running: create_clock -period 3.33 
+INFO: [SYN 201-201] Setting up clock 'default' with a period of 3.33ns.
+INFO: [HLS 200-1510] Running: csim_design -ldflags -B/usr/bin/ 
+INFO: [SIM 211-2] *************** CSIM start ***************
+INFO: [SIM 211-4] CSIM will launch GCC as the compiler.
+INFO: [HLS 200-2036] Building debug C Simulation binaries
+   Compiling ../../../../tb.cpp in debug mode
+   Compiling ../../../../kernel.cpp in debug mode
+   Generating csim.exe
+BASELINE_VEC 0 salida=y_real discrepantes=0/1024 max_abs_diff=3.8147e-05 tol=0.001
+BASELINE_VEC 0 salida=y_imag discrepantes=0/1024 max_abs_diff=3.33786e-05 tol=0.001
+BASELINE_RESULT PASS
+INFO: [SIM 211-1] CSim done with 0 errors.
+INFO: [SIM 211-3] *************** CSIM finish ***************
+INFO: [HLS 200-111] Finished Command csim_design CPU user time: 5.22 seconds. CPU system time: 0.4 seconds. Elapsed time: 5.63 seconds; current allocated memory: 0.000 MB.
+BASELINE_CSIM_DONE
+INFO: [HLS 200-1510] Running: csynth_design 
+INFO: [HLS 200-111] Finished File checks and directory preparation: CPU user time: 0.06 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.07 seconds; current allocated memory: 202.375 MB.
+INFO: [HLS 200-10] Analyzing design file 'kernel.cpp' ... 
+WARNING: [HLS 207-5575] '#pragma HLS unroll' can only be applied inside loop body (kernel.cpp:16:9)
+WARNING: [HLS 207-5533] 'factor' in '#pragma HLS array_partition' is ignored (kernel.cpp:79:73)
+INFO: [HLS 200-111] Finished Source Code Analysis and Preprocessing: CPU user time: 18.2 seconds. CPU system time: 1.18 seconds. Elapsed time: 19.37 seconds; current allocated memory: 208.758 MB.
+INFO: [HLS 200-777] Using interface defaults for 'Vivado' flow target.
+INFO: [HLS 200-1995] There were 21,203 instructions in the design after the 'Compile/Link' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/results/baseline/fft_radix2/ii5_oneshot/run_13/intento_01/proj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 625 instructions in the design after the 'Unroll/Inline' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/results/baseline/fft_radix2/ii5_oneshot/run_13/intento_01/proj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 19,392 instructions in the design after the 'Performance/Pipeline' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/results/baseline/fft_radix2/ii5_oneshot/run_13/intento_01/proj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 19,497 instructions in the design after the 'Optimizations' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/results/baseline/fft_radix2/ii5_oneshot/run_13/intento_01/proj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 214-291] Loop 'VITIS_LOOP_17_1' is marked as complete unroll implied by the pipeline pragma (kernel.cpp:17:19)
+INFO: [HLS 214-186] Unrolling loop 'VITIS_LOOP_17_1' (kernel.cpp:17:19) in function 'bit_reverse10' completely with a factor of 10 (kernel.cpp:14:0)
+INFO: [HLS 214-178] Inlining function 'bit_reverse10(int)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:75:0)
+INFO: [HLS 214-178] Inlining function 'void fft_stage<1>(float const*, float const*, float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:75:0)
+INFO: [HLS 214-178] Inlining function 'void fft_stage<2>(float const*, float const*, float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:75:0)
+INFO: [HLS 214-178] Inlining function 'void fft_stage<3>(float const*, float const*, float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:75:0)
+INFO: [HLS 214-178] Inlining function 'void fft_stage<4>(float const*, float const*, float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:75:0)
+INFO: [HLS 214-178] Inlining function 'void fft_stage<5>(float const*, float const*, float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:75:0)
+INFO: [HLS 214-178] Inlining function 'void fft_stage<6>(float const*, float const*, float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:75:0)
+INFO: [HLS 214-178] Inlining function 'void fft_stage<7>(float const*, float const*, float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:75:0)
+INFO: [HLS 214-178] Inlining function 'void fft_stage<8>(float const*, float const*, float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:75:0)
+INFO: [HLS 214-178] Inlining function 'void fft_stage<9>(float const*, float const*, float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:75:0)
+INFO: [HLS 214-178] Inlining function 'void fft_stage<10>(float const*, float const*, float*, float*, float const*, float const*)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:75:0)
+INFO: [HLS 214-248] Applying array_partition to '_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re': Complete partitioning on dimension 1. (kernel.cpp:77:0)
+INFO: [HLS 200-111] Finished Compiling Optimization and Transform: CPU user time: 445.48 seconds. CPU system time: 0.64 seconds. Elapsed time: 448.5 seconds; current allocated memory: 209.305 MB.
+INFO: [HLS 200-111] Finished Checking Pragmas: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0 seconds; current allocated memory: 209.305 MB.
+INFO: [HLS 200-10] Starting code transformations ...
+INFO: [HLS 200-111] Finished Standard Transforms: CPU user time: 13.37 seconds. CPU system time: 0.1 seconds. Elapsed time: 13.48 seconds; current allocated memory: 443.121 MB.
+INFO: [HLS 200-10] Checking synthesizability ...
+INFO: [HLS 200-111] Finished Checking Synthesizability: CPU user time: 2.74 seconds. CPU system time: 0.01 seconds. Elapsed time: 2.76 seconds; current allocated memory: 468.609 MB.
+INFO: [HLS 200-111] Finished Loop, function and other optimizations: CPU user time: 74.95 seconds. CPU system time: 0.22 seconds. Elapsed time: 75.17 seconds; current allocated memory: 853.602 MB.
+INFO: [HLS 200-111] Finished Architecture Synthesis: CPU user time: 197.77 seconds. CPU system time: 0.28 seconds. Elapsed time: 198.24 seconds; current allocated memory: 1.407 GB.
+INFO: [HLS 200-10] Starting hardware synthesis ...
+INFO: [HLS 200-10] Synthesizing 'fft_radix2' ...
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_VITIS_LOOP_93_2' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'VITIS_LOOP_93_2'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 2, loop 'VITIS_LOOP_93_2'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 171.73 seconds. CPU system time: 0.21 seconds. Elapsed time: 172 seconds; current allocated memory: 1.500 GB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 4.69 seconds. CPU system time: 0.03 seconds. Elapsed time: 4.72 seconds; current allocated memory: 1.501 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_VITIS_LOOP_39_1' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'VITIS_LOOP_39_1'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 21, loop 'VITIS_LOOP_39_1'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 10.24 seconds. CPU system time: 0.04 seconds. Elapsed time: 10.29 seconds; current allocated memory: 1.513 GB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.34 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.37 seconds; current allocated memory: 1.513 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_VITIS_LOOP_39_11' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'VITIS_LOOP_39_1'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 21, loop 'VITIS_LOOP_39_1'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 37.47 seconds. CPU system time: 0.06 seconds. Elapsed time: 37.56 seconds; current allocated memory: 1.608 GB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 3.41 seconds. CPU system time: 0.04 seconds. Elapsed time: 3.44 seconds; current allocated memory: 1.608 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_VITIS_LOOP_39_12' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'VITIS_LOOP_39_1'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 21, loop 'VITIS_LOOP_39_1'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 8.37 seconds. CPU system time: 0.04 seconds. Elapsed time: 8.44 seconds; current allocated memory: 1.611 GB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.35 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.35 seconds; current allocated memory: 1.611 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_VITIS_LOOP_39_13' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'VITIS_LOOP_39_1'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 21, loop 'VITIS_LOOP_39_1'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 25.16 seconds. CPU system time: 0.04 seconds. Elapsed time: 25.21 seconds; current allocated memory: 1.669 GB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 2.2 seconds. CPU system time: 0.02 seconds. Elapsed time: 2.23 seconds; current allocated memory: 1.669 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_VITIS_LOOP_39_14' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'VITIS_LOOP_39_1'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 21, loop 'VITIS_LOOP_39_1'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 7.84 seconds. CPU system time: 0.03 seconds. Elapsed time: 7.86 seconds; current allocated memory: 1.678 GB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.35 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.36 seconds; current allocated memory: 1.678 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_VITIS_LOOP_39_15' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'VITIS_LOOP_39_1'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 21, loop 'VITIS_LOOP_39_1'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 24.91 seconds. CPU system time: 0.05 seconds. Elapsed time: 24.97 seconds; current allocated memory: 1.738 GB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 2.19 seconds. CPU system time: 0.02 seconds. Elapsed time: 2.21 seconds; current allocated memory: 1.738 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_VITIS_LOOP_39_16' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'VITIS_LOOP_39_1'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 21, loop 'VITIS_LOOP_39_1'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 7.8 seconds. CPU system time: 0.03 seconds. Elapsed time: 7.83 seconds; current allocated memory: 1.746 GB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.34 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.35 seconds; current allocated memory: 1.746 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_VITIS_LOOP_39_17' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'VITIS_LOOP_39_1'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 21, loop 'VITIS_LOOP_39_1'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 25.85 seconds. CPU system time: 0.05 seconds. Elapsed time: 25.95 seconds; current allocated memory: 1.806 GB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 2.23 seconds. CPU system time: 0.03 seconds. Elapsed time: 2.26 seconds; current allocated memory: 1.806 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_VITIS_LOOP_39_18' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'VITIS_LOOP_39_1'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 21, loop 'VITIS_LOOP_39_1'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 7.47 seconds. CPU system time: 0.03 seconds. Elapsed time: 7.5 seconds; current allocated memory: 1.813 GB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.33 seconds. CPU system time: 0 seconds. Elapsed time: 0.33 seconds; current allocated memory: 1.813 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_VITIS_LOOP_39_19' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'VITIS_LOOP_39_1'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 21, loop 'VITIS_LOOP_39_1'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 21.97 seconds. CPU system time: 0.04 seconds. Elapsed time: 22 seconds; current allocated memory: 1.869 GB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 2.07 seconds. CPU system time: 0.02 seconds. Elapsed time: 2.08 seconds; current allocated memory: 1.869 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_VITIS_LOOP_114_3' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'VITIS_LOOP_114_3'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 2, loop 'VITIS_LOOP_114_3'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 5.97 seconds. CPU system time: 0.04 seconds. Elapsed time: 6.06 seconds; current allocated memory: 1.876 GB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.12 seconds. CPU system time: 0 seconds. Elapsed time: 0.12 seconds; current allocated memory: 1.876 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 13.37 seconds. CPU system time: 0.07 seconds. Elapsed time: 13.44 seconds; current allocated memory: 2.002 GB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 45.12 seconds. CPU system time: 0.03 seconds. Elapsed time: 45.15 seconds; current allocated memory: 2.002 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_VITIS_LOOP_93_2' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_VITIS_LOOP_93_2' pipeline 'VITIS_LOOP_93_2' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-104] Estimated max fanout for 'fft_radix2_Pipeline_VITIS_LOOP_93_2' is 32790 from HDL expression: ((1'b0 == ap_block_pp0_stage0_11001) & (1'b1 == ap_CS_fsm_pp0_stage0))
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_VITIS_LOOP_93_2'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 11.89 seconds. CPU system time: 0.11 seconds. Elapsed time: 12 seconds; current allocated memory: 2.096 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_VITIS_LOOP_39_1' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_VITIS_LOOP_39_1' pipeline 'VITIS_LOOP_39_1' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_7_full_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_512_9_32_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_VITIS_LOOP_39_1'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 8.7 seconds. CPU system time: 0.22 seconds. Elapsed time: 9.19 seconds; current allocated memory: 2.218 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_VITIS_LOOP_39_11' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_VITIS_LOOP_39_11' pipeline 'VITIS_LOOP_39_1' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-104] Estimated max fanout for 'fft_radix2_Pipeline_VITIS_LOOP_39_11' is 68150 from HDL expression: (1'b0 == ap_block_pp0_stage0_11001)
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_7_full_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_VITIS_LOOP_39_11'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 13.35 seconds. CPU system time: 0.13 seconds. Elapsed time: 13.54 seconds; current allocated memory: 2.382 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_VITIS_LOOP_39_12' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_VITIS_LOOP_39_12' pipeline 'VITIS_LOOP_39_1' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_7_full_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_1020_10_32_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_VITIS_LOOP_39_12'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 8.23 seconds. CPU system time: 0.31 seconds. Elapsed time: 8.97 seconds; current allocated memory: 2.548 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_VITIS_LOOP_39_13' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_VITIS_LOOP_39_13' pipeline 'VITIS_LOOP_39_1' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-104] Estimated max fanout for 'fft_radix2_Pipeline_VITIS_LOOP_39_13' is 38454 from HDL expression: (1'b0 == ap_block_pp0_stage0_11001)
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_7_full_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_VITIS_LOOP_39_13'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 8.93 seconds. CPU system time: 0.08 seconds. Elapsed time: 9.08 seconds; current allocated memory: 2.666 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_VITIS_LOOP_39_14' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_VITIS_LOOP_39_14' pipeline 'VITIS_LOOP_39_1' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_7_full_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_1008_10_32_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_VITIS_LOOP_39_14'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 6.56 seconds. CPU system time: 0.21 seconds. Elapsed time: 7.07 seconds; current allocated memory: 2.780 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_VITIS_LOOP_39_15' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_VITIS_LOOP_39_15' pipeline 'VITIS_LOOP_39_1' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-104] Estimated max fanout for 'fft_radix2_Pipeline_VITIS_LOOP_39_15' is 39510 from HDL expression: (1'b0 == ap_block_pp0_stage0_11001)
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_7_full_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_VITIS_LOOP_39_15'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 8.88 seconds. CPU system time: 0.08 seconds. Elapsed time: 9.09 seconds; current allocated memory: 2.896 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_VITIS_LOOP_39_16' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_VITIS_LOOP_39_16' pipeline 'VITIS_LOOP_39_1' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_7_full_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_960_10_32_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_VITIS_LOOP_39_16'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 6.47 seconds. CPU system time: 0.23 seconds. Elapsed time: 6.99 seconds; current allocated memory: 3.011 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_VITIS_LOOP_39_17' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_VITIS_LOOP_39_17' pipeline 'VITIS_LOOP_39_1' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-104] Estimated max fanout for 'fft_radix2_Pipeline_VITIS_LOOP_39_17' is 39446 from HDL expression: (1'b0 == ap_block_pp0_stage0_11001)
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_7_full_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_VITIS_LOOP_39_17'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 9.27 seconds. CPU system time: 0.09 seconds. Elapsed time: 9.54 seconds; current allocated memory: 3.126 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_VITIS_LOOP_39_18' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_VITIS_LOOP_39_18' pipeline 'VITIS_LOOP_39_1' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_7_full_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mux_768_10_32_1_1': 2 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_VITIS_LOOP_39_18'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 6.5 seconds. CPU system time: 0.2 seconds. Elapsed time: 6.93 seconds; current allocated memory: 3.241 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_VITIS_LOOP_39_19' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_VITIS_LOOP_39_19' pipeline 'VITIS_LOOP_39_1' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-104] Estimated max fanout for 'fft_radix2_Pipeline_VITIS_LOOP_39_19' is 36292 from HDL expression: (1'b0 == ap_block_pp0_stage0_11001)
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_7_full_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_VITIS_LOOP_39_19'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 8.56 seconds. CPU system time: 0.08 seconds. Elapsed time: 8.72 seconds; current allocated memory: 3.350 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_VITIS_LOOP_114_3' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_VITIS_LOOP_114_3' pipeline 'VITIS_LOOP_114_3' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'mux_1024_10_32_1_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_VITIS_LOOP_114_3'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 6.06 seconds. CPU system time: 0.21 seconds. Elapsed time: 6.52 seconds; current allocated memory: 3.455 GB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-500] Setting interface mode on port 'fft_radix2/x_real' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'fft_radix2/x_imag' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'fft_radix2/y_real' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'fft_radix2/y_imag' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on function 'fft_radix2' to 'ap_ctrl_hs'.
+WARNING: [RTGEN 206-101] Register 'fft_radix2_float_const_float_const_float_float_bufA_re' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'fft_radix2_float_const_float_const_float_float_bufA_re_1' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'fft_radix2_float_const_float_const_float_float_bufA_re_2' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'fft_radix2_float_const_float_const_float_float_bufA_re_3' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'fft_radix2_float_const_float_const_float_float_bufA_re_4' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'fft_radix2_float_const_float_const_float_float_bufA_re_5' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'fft_radix2_float_const_float_const_float_float_bufA_re_6' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'fft_radix2_float_const_float_const_float_float_bufA_re_7' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'fft_radix2_float_const_float_const_float_float_bufA_re_8' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'fft_radix2_float_const_float_const_float_float_bufA_re_9' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_10' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_11' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_12' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_13' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_14' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_15' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_16' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_17' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_18' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_19' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_20' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_21' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_22' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_23' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_24' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_25' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_26' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_27' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_28' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_29' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_30' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_31' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_32' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_33' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_34' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_35' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_36' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_37' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_38' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_39' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_40' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_41' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_42' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_43' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_44' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_45' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_46' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_47' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_48' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_49' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_50' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_51' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_52' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_53' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_54' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_55' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_56' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_57' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_58' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_59' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_60' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_61' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_62' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_63' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_64' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_65' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_66' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_67' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_68' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_69' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_70' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_71' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_72' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_73' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_74' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_75' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_76' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_77' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_78' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_79' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_80' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_81' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_82' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_83' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_84' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_85' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_86' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_87' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_88' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_89' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_90' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_91' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_92' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_93' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_94' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_95' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_96' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_97' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_98' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_99' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_100' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_101' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_102' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_103' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_104' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_105' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_106' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_107' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_108' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_109' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_110' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_111' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_112' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_113' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_114' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_115' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_116' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_117' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_118' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_119' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_120' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_121' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_122' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_123' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_124' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_125' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_126' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_127' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_128' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_129' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_130' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_131' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_132' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_133' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_134' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_135' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_136' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_137' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_138' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_139' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_140' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_141' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_142' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_143' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_144' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_145' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_146' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_147' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_148' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_149' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_150' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_151' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_152' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_153' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_154' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_155' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_156' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_157' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_158' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_159' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_160' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_161' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_162' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_163' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_164' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_165' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_166' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_167' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_168' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_169' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_170' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_171' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_172' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_173' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_174' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_175' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_176' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_177' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_178' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_179' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_180' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_181' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_182' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_183' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_184' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_185' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_186' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_187' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_188' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_189' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_190' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_191' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_192' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_193' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_194' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_195' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_196' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_197' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_198' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_199' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_200' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_201' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_202' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_203' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_204' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_205' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_206' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_207' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_208' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_209' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_210' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_211' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_212' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_213' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_214' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_215' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_216' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_217' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_218' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_219' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_220' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_221' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_222' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_223' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_224' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_225' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_226' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_227' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_228' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_229' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_230' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_231' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_232' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_233' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_234' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_235' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_236' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_237' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_238' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_239' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_240' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_241' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_242' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_243' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_244' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_245' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_246' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_247' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_248' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_249' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_250' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_251' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_252' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_253' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_254' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_255' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_256' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_257' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_258' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_259' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_260' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_261' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_262' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_263' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_264' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_265' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_266' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_267' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_268' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_269' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_270' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_271' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_272' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_273' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_274' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_275' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_276' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_277' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_278' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_279' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_280' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_281' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_282' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_283' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_284' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_285' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_286' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_287' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_288' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_289' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_290' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_291' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_292' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_293' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_294' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_295' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_296' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_297' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_298' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_299' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_300' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_301' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_302' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_303' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_304' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_305' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_306' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_307' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_308' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_309' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_310' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_311' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_312' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_313' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_314' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_315' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_316' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_317' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_318' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_319' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_320' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_321' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_322' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_323' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_324' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_325' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_326' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_327' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_328' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_329' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_330' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_331' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_332' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_333' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_334' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_335' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_336' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_337' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_338' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_339' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_340' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_341' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_342' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_343' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_344' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_345' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_346' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_347' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_348' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_349' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_350' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_351' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_352' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_353' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_354' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_355' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_356' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_357' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_358' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_359' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_360' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_361' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_362' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_363' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_364' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_365' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_366' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_367' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_368' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_369' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_370' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_371' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_372' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_373' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_374' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_375' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_376' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_377' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_378' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_379' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_380' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_381' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_382' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_383' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_384' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_385' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_386' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_387' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_388' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_389' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_390' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_391' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_392' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_393' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_394' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_395' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_396' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_397' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_398' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_399' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_400' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_401' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_402' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_403' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_404' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_405' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_406' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_407' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_408' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_409' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_410' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_411' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_412' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_413' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_414' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_415' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_416' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_417' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_418' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_419' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_420' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_421' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_422' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_423' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_424' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_425' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_426' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_427' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_428' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_429' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_430' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_431' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_432' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_433' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_434' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_435' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_436' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_437' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_438' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_439' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_440' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_441' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_442' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_443' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_444' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_445' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_446' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_447' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_448' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_449' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_450' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_451' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_452' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_453' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_454' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_455' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_456' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_457' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_458' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_459' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_460' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_461' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_462' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_463' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_464' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_465' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_466' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_467' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_468' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_469' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_470' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_471' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_472' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_473' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_474' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_475' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_476' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_477' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_478' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_479' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_480' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_481' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_482' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_483' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_484' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_485' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_486' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_487' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_488' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_489' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_490' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_491' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_492' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_493' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_494' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_495' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_496' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_497' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_498' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_499' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_500' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_501' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_502' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_503' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_504' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_505' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_506' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_507' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_508' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_509' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_510' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_511' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_512' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_513' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_514' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_515' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_516' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_517' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_518' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_519' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_520' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_521' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_522' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_523' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_524' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_525' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_526' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_527' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_528' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_529' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_530' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_531' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_532' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_533' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_534' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_535' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_536' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_537' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_538' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_539' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_540' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_541' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_542' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_543' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_544' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_545' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_546' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_547' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_548' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_549' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_550' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_551' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_552' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_553' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_554' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_555' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_556' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_557' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_558' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_559' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_560' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_561' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_562' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_563' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_564' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_565' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_566' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_567' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_568' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_569' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_570' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_571' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_572' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_573' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_574' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_575' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_576' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_577' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_578' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_579' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_580' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_581' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_582' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_583' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_584' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_585' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_586' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_587' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_588' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_589' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_590' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_591' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_592' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_593' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_594' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_595' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_596' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_597' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_598' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_599' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_600' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_601' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_602' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_603' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_604' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_605' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_606' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_607' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_608' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_609' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_610' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_611' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_612' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_613' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_614' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_615' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_616' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_617' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_618' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_619' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_620' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_621' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_622' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_623' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_624' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_625' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_626' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_627' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_628' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_629' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_630' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_631' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_632' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_633' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_634' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_635' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_636' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_637' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_638' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_639' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_640' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_641' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_642' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_643' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_644' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_645' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_646' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_647' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_648' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_649' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_650' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_651' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_652' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_653' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_654' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_655' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_656' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_657' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_658' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_659' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_660' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_661' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_662' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_663' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_664' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_665' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_666' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_667' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_668' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_669' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_670' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_671' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_672' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_673' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_674' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_675' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_676' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_677' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_678' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_679' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_680' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_681' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_682' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_683' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_684' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_685' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_686' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_687' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_688' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_689' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_690' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_691' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_692' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_693' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_694' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_695' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_696' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_697' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_698' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_699' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_700' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_701' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_702' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_703' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_704' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_705' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_706' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_707' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_708' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_709' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_710' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_711' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_712' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_713' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_714' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_715' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_716' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_717' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_718' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_719' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_720' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_721' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_722' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_723' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_724' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_725' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_726' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_727' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_728' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_729' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_730' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_731' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_732' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_733' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_734' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_735' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_736' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_737' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_738' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_739' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_740' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_741' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_742' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_743' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_744' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_745' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_746' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_747' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_748' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_749' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_750' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_751' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_752' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_753' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_754' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_755' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_756' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_757' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_758' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_759' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_760' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_761' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_762' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_763' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_764' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_765' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_766' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_767' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_768' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_769' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_770' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_771' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_772' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_773' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_774' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_775' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_776' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_777' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_778' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_779' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_780' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_781' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_782' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_783' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_784' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_785' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_786' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_787' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_788' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_789' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_790' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_791' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_792' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_793' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_794' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_795' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_796' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_797' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_798' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_799' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_800' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_801' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_802' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_803' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_804' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_805' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_806' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_807' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_808' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_809' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_810' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_811' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_812' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_813' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_814' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_815' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_816' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_817' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_818' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_819' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_820' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_821' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_822' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_823' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_824' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_825' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_826' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_827' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_828' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_829' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_830' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_831' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_832' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_833' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_834' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_835' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_836' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_837' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_838' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_839' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_840' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_841' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_842' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_843' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_844' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_845' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_846' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_847' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_848' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_849' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_850' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_851' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_852' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_853' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_854' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_855' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_856' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_857' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_858' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_859' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_860' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_861' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_862' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_863' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_864' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_865' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_866' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_867' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_868' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_869' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_870' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_871' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_872' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_873' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_874' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_875' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_876' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_877' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_878' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_879' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_880' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_881' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_882' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_883' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_884' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_885' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_886' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_887' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_888' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_889' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_890' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_891' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_892' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_893' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_894' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_895' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_896' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_897' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_898' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_899' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_900' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_901' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_902' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_903' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_904' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_905' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_906' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_907' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_908' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_909' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_910' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_911' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_912' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_913' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_914' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_915' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_916' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_917' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_918' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_919' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_920' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_921' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_922' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_923' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_924' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_925' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_926' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_927' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_928' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_929' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_930' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_931' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_932' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_933' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_934' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_935' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_936' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_937' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_938' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_939' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_940' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_941' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_942' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_943' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_944' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_945' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_946' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_947' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_948' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_949' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_950' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_951' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_952' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_953' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_954' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_955' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_956' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_957' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_958' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_959' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_960' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_961' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_962' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_963' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_964' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_965' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_966' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_967' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_968' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_969' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_970' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_971' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_972' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_973' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_974' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_975' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_976' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_977' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_978' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_979' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_980' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_981' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_982' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_983' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_984' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_985' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_986' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_987' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_988' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_989' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_990' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_991' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_992' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_993' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_994' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_995' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_996' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_997' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_998' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_999' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1000' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1001' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1002' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1003' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1004' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1005' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1006' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1007' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1008' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1009' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1010' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1011' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1012' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1013' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1014' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1015' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1016' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1017' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1018' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1019' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1020' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1021' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1022' is power-on initialization.
+WARNING: [RTGEN 206-101] Register 'p_ZZ10fft_radix2PKfS0_PfS1_E7bufA_re_1023' is power-on initialization.
+INFO: [RTGEN 206-104] Estimated max fanout for 'fft_radix2' is 32768 from HDL expression: (1'b1 == ap_CS_fsm_state1)
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_7_full_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 4 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2'.
+INFO: [RTMG 210-278] Implementing memory 'fft_radix2_bufA_im_RAM_AUTO_1R1W' using auto RAMs.
+INFO: [RTMG 210-279] Implementing memory 'fft_radix2_tw_re_ROM_AUTO_1R' using auto ROMs.
+INFO: [RTMG 210-279] Implementing memory 'fft_radix2_tw_im_ROM_AUTO_1R' using auto ROMs.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 14.25 seconds. CPU system time: 0.49 seconds. Elapsed time: 15.41 seconds; current allocated memory: 3.744 GB.
+INFO: [HLS 200-111] Finished Generating all RTL models: CPU user time: 8.74 seconds. CPU system time: 0.56 seconds. Elapsed time: 10.41 seconds; current allocated memory: 3.922 GB.
+INFO: [HLS 200-111] Finished Updating report files: CPU user time: 7.25 seconds. CPU system time: 0.12 seconds. Elapsed time: 8.49 seconds; current allocated memory: 4.001 GB.
+INFO: [VHDL 208-304] Generating VHDL RTL for fft_radix2.
+INFO: [VLOG 209-307] Generating Verilog RTL for fft_radix2.
+INFO: [HLS 200-790] **** Loop Constraint Status: All loop constraints were satisfied.
+INFO: [HLS 200-789] **** Estimated Fmax: 416.67 MHz
+INFO: [HLS 200-111] Finished Command csynth_design CPU user time: 1318.27 seconds. CPU system time: 6.53 seconds. Elapsed time: 1332.78 seconds; current allocated memory: 3.804 GB.
+BASELINE_CSYNTH_DONE
+INFO: [HLS 200-112] Total CPU user time: 1326.5 seconds. Total CPU system time: 7.14 seconds. Total elapsed time: 1341.47 seconds; peak allocated memory: 4.001 GB.
+INFO: [Common 17-206] Exiting vitis_hls at Tue Oct 13 15:57:29 2026...

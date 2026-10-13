@@ -1,0 +1,114 @@
+// kernel.cpp
+// Radix-2 Cooley-Tukey FFT (Decimation-In-Time, iterative, in-place)
+// N = 1024 points, complex input/output represented as separate
+// real/imag float arrays.
+//
+// Target: AMD/Xilinx Vitis HLS 2023.1, xcu280-fsvh2892-2L-e, clk = 3.33 ns
+// Constraint: II <= 10 on every pipelined loop.
+
+#include "hls_math.h"
+
+static const int   N       = 1024;
+static const int   LOG2N   = 10;     // log2(1024)
+static const float PI_F    = 3.14159265358979323846f;
+
+// Combinational LOG2N-bit bit-reverse, fully unrolled (cheap, used only
+// inside an II=1 pipelined reorder loop).
+static inline int bit_reverse(int x) {
+#pragma HLS INLINE
+    int result = 0;
+    for (int b = 0; b < LOG2N; b++) {
+#pragma HLS UNROLL
+        result = (result << 1) | (x & 0x1);
+        x >>= 1;
+    }
+    return result;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+) {
+    // Working buffers (complex data, in-place butterfly computation).
+    float re[N];
+    float im[N];
+    // Twiddle factor table: W_N^k = exp(-j*2*pi*k/N), k = 0..N/2-1
+    float twr[N / 2];
+    float twi[N / 2];
+
+#pragma HLS ARRAY_PARTITION variable=re  type=complete dim=0
+#pragma HLS ARRAY_PARTITION variable=im  type=complete dim=0
+#pragma HLS ARRAY_PARTITION variable=twr type=complete dim=0
+#pragma HLS ARRAY_PARTITION variable=twi type=complete dim=0
+
+    // ---------------------------------------------------------------
+    // 1) Precompute twiddle factor table.
+    // ---------------------------------------------------------------
+    TWIDDLE_GEN:
+    for (int k = 0; k < N / 2; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = (-2.0f * PI_F * (float)k) / (float)N;
+        twr[k] = hls::cosf(angle);
+        twi[k] = hls::sinf(angle);
+    }
+
+    // ---------------------------------------------------------------
+    // 2) Load input with bit-reversed addressing.
+    // ---------------------------------------------------------------
+    BITREV_LOAD:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=1
+        int r = bit_reverse(i);
+        re[r] = x_real[i];
+        im[r] = x_imag[i];
+    }
+
+    // ---------------------------------------------------------------
+    // 3) Iterative radix-2 DIT FFT: LOG2N stages, N/2 butterflies each.
+    // ---------------------------------------------------------------
+    STAGE:
+    for (int s = 0; s < LOG2N; s++) {
+        int half_m = 1 << s;              // m/2, m = 1<<(s+1)
+        int step   = (N >> 1) >> s;       // N/m  (twiddle stride)
+
+        BUTTERFLY:
+        for (int idx = 0; idx < N / 2; idx++) {
+#pragma HLS PIPELINE II=10
+            int g    = idx >> s;                 // idx / half_m
+            int j    = idx & (half_m - 1);        // idx % half_m
+            int base = g << (s + 1);              // g * m
+            int idx1 = base + j;
+            int idx2 = idx1 + half_m;
+            int tw_idx = j * step;
+
+            float tr = twr[tw_idx];
+            float ti = twi[tw_idx];
+
+            float ur = re[idx1];
+            float ui = im[idx1];
+            float vr = re[idx2];
+            float vi = im[idx2];
+
+            // complex multiply: (vr + j*vi) * (tr + j*ti)
+            float t_re = vr * tr - vi * ti;
+            float t_im = vr * ti + vi * tr;
+
+            re[idx1] = ur + t_re;
+            im[idx1] = ui + t_im;
+            re[idx2] = ur - t_re;
+            im[idx2] = ui - t_im;
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // 4) Write results out.
+    // ---------------------------------------------------------------
+    OUTPUT_STORE:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = re[i];
+        y_imag[i] = im[i];
+    }
+}

@@ -1,0 +1,145 @@
+{
+  "bloque": "fft_radix2",
+  "objetivo_ii": 5,
+  "modo": "oneshot",
+  "exito": false,
+  "n_intentos": 1,
+  "t_total_s": 176.8,
+  "final": {
+    "t_generacion_s": 139.2,
+    "uso_sdk": {
+      "duracion_ms": 137886,
+      "num_turns": 1,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 24544,
+        "output_tokens": 12236,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 12236,
+            "cache_read_input_tokens": 24544,
+            "cache_creation_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "total_cost_usd": 0.1920452,
+      "is_error": false
+    },
+    "codigo_extraido": true,
+    "csim_compila": true,
+    "interfaz_ok": true,
+    "csim_ok": true,
+    "csim_detalle": [
+      "BASELINE_VEC 0 salida=y_real discrepantes=0/1024 max_abs_diff=3.8147e-05 tol=0.001",
+      "BASELINE_VEC 0 salida=y_imag discrepantes=0/1024 max_abs_diff=3.33786e-05 tol=0.001"
+    ],
+    "sintesis_ok": true,
+    "timeout_sintesis": false,
+    "t_vitis_s": 37.6,
+    "metricas_hls": {
+      "II": 14,
+      "latencia_peor_caso": "73752",
+      "periodo_reloj_estimado_ns": "4.405",
+      "BRAM": "6",
+      "DSP": "12",
+      "LUT": "2323",
+      "FF": "1936",
+      "intervalo_top": "73753",
+      "n_bucles_pipelineados": 3
+    },
+    "cumple_ii": false,
+    "cumple_reloj_estimado": false,
+    "fallo_entorno_csim": [],
+    "exito": false,
+    "etapa_fallo": "ii",
+    "intento": 1
+  },
+  "intentos": [
+    {
+      "t_generacion_s": 139.2,
+      "uso_sdk": {
+        "duracion_ms": 137886,
+        "num_turns": 1,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 24544,
+          "output_tokens": 12236,
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 12236,
+              "cache_read_input_tokens": 24544,
+              "cache_creation_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "total_cost_usd": 0.1920452,
+        "is_error": false
+      },
+      "codigo_extraido": true,
+      "csim_compila": true,
+      "interfaz_ok": true,
+      "csim_ok": true,
+      "csim_detalle": [
+        "BASELINE_VEC 0 salida=y_real discrepantes=0/1024 max_abs_diff=3.8147e-05 tol=0.001",
+        "BASELINE_VEC 0 salida=y_imag discrepantes=0/1024 max_abs_diff=3.33786e-05 tol=0.001"
+      ],
+      "sintesis_ok": true,
+      "timeout_sintesis": false,
+      "t_vitis_s": 37.6,
+      "metricas_hls": {
+        "II": 14,
+        "latencia_peor_caso": "73752",
+        "periodo_reloj_estimado_ns": "4.405",
+        "BRAM": "6",
+        "DSP": "12",
+        "LUT": "2323",
+        "FF": "1936",
+        "intervalo_top": "73753",
+        "n_bucles_pipelineados": 3
+      },
+      "cumple_ii": false,
+      "cumple_reloj_estimado": false,
+      "fallo_entorno_csim": [],
+      "exito": false,
+      "etapa_fallo": "ii",
+      "intento": 1
+    }
+  ],
+  "fecha": "2026-10-13T16:36:15"
+}

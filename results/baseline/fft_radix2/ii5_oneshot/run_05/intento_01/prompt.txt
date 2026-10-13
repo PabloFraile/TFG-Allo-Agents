@@ -1,0 +1,54 @@
+Especificación del bloque:
+{
+  "bloque": "fft_radix2",
+  "descripcion": "Kernel de una mariposa FFT radix-2 (Cooley-Tukey), entrada compleja de N puntos, salida compleja de N puntos.\n",
+  "entradas": [
+    {
+      "nombre": "x_real",
+      "tipo": "allo.float32",
+      "forma": [
+        1024
+      ]
+    },
+    {
+      "nombre": "x_imag",
+      "tipo": "allo.float32",
+      "forma": [
+        1024
+      ]
+    }
+  ],
+  "salidas": [
+    {
+      "nombre": "y_real",
+      "tipo": "allo.float32",
+      "forma": [
+        1024
+      ]
+    },
+    {
+      "nombre": "y_imag",
+      "tipo": "allo.float32",
+      "forma": [
+        1024
+      ]
+    }
+  ],
+  "golden_model_id": "fft_numpy_reference",
+  "restricciones": {
+    "objetivo_ii": 5,
+    "throughput_min": "100e6"
+  }
+}
+
+Firma obligatoria de la función top:
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+)
+
+Las entradas se leen y las salidas se escriben in-place. Los tipos allo.float32 de la spec corresponden a float en C++.
+
+Objetivo de síntesis: dispositivo xcu280-fsvh2892-2L-e, periodo de reloj 3.33 ns, y II <= 5 en todos los bucles pipelineados del diseño (se mide el peor II de todos ellos en el informe de csynth).

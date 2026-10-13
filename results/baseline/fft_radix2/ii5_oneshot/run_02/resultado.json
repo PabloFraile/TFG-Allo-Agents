@@ -1,0 +1,125 @@
+{
+  "bloque": "fft_radix2",
+  "objetivo_ii": 5,
+  "modo": "oneshot",
+  "exito": false,
+  "n_intentos": 1,
+  "t_total_s": 1959.3,
+  "final": {
+    "t_generacion_s": 159.2,
+    "uso_sdk": {
+      "duracion_ms": 158078,
+      "num_turns": 1,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 24544,
+        "output_tokens": 12050,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 12050,
+            "cache_read_input_tokens": 24544,
+            "cache_creation_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "total_cost_usd": 0.1892602,
+      "is_error": false
+    },
+    "codigo_extraido": true,
+    "csim_compila": true,
+    "interfaz_ok": true,
+    "csim_ok": true,
+    "csim_detalle": [
+      "BASELINE_VEC 0 salida=y_real discrepantes=0/1024 max_abs_diff=3.8147e-05 tol=0.001",
+      "BASELINE_VEC 0 salida=y_imag discrepantes=0/1024 max_abs_diff=3.33786e-05 tol=0.001"
+    ],
+    "sintesis_ok": false,
+    "timeout_sintesis": true,
+    "t_vitis_s": 1800.0,
+    "metricas_hls": null,
+    "cumple_ii": false,
+    "cumple_reloj_estimado": null,
+    "fallo_entorno_csim": [],
+    "exito": false,
+    "etapa_fallo": "timeout_sintesis",
+    "intento": 1
+  },
+  "intentos": [
+    {
+      "t_generacion_s": 159.2,
+      "uso_sdk": {
+        "duracion_ms": 158078,
+        "num_turns": 1,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 24544,
+          "output_tokens": 12050,
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 12050,
+              "cache_read_input_tokens": 24544,
+              "cache_creation_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard"
+        },
+        "total_cost_usd": 0.1892602,
+        "is_error": false
+      },
+      "codigo_extraido": true,
+      "csim_compila": true,
+      "interfaz_ok": true,
+      "csim_ok": true,
+      "csim_detalle": [
+        "BASELINE_VEC 0 salida=y_real discrepantes=0/1024 max_abs_diff=3.8147e-05 tol=0.001",
+        "BASELINE_VEC 0 salida=y_imag discrepantes=0/1024 max_abs_diff=3.33786e-05 tol=0.001"
+      ],
+      "sintesis_ok": false,
+      "timeout_sintesis": true,
+      "t_vitis_s": 1800.0,
+      "metricas_hls": null,
+      "cumple_ii": false,
+      "cumple_reloj_estimado": null,
+      "fallo_entorno_csim": [],
+      "exito": false,
+      "etapa_fallo": "timeout_sintesis",
+      "intento": 1
+    }
+  ],
+  "fecha": "2026-10-13T00:09:43"
+}

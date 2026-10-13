@@ -1,0 +1,109 @@
+```cpp
+#include <hls_math.h>
+#include <cmath>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+// ---------------------------------------------------------------------------
+// FFT radix-2 (Cooley-Tukey, decimation in time), N = 1024 puntos, complejo.
+// ---------------------------------------------------------------------------
+static const int FFT_N    = 1024;
+static const int FFT_LOGN = 10;          // log2(1024)
+static const int FFT_HALF = FFT_N / 2;   // 512 twiddles unicos
+
+// Inversion de bits de un indice de FFT_LOGN bits (totalmente desenrollado).
+static inline int bit_reverse_idx(int x) {
+#pragma HLS INLINE
+    int r = 0;
+BITREV_UNROLL:
+    for (int b = 0; b < FFT_LOGN; b++) {
+#pragma HLS UNROLL
+        r = (r << 1) | (x & 1);
+        x >>= 1;
+    }
+    return r;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024])
+{
+    // Buffers de trabajo in-place, completamente particionados para permitir
+    // los 2 accesos de lectura + 2 de escritura por ciclo que exige cada
+    // mariposa (lee par(k,k+hm), escribe el mismo par) sin limite de puertos.
+    float real[FFT_N];
+    float imag[FFT_N];
+#pragma HLS ARRAY_PARTITION variable=real complete dim=1
+#pragma HLS ARRAY_PARTITION variable=imag complete dim=1
+
+    // Tabla de factores de giro: W_N^k = exp(-j*2*pi*k/N), k = 0..N/2-1
+    float tw_real[FFT_HALF];
+    float tw_imag[FFT_HALF];
+
+TWIDDLE_GEN:
+    for (int i = 0; i < FFT_HALF; i++) {
+#pragma HLS PIPELINE II=1
+        float angle = (-2.0f * (float)M_PI * (float)i) / (float)FFT_N;
+        tw_real[i] = hls::cosf(angle);
+        tw_imag[i] = hls::sinf(angle);
+    }
+
+    // Reordenacion bit-reversed de la entrada hacia los buffers de trabajo.
+BITREV_LOAD:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        int j = bit_reverse_idx(i);
+        real[j] = x_real[i];
+        imag[j] = x_imag[i];
+    }
+
+    // Etapas iterativas radix-2 (DIT): 10 etapas, tamanos de mariposa
+    // m = 2,4,8,...,1024.
+STAGE_LOOP:
+    for (int stage = 0; stage < FFT_LOGN; stage++) {
+        int m        = 2 << stage;       // tamano de bloque de esta etapa
+        int half_m   = 1 << stage;       // mitad del bloque
+        int tw_step  = FFT_N >> (stage + 1); // paso en la tabla de twiddles
+
+    GROUP_LOOP:
+        for (int k = 0; k < FFT_N; k += m) {
+        BUTTERFLY_LOOP:
+            for (int j = 0; j < half_m; j++) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=1 max=512
+                int idx1   = k + j;
+                int idx2   = idx1 + half_m;
+                int tw_idx = j * tw_step;
+
+                float wr = tw_real[tw_idx];
+                float wi = tw_imag[tw_idx];
+
+                float ar = real[idx1];
+                float ai = imag[idx1];
+                float br = real[idx2];
+                float bi = imag[idx2];
+
+                float tr = br * wr - bi * wi;
+                float ti = br * wi + bi * wr;
+
+                real[idx1] = ar + tr;
+                imag[idx1] = ai + ti;
+                real[idx2] = ar - tr;
+                imag[idx2] = ai - ti;
+            }
+        }
+    }
+
+    // Volcado de resultados a las salidas.
+WRITE_OUT:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = real[i];
+        y_imag[i] = imag[i];
+    }
+}
+```

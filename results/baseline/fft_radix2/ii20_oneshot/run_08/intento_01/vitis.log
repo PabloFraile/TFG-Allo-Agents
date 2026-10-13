@@ -1,0 +1,156 @@
+
+****** Vitis HLS - High-Level Synthesis from C, C++ and OpenCL v2023.1 (64-bit)
+  **** SW Build 3854077 on May  4 2023
+  **** IP Build 3864474 on Sun May  7 20:36:21 MDT 2023
+  **** SharedData Build 3865790 on Sun May 07 13:33:03 MDT 2023
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source /home/pablo/tools/Vitis_HLS/2023.1/scripts/vitis_hls/hls.tcl -notrace
+INFO: [HLS 200-10] Running '/home/pablo/tools/Vitis_HLS/2023.1/bin/unwrapped/lnx64.o/vitis_hls'
+INFO: [HLS 200-10] For user 'pablo' on host 'pablo-UX410UAR' (Linux_x86_64 version 7.0.0-34-generic) on Mon Oct 12 18:12:44 CEST 2026
+INFO: [HLS 200-10] On os Ubuntu 24.04.4 LTS
+INFO: [HLS 200-10] In directory '/home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_08/intento_01'
+Sourcing Tcl script 'run.tcl'
+INFO: [HLS 200-1510] Running: open_project proj -reset 
+INFO: [HLS 200-10] Creating and opening project '/home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_08/intento_01/proj'.
+INFO: [HLS 200-1510] Running: open_solution -reset solution1 -flow_target vivado 
+INFO: [HLS 200-10] Creating and opening solution '/home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_08/intento_01/proj/solution1'.
+INFO: [HLS 200-10] Cleaning up the solution database.
+INFO: [HLS 200-1505] Using flow_target 'vivado'
+Resolution: For help on HLS 200-1505 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-1505.html
+INFO: [HLS 200-1510] Running: set_top fft_radix2 
+INFO: [HLS 200-1510] Running: add_files kernel.cpp 
+INFO: [HLS 200-10] Adding design file 'kernel.cpp' to the project
+INFO: [HLS 200-1510] Running: add_files -tb tb.cpp 
+INFO: [HLS 200-10] Adding test bench file 'tb.cpp' to the project
+INFO: [HLS 200-1510] Running: add_files -tb vectores.h 
+INFO: [HLS 200-10] Adding test bench file 'vectores.h' to the project
+INFO: [HLS 200-1510] Running: set_part xcu280-fsvh2892-2L-e 
+INFO: [HLS 200-1611] Setting target device to 'xcu280-fsvh2892-2L-e'
+INFO: [HLS 200-1510] Running: create_clock -period 3.33 
+INFO: [SYN 201-201] Setting up clock 'default' with a period of 3.33ns.
+INFO: [HLS 200-1510] Running: csim_design -ldflags -B/usr/bin/ 
+INFO: [SIM 211-2] *************** CSIM start ***************
+INFO: [SIM 211-4] CSIM will launch GCC as the compiler.
+INFO: [HLS 200-2036] Building debug C Simulation binaries
+   Compiling ../../../../tb.cpp in debug mode
+   Compiling ../../../../kernel.cpp in debug mode
+   Generating csim.exe
+BASELINE_VEC 0 salida=y_real discrepantes=0/1024 max_abs_diff=3.8147e-05 tol=0.001
+BASELINE_VEC 0 salida=y_imag discrepantes=0/1024 max_abs_diff=3.33786e-05 tol=0.001
+BASELINE_RESULT PASS
+INFO: [SIM 211-1] CSim done with 0 errors.
+INFO: [SIM 211-3] *************** CSIM finish ***************
+INFO: [HLS 200-111] Finished Command csim_design CPU user time: 5.59 seconds. CPU system time: 0.46 seconds. Elapsed time: 6.12 seconds; current allocated memory: 0.000 MB.
+BASELINE_CSIM_DONE
+INFO: [HLS 200-1510] Running: csynth_design 
+INFO: [HLS 200-111] Finished File checks and directory preparation: CPU user time: 0.07 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.08 seconds; current allocated memory: 202.375 MB.
+INFO: [HLS 200-10] Analyzing design file 'kernel.cpp' ... 
+INFO: [HLS 200-111] Finished Source Code Analysis and Preprocessing: CPU user time: 19.82 seconds. CPU system time: 1.36 seconds. Elapsed time: 21.42 seconds; current allocated memory: 208.625 MB.
+INFO: [HLS 200-777] Using interface defaults for 'Vivado' flow target.
+INFO: [HLS 200-1995] There were 20,682 instructions in the design after the 'Compile/Link' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_08/intento_01/proj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 132 instructions in the design after the 'Unroll/Inline' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_08/intento_01/proj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 107 instructions in the design after the 'Performance/Pipeline' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_08/intento_01/proj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 200-1995] There were 143 instructions in the design after the 'Optimizations' phase of compilation. See the Design Size Report for more details: /home/pablo/TFG/results/baseline/fft_radix2/ii20_oneshot/run_08/intento_01/proj/solution1/syn/report/csynth_design_size.rpt
+INFO: [HLS 214-291] Loop 'VITIS_LOOP_14_1' is marked as complete unroll implied by the pipeline pragma (kernel.cpp:14:22)
+INFO: [HLS 214-186] Unrolling loop 'VITIS_LOOP_14_1' (kernel.cpp:14:22) in function 'bit_reverse10' completely with a factor of 10 (kernel.cpp:12:0)
+INFO: [HLS 214-178] Inlining function 'bit_reverse10(int)' into 'fft_radix2(float const*, float const*, float*, float*)' (kernel.cpp:27:0)
+INFO: [HLS 200-111] Finished Compiling Optimization and Transform: CPU user time: 3.5 seconds. CPU system time: 0.45 seconds. Elapsed time: 8.01 seconds; current allocated memory: 209.062 MB.
+INFO: [HLS 200-111] Finished Checking Pragmas: CPU user time: 0 seconds. CPU system time: 0 seconds. Elapsed time: 0 seconds; current allocated memory: 209.062 MB.
+INFO: [HLS 200-10] Starting code transformations ...
+INFO: [HLS 200-111] Finished Standard Transforms: CPU user time: 0.02 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.02 seconds; current allocated memory: 210.289 MB.
+INFO: [HLS 200-10] Checking synthesizability ...
+INFO: [HLS 200-111] Finished Checking Synthesizability: CPU user time: 0.03 seconds. CPU system time: 0 seconds. Elapsed time: 0.03 seconds; current allocated memory: 211.691 MB.
+INFO: [HLS 200-111] Finished Loop, function and other optimizations: CPU user time: 0.05 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.07 seconds; current allocated memory: 235.234 MB.
+INFO: [XFORM 203-541] Flattening a loop nest 'stage_loop' (kernel.cpp:58:5) in function 'fft_radix2'.
+WARNING: [HLS 200-1946] Dependence pragma (kernel.cpp:67:9) in loop 'butterfly_loop' may become invalid because the loop was flattened with the outer loop 'stage_loop'.
+WARNING: [HLS 200-1946] Dependence pragma (kernel.cpp:68:9) in loop 'butterfly_loop' may become invalid because the loop was flattened with the outer loop 'stage_loop'.
+WARNING: [ANALYSIS 214-52] Found false inter dependency for variable 'y_real'.
+WARNING: [ANALYSIS 214-52] Found false inter dependency for variable 'y_imag'.
+INFO: [HLS 200-111] Finished Architecture Synthesis: CPU user time: 0.04 seconds. CPU system time: 0 seconds. Elapsed time: 0.03 seconds; current allocated memory: 244.898 MB.
+INFO: [HLS 200-10] Starting hardware synthesis ...
+INFO: [HLS 200-10] Synthesizing 'fft_radix2' ...
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_bit_reverse_loop' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'bit_reverse_loop'.
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 2, loop 'bit_reverse_loop'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 0.09 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.11 seconds; current allocated memory: 246.258 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.03 seconds. CPU system time: 0 seconds. Elapsed time: 0.03 seconds; current allocated memory: 246.258 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2_Pipeline_stage_loop_butterfly_loop' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-61] Pipelining loop 'stage_loop_butterfly_loop'.
+WARNING: [HLS 200-885] The II Violation in module 'fft_radix2_Pipeline_stage_loop_butterfly_loop' (loop 'stage_loop_butterfly_loop'): Unable to schedule 'load' operation ('y_real_load', kernel.cpp:78) on array 'y_real' due to limited memory ports (II = 1). Please consider using a memory core with more ports or partitioning the array 'y_real'.
+Resolution: For help on HLS 200-885 see www.xilinx.com/cgi-bin/docs/rdoc?v=2023.1;t=hls+guidance;d=200-885.html
+INFO: [HLS 200-1470] Pipelining result : Target II = 1, Final II = 2, Depth = 40, loop 'stage_loop_butterfly_loop'
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 0.49 seconds. CPU system time: 0 seconds. Elapsed time: 0.5 seconds; current allocated memory: 247.336 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.47 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.47 seconds; current allocated memory: 247.336 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-42] -- Implementing module 'fft_radix2' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [SCHED 204-11] Starting scheduling ...
+INFO: [SCHED 204-11] Finished scheduling.
+INFO: [HLS 200-111] Finished Scheduling: CPU user time: 0.1 seconds. CPU system time: 0 seconds. Elapsed time: 0.1 seconds; current allocated memory: 247.336 MB.
+INFO: [BIND 205-100] Starting micro-architecture generation ...
+INFO: [BIND 205-101] Performing variable lifetime analysis.
+INFO: [BIND 205-101] Exploring resource sharing.
+INFO: [BIND 205-101] Binding ...
+INFO: [BIND 205-100] Finished micro-architecture generation.
+INFO: [HLS 200-111] Finished Binding: CPU user time: 0.06 seconds. CPU system time: 0 seconds. Elapsed time: 0.07 seconds; current allocated memory: 247.336 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_bit_reverse_loop' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_bit_reverse_loop' pipeline 'bit_reverse_loop' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_bit_reverse_loop'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.03 seconds. CPU system time: 0 seconds. Elapsed time: 0.02 seconds; current allocated memory: 247.336 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2_Pipeline_stage_loop_butterfly_loop' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+WARNING: [HLS 200-2049] Adding the rewind optimization to the pipelined process 'stage_loop_butterfly_loop' with inout ports inside a dataflow region can result in the creation of loop-carried dependencies and errors. Use caution when adding the rewind optimization to such loops.
+INFO: [HLS 200-1030] Apply Unified Pipeline Control on module 'fft_radix2_Pipeline_stage_loop_butterfly_loop' pipeline 'stage_loop_butterfly_loop' pipeline type 'loop pipeline'
+INFO: [RTGEN 206-100] Generating core module 'fadd_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'faddfsub_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fmul_32ns_32ns_32_4_max_dsp_1': 2 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'fsub_32ns_32ns_32_7_full_dsp_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'mul_9s_9s_9_1_1': 1 instance(s).
+INFO: [RTGEN 206-100] Generating core module 'udiv_11s_11ns_9_15_1': 1 instance(s).
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2_Pipeline_stage_loop_butterfly_loop'.
+INFO: [RTMG 210-279] Implementing memory 'fft_radix2_fft_radix2_Pipeline_stage_loop_butterfly_loop_twr_ROM_AUTO_1R' using auto ROMs.
+INFO: [RTMG 210-279] Implementing memory 'fft_radix2_fft_radix2_Pipeline_stage_loop_butterfly_loop_twi_ROM_AUTO_1R' using auto ROMs.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.12 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.21 seconds; current allocated memory: 248.875 MB.
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [HLS 200-10] -- Generating RTL for module 'fft_radix2' 
+INFO: [HLS 200-10] ----------------------------------------------------------------
+INFO: [RTGEN 206-500] Setting interface mode on port 'fft_radix2/x_real' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'fft_radix2/x_imag' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'fft_radix2/y_real' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on port 'fft_radix2/y_imag' to 'ap_memory'.
+INFO: [RTGEN 206-500] Setting interface mode on function 'fft_radix2' to 'ap_ctrl_hs'.
+INFO: [RTGEN 206-100] Finished creating RTL model for 'fft_radix2'.
+INFO: [HLS 200-111] Finished Creating RTL model: CPU user time: 0.43 seconds. CPU system time: 0.01 seconds. Elapsed time: 0.44 seconds; current allocated memory: 250.859 MB.
+INFO: [HLS 200-111] Finished Generating all RTL models: CPU user time: 0.3 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.32 seconds; current allocated memory: 254.094 MB.
+INFO: [HLS 200-111] Finished Updating report files: CPU user time: 0.47 seconds. CPU system time: 0.02 seconds. Elapsed time: 0.5 seconds; current allocated memory: 257.031 MB.
+INFO: [VHDL 208-304] Generating VHDL RTL for fft_radix2.
+INFO: [VLOG 209-307] Generating Verilog RTL for fft_radix2.
+INFO: [HLS 200-790] **** Loop Constraint Status: All loop constraints were NOT satisfied.
+INFO: [HLS 200-789] **** Estimated Fmax: 413.42 MHz
+INFO: [HLS 200-111] Finished Command csynth_design CPU user time: 26.14 seconds. CPU system time: 1.93 seconds. Elapsed time: 32.46 seconds; current allocated memory: 55.121 MB.
+BASELINE_CSYNTH_DONE
+INFO: [HLS 200-112] Total CPU user time: 32.88 seconds. Total CPU system time: 2.59 seconds. Total elapsed time: 39.74 seconds; peak allocated memory: 257.223 MB.
+INFO: [Common 17-206] Exiting vitis_hls at Mon Oct 12 18:13:23 2026...

@@ -1,0 +1,110 @@
+```cpp
+// kernel.cpp
+// Radix-2 Cooley-Tukey FFT (Decimation In Time), N = 1024 points, complex input/output.
+// Target: AMD/Xilinx Vitis HLS 2023.1, xcu280-fsvh2892-2L-e, clock period 3.33 ns, II <= 5.
+
+#include <hls_math.h>
+
+#define N      1024
+#define LOGN   10          // log2(N)
+#define HALFN  (N / 2)      // 512
+
+// Fully-unrolled 10-bit reversal (combinational, no state).
+static inline int bit_reverse10(int x) {
+#pragma HLS INLINE
+    int r = 0;
+    for (int i = 0; i < LOGN; i++) {
+#pragma HLS UNROLL
+        r = (r << 1) | (x & 1);
+        x >>= 1;
+    }
+    return r;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024])
+{
+    // Ping-pong buffers: bank 0 / bank 1, one bank read, the other written per stage.
+    // This avoids read/write port contention on the same memory, enabling low II.
+    float buf_real[2][N];
+    float buf_imag[2][N];
+#pragma HLS ARRAY_PARTITION variable=buf_real dim=1 type=complete
+#pragma HLS ARRAY_PARTITION variable=buf_imag dim=1 type=complete
+#pragma HLS BIND_STORAGE    variable=buf_real type=RAM_T2P impl=bram
+#pragma HLS BIND_STORAGE    variable=buf_imag type=RAM_T2P impl=bram
+
+    float cos_table[HALFN];
+    float sin_table[HALFN];
+
+    const float PI_F = 3.14159265358979323846f;
+
+    // Precompute twiddle factors W_N^m = exp(-j*2*pi*m/N), m = 0..N/2-1
+    twiddle_init:
+    for (int m = 0; m < HALFN; m++) {
+#pragma HLS PIPELINE II=1
+        float angle = -2.0f * PI_F * (float)m / (float)N;
+        cos_table[m] = hls::cosf(angle);
+        sin_table[m] = hls::sinf(angle);
+    }
+
+    // Load input samples into bank 0 applying bit-reversal permutation.
+    load_input:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=1
+        int r = bit_reverse10(i);
+        buf_real[0][r] = x_real[i];
+        buf_imag[0][r] = x_imag[i];
+    }
+
+    // Iterative radix-2 DIT FFT: LOGN sequential stages, each with a
+    // pipelined butterfly loop over N/2 independent butterflies.
+    stage_loop:
+    for (int stage = 0; stage < LOGN; stage++) {
+        int half      = 1 << stage;          // size of sub-transform half
+        int rd        = stage & 1;           // read bank for this stage
+        int wr        = 1 - rd;              // write bank for this stage
+        int tw_shift  = (LOGN - 1) - stage;  // twiddle index scaling
+
+        butterfly_loop:
+        for (int t = 0; t < HALFN; t++) {
+#pragma HLS PIPELINE II=1
+            int j     = t & (half - 1);          // position within butterfly group
+            int group = t >> stage;              // which group
+            int k     = (group << (stage + 1)) + j;
+            int kh    = k + half;
+            int tIdx  = j << tw_shift;
+
+            float c = cos_table[tIdx];
+            float s = sin_table[tIdx];
+
+            float ur = buf_real[rd][k];
+            float ui = buf_imag[rd][k];
+            float xr = buf_real[rd][kh];
+            float xi = buf_imag[rd][kh];
+
+            // complex multiply: (xr + j*xi) * (c + j*s)
+            float tr = xr * c - xi * s;
+            float ti = xr * s + xi * c;
+
+            buf_real[wr][k]  = ur + tr;
+            buf_imag[wr][k]  = ui + ti;
+            buf_real[wr][kh] = ur - tr;
+            buf_imag[wr][kh] = ui - ti;
+        }
+    }
+
+    // After LOGN (=10, even count of stages starting at bank0) stages,
+    // the final stage (index LOGN-1 = 9, odd) wrote its results to bank 0.
+    const int out_bank = 0;
+
+    store_output:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = buf_real[out_bank][i];
+        y_imag[i] = buf_imag[out_bank][i];
+    }
+}
+```

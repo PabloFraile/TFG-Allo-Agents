@@ -1,0 +1,112 @@
+```cpp
+#include <hls_math.h>
+
+// ---------------------------------------------------------------------------
+// Radix-2 Cooley-Tukey FFT, N = 1024 points, decimation-in-time, iterative.
+// ---------------------------------------------------------------------------
+
+#define FFT_N     1024
+#define FFT_LOGN  10
+#define FFT_NHALF (FFT_N / 2)
+
+static const float PI_F = 3.14159265358979323846f;
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+) {
+
+    // Working buffers (local copies, bit-reversed order will be built here)
+    float real[FFT_N];
+    float imag[FFT_N];
+
+    // Twiddle-factor table (only N/2 distinct complex twiddles needed)
+    float tw_real[FFT_NHALF];
+    float tw_imag[FFT_NHALF];
+
+    // -----------------------------------------------------------------
+    // Stage 0: load input with bit-reversal permutation
+    // -----------------------------------------------------------------
+    bitrev_loop:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        int rev = 0;
+        int idx = i;
+        for (int b = 0; b < FFT_LOGN; b++) {
+            rev = (rev << 1) | (idx & 1);
+            idx >>= 1;
+        }
+        real[i] = x_real[rev];
+        imag[i] = x_imag[rev];
+    }
+
+    // -----------------------------------------------------------------
+    // Precompute twiddle factors: W_N^k = exp(-j*2*pi*k/N), k = 0..N/2-1
+    // -----------------------------------------------------------------
+    twiddle_loop:
+    for (int k = 0; k < FFT_NHALF; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = (-2.0f * PI_F * (float)k) / (float)FFT_N;
+        tw_real[k] = hls::cosf(angle);
+        tw_imag[k] = hls::sinf(angle);
+    }
+
+    // -----------------------------------------------------------------
+    // log2(N) butterfly stages (in-place, iterative Cooley-Tukey DIT)
+    // -----------------------------------------------------------------
+    int half = 1;
+
+    stage_loop:
+    for (int s = 0; s < FFT_LOGN; s++) {
+        int step      = half << 1;
+        int tw_stride = FFT_N / step;
+
+        group_loop:
+        for (int base = 0; base < FFT_N; base += step) {
+
+            butterfly_loop:
+            for (int j = 0; j < half; j++) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=1 max=512
+#pragma HLS DEPENDENCE variable=real inter false
+#pragma HLS DEPENDENCE variable=imag inter false
+
+                int idx0   = base + j;
+                int idx1   = idx0 + half;
+                int tw_idx = j * tw_stride;
+
+                float wr = tw_real[tw_idx];
+                float wi = tw_imag[tw_idx];
+
+                float ar = real[idx0];
+                float ai = imag[idx0];
+                float br = real[idx1];
+                float bi = imag[idx1];
+
+                // t = b * W
+                float tr = br * wr - bi * wi;
+                float ti = br * wi + bi * wr;
+
+                real[idx0] = ar + tr;
+                imag[idx0] = ai + ti;
+                real[idx1] = ar - tr;
+                imag[idx1] = ai - ti;
+            }
+        }
+
+        half = step;
+    }
+
+    // -----------------------------------------------------------------
+    // Write results out
+    // -----------------------------------------------------------------
+    output_loop:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = real[i];
+        y_imag[i] = imag[i];
+    }
+}
+```

@@ -1,0 +1,105 @@
+```cpp
+// kernel.cpp
+// Radix-2 Cooley-Tukey FFT (Decimation-In-Time), iterative, N = 1024.
+// Target: AMD/Xilinx Vitis HLS 2023.1, xcu280-fsvh2892-2L-e, clk period 3.33 ns.
+// Pipelined loops are constrained to II <= 5.
+
+#include <cmath>
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+) {
+    const int N    = 1024;
+    const int LOGN = 10;   // log2(N)
+
+    // Internal working buffers (map to BRAM)
+    float real_buf[1024];
+    float imag_buf[1024];
+
+    // ------------------------------------------------------------------
+    // Stage 0: load input with bit-reversed addressing
+    // ------------------------------------------------------------------
+    bitrev_loop:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=1
+        int rev = 0;
+        int ii  = i;
+        bitrev_bits:
+        for (int b = 0; b < LOGN; b++) {
+#pragma HLS UNROLL
+            rev = (rev << 1) | (ii & 1);
+            ii >>= 1;
+        }
+        real_buf[i] = x_real[rev];
+        imag_buf[i] = x_imag[rev];
+    }
+
+    // ------------------------------------------------------------------
+    // Precompute twiddle factor table: W_N^k = exp(-j*2*pi*k/N), k=0..N/2-1
+    // ------------------------------------------------------------------
+    float tw_cos[512];
+    float tw_sin[512];
+
+    twiddle_init:
+    for (int k = 0; k < N / 2; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = -2.0f * 3.14159265358979323846f * (float)k / (float)N;
+        tw_cos[k] = cosf(angle);
+        tw_sin[k] = sinf(angle);
+    }
+
+    // ------------------------------------------------------------------
+    // Iterative radix-2 DIT FFT: LOGN stages, each stage is a single
+    // flattened loop of N/2 butterflies (no nested loop pipeline overhead).
+    // ------------------------------------------------------------------
+    stage_loop:
+    for (int s = 1; s <= LOGN; s++) {
+        int m    = 1 << s;        // current sub-FFT size
+        int half = m >> 1;        // half of sub-FFT size
+        int step = N / m;         // twiddle table stride for this stage
+        int shift = s - 1;        // = log2(half)
+        int mask  = half - 1;     // low-bits mask (half is a power of two)
+
+        butterfly_loop:
+        for (int n = 0; n < N / 2; n++) {
+#pragma HLS PIPELINE II=5
+            int low  = n & mask;          // position within the half-block
+            int high = n >> shift;        // block index
+            int idx0 = (high << s) + low; // "top" element index
+            int idx1 = idx0 + half;       // "bottom" element index
+
+            int tw_idx = low * step;
+            float wr = tw_cos[tw_idx];
+            float wi = tw_sin[tw_idx];
+
+            float xr = real_buf[idx1];
+            float xi = imag_buf[idx1];
+
+            float tr = xr * wr - xi * wi;
+            float ti = xr * wi + xi * wr;
+
+            float ur = real_buf[idx0];
+            float ui = imag_buf[idx0];
+
+            real_buf[idx0] = ur + tr;
+            imag_buf[idx0] = ui + ti;
+            real_buf[idx1] = ur - tr;
+            imag_buf[idx1] = ui - ti;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Write results out (natural order, since DIT with bit-reversed
+    // input load produces naturally ordered output)
+    // ------------------------------------------------------------------
+    output_loop:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = real_buf[i];
+        y_imag[i] = imag_buf[i];
+    }
+}
+```

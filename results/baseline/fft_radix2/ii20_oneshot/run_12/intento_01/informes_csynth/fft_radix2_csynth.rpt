@@ -1,0 +1,266 @@
+
+
+================================================================
+== Vitis HLS Report for 'fft_radix2'
+================================================================
+* Date:           Mon Oct 12 18:34:32 2026
+
+* Version:        2023.1 (Build 3854077 on May  4 2023)
+* Project:        proj
+* Solution:       solution1 (Vivado IP Flow Target)
+* Product family: virtexuplusHBM
+* Target device:  xcu280-fsvh2892-2L-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  3.33 ns|  2.400 ns|     0.90 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+-----------+-----------+------+------+---------+
+    |  Latency (cycles) |   Latency (absolute)  |   Interval  | Pipeline|
+    |   min   |   max   |    min    |    max    |  min |  max |   Type  |
+    +---------+---------+-----------+-----------+------+------+---------+
+    |     7405|     7405|  24.659 us|  24.659 us|  7406|  7406|       no|
+    +---------+---------+-----------+-----------+------+------+---------+
+
+    + Detail: 
+        * Instance: 
+        +-----------------------------------------------+------------------------------------+---------+---------+----------+----------+------+------+---------+
+        |                                               |                                    |  Latency (cycles) |  Latency (absolute) |   Interval  | Pipeline|
+        |                    Instance                   |               Module               |   min   |   max   |    min   |    max   |  min |  max |   Type  |
+        +-----------------------------------------------+------------------------------------+---------+---------+----------+----------+------+------+---------+
+        |grp_fft_radix2_Pipeline_BITREV_LOAD_fu_70      |fft_radix2_Pipeline_BITREV_LOAD     |     1026|     1026|  3.417 us|  3.417 us|  1026|  1026|       no|
+        |grp_fft_radix2_Pipeline_FFT_BUTTERFLY_fu_82    |fft_radix2_Pipeline_FFT_BUTTERFLY   |      533|      533|  1.775 us|  1.775 us|   533|   533|       no|
+        |grp_fft_radix2_Pipeline_FFT_BUTTERFLY1_fu_90   |fft_radix2_Pipeline_FFT_BUTTERFLY1  |      533|      533|  1.775 us|  1.775 us|   533|   533|       no|
+        |grp_fft_radix2_Pipeline_FFT_BUTTERFLY2_fu_102  |fft_radix2_Pipeline_FFT_BUTTERFLY2  |      533|      533|  1.775 us|  1.775 us|   533|   533|       no|
+        |grp_fft_radix2_Pipeline_FFT_BUTTERFLY3_fu_114  |fft_radix2_Pipeline_FFT_BUTTERFLY3  |      533|      533|  1.775 us|  1.775 us|   533|   533|       no|
+        |grp_fft_radix2_Pipeline_FFT_BUTTERFLY4_fu_126  |fft_radix2_Pipeline_FFT_BUTTERFLY4  |      533|      533|  1.775 us|  1.775 us|   533|   533|       no|
+        |grp_fft_radix2_Pipeline_FFT_BUTTERFLY5_fu_138  |fft_radix2_Pipeline_FFT_BUTTERFLY5  |      533|      533|  1.775 us|  1.775 us|   533|   533|       no|
+        |grp_fft_radix2_Pipeline_FFT_BUTTERFLY6_fu_150  |fft_radix2_Pipeline_FFT_BUTTERFLY6  |      533|      533|  1.775 us|  1.775 us|   533|   533|       no|
+        |grp_fft_radix2_Pipeline_FFT_BUTTERFLY7_fu_162  |fft_radix2_Pipeline_FFT_BUTTERFLY7  |      533|      533|  1.775 us|  1.775 us|   533|   533|       no|
+        |grp_fft_radix2_Pipeline_FFT_BUTTERFLY8_fu_174  |fft_radix2_Pipeline_FFT_BUTTERFLY8  |      533|      533|  1.775 us|  1.775 us|   533|   533|       no|
+        |grp_fft_radix2_Pipeline_FFT_BUTTERFLY9_fu_186  |fft_radix2_Pipeline_FFT_BUTTERFLY9  |      533|      533|  1.775 us|  1.775 us|   533|   533|       no|
+        |grp_fft_radix2_Pipeline_WRITE_BACK_fu_198      |fft_radix2_Pipeline_WRITE_BACK      |     1026|     1026|  3.417 us|  3.417 us|  1026|  1026|       no|
+        +-----------------------------------------------+------------------------------------+---------+---------+----------+----------+------+------+---------+
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+------+---------+---------+-----+
+|         Name        | BRAM_18K|  DSP |    FF   |   LUT   | URAM|
++---------------------+---------+------+---------+---------+-----+
+|DSP                  |        -|     -|        -|        -|    -|
+|Expression           |        -|     -|        -|        -|    -|
+|FIFO                 |        -|     -|        -|        -|    -|
+|Instance             |        -|    24|    10278|     3473|    -|
+|Memory               |       10|     -|        0|        0|    0|
+|Multiplexer          |        -|     -|        -|     3567|    -|
+|Register             |        -|     -|       36|        -|    -|
++---------------------+---------+------+---------+---------+-----+
+|Total                |       10|    24|    10314|     7040|    0|
++---------------------+---------+------+---------+---------+-----+
+|Available SLR        |     1344|  3008|   869120|   434560|  320|
++---------------------+---------+------+---------+---------+-----+
+|Utilization SLR (%)  |       ~0|    ~0|        1|        1|    0|
++---------------------+---------+------+---------+---------+-----+
+|Available            |     4032|  9024|  2607360|  1303680|  960|
++---------------------+---------+------+---------+---------+-----+
+|Utilization (%)      |       ~0|    ~0|       ~0|       ~0|    0|
++---------------------+---------+------+---------+---------+-----+
+
++ Detail: 
+    * Instance: 
+    +-----------------------------------------------+------------------------------------+---------+----+-----+-----+-----+
+    |                    Instance                   |               Module               | BRAM_18K| DSP|  FF | LUT | URAM|
+    +-----------------------------------------------+------------------------------------+---------+----+-----+-----+-----+
+    |fadd_32ns_32ns_32_7_full_dsp_1_U166            |fadd_32ns_32ns_32_7_full_dsp_1      |        0|   2|  318|  198|    0|
+    |fadd_32ns_32ns_32_7_full_dsp_1_U167            |fadd_32ns_32ns_32_7_full_dsp_1      |        0|   2|  318|  198|    0|
+    |fadd_32ns_32ns_32_7_full_dsp_1_U168            |fadd_32ns_32ns_32_7_full_dsp_1      |        0|   2|  318|  198|    0|
+    |grp_fft_radix2_Pipeline_BITREV_LOAD_fu_70      |fft_radix2_Pipeline_BITREV_LOAD     |        0|   0|   24|   75|    0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY_fu_82    |fft_radix2_Pipeline_FFT_BUTTERFLY   |        0|   0|  782|  243|    0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY1_fu_90   |fft_radix2_Pipeline_FFT_BUTTERFLY1  |        0|   0|  782|  179|    0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY2_fu_102  |fft_radix2_Pipeline_FFT_BUTTERFLY2  |        0|   0|  782|  179|    0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY3_fu_114  |fft_radix2_Pipeline_FFT_BUTTERFLY3  |        0|   0|  782|  179|    0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY4_fu_126  |fft_radix2_Pipeline_FFT_BUTTERFLY4  |        0|   0|  782|  179|    0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY5_fu_138  |fft_radix2_Pipeline_FFT_BUTTERFLY5  |        0|   0|  782|  179|    0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY6_fu_150  |fft_radix2_Pipeline_FFT_BUTTERFLY6  |        0|   0|  782|  179|    0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY7_fu_162  |fft_radix2_Pipeline_FFT_BUTTERFLY7  |        0|   0|  782|  179|    0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY8_fu_174  |fft_radix2_Pipeline_FFT_BUTTERFLY8  |        0|   0|  782|  179|    0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY9_fu_186  |fft_radix2_Pipeline_FFT_BUTTERFLY9  |        0|   0|  711|  148|    0|
+    |grp_fft_radix2_Pipeline_WRITE_BACK_fu_198      |fft_radix2_Pipeline_WRITE_BACK      |        0|   0|   25|   75|    0|
+    |fmul_32ns_32ns_32_4_max_dsp_1_U171             |fmul_32ns_32ns_32_4_max_dsp_1       |        0|   3|  143|   78|    0|
+    |fmul_32ns_32ns_32_4_max_dsp_1_U172             |fmul_32ns_32ns_32_4_max_dsp_1       |        0|   3|  143|   78|    0|
+    |fmul_32ns_32ns_32_4_max_dsp_1_U173             |fmul_32ns_32ns_32_4_max_dsp_1       |        0|   3|  143|   78|    0|
+    |fmul_32ns_32ns_32_4_max_dsp_1_U174             |fmul_32ns_32ns_32_4_max_dsp_1       |        0|   3|  143|   78|    0|
+    |fsub_32ns_32ns_32_7_full_dsp_1_U165            |fsub_32ns_32ns_32_7_full_dsp_1      |        0|   2|  318|  198|    0|
+    |fsub_32ns_32ns_32_7_full_dsp_1_U169            |fsub_32ns_32ns_32_7_full_dsp_1      |        0|   2|  318|  198|    0|
+    |fsub_32ns_32ns_32_7_full_dsp_1_U170            |fsub_32ns_32ns_32_7_full_dsp_1      |        0|   2|  318|  198|    0|
+    +-----------------------------------------------+------------------------------------+---------+----+-----+-----+-----+
+    |Total                                          |                                    |        0|  24|10278| 3473|    0|
+    +-----------------------------------------------+------------------------------------+---------+----+-----+-----+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    +-------------+-------------------------+---------+---+----+-----+------+-----+------+-------------+
+    |    Memory   |          Module         | BRAM_18K| FF| LUT| URAM| Words| Bits| Banks| W*Bits*Banks|
+    +-------------+-------------------------+---------+---+----+-----+------+-----+------+-------------+
+    |bufA_real_U  |bufA_real_RAM_AUTO_1R1W  |        2|  0|   0|    0|  1024|   32|     1|        32768|
+    |bufA_imag_U  |bufA_real_RAM_AUTO_1R1W  |        2|  0|   0|    0|  1024|   32|     1|        32768|
+    |bufB_real_U  |bufA_real_RAM_AUTO_1R1W  |        2|  0|   0|    0|  1024|   32|     1|        32768|
+    |bufB_imag_U  |bufA_real_RAM_AUTO_1R1W  |        2|  0|   0|    0|  1024|   32|     1|        32768|
+    |tw_imag_U    |tw_imag_ROM_AUTO_1R      |        1|  0|   0|    0|   512|   32|     1|        16384|
+    |tw_real_U    |tw_real_ROM_AUTO_1R      |        1|  0|   0|    0|   512|   32|     1|        16384|
+    +-------------+-------------------------+---------+---+----+-----+------+-----+------+-------------+
+    |Total        |                         |       10|  0|   0|    0|  5120|  192|     6|       163840|
+    +-------------+-------------------------+---------+---+----+-----+------+-----+------+-------------+
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    N/A
+
+    * Multiplexer: 
+    +--------------------+-----+-----------+-----+-----------+
+    |        Name        | LUT | Input Size| Bits| Total Bits|
+    +--------------------+-----+-----------+-----+-----------+
+    |ap_NS_fsm           |  123|         25|    1|         25|
+    |bufA_imag_address0  |   65|         13|   10|        130|
+    |bufA_imag_address1  |   59|         11|   10|        110|
+    |bufA_imag_ce0       |   65|         13|    1|         13|
+    |bufA_imag_ce1       |   59|         11|    1|         11|
+    |bufA_imag_d0        |   37|          7|   32|        224|
+    |bufA_imag_d1        |   31|          6|   32|        192|
+    |bufA_imag_we0       |   37|          7|    1|          7|
+    |bufA_imag_we1       |   31|          6|    1|          6|
+    |bufA_real_address0  |   65|         13|   10|        130|
+    |bufA_real_address1  |   59|         11|   10|        110|
+    |bufA_real_ce0       |   65|         13|    1|         13|
+    |bufA_real_ce1       |   59|         11|    1|         11|
+    |bufA_real_d0        |   37|          7|   32|        224|
+    |bufA_real_d1        |   31|          6|   32|        192|
+    |bufA_real_we0       |   37|          7|    1|          7|
+    |bufA_real_we1       |   31|          6|    1|          6|
+    |bufB_imag_address0  |   59|         11|   10|        110|
+    |bufB_imag_address1  |   59|         11|   10|        110|
+    |bufB_imag_ce0       |   59|         11|    1|         11|
+    |bufB_imag_ce1       |   59|         11|    1|         11|
+    |bufB_imag_d0        |   31|          6|   32|        192|
+    |bufB_imag_d1        |   31|          6|   32|        192|
+    |bufB_imag_we0       |   31|          6|    1|          6|
+    |bufB_imag_we1       |   31|          6|    1|          6|
+    |bufB_real_address0  |   59|         11|   10|        110|
+    |bufB_real_address1  |   59|         11|   10|        110|
+    |bufB_real_ce0       |   59|         11|    1|         11|
+    |bufB_real_ce1       |   59|         11|    1|         11|
+    |bufB_real_d0        |   31|          6|   32|        192|
+    |bufB_real_d1        |   31|          6|   32|        192|
+    |bufB_real_we0       |   31|          6|    1|          6|
+    |bufB_real_we1       |   31|          6|    1|          6|
+    |grp_fu_208_ce       |   59|         11|    1|         11|
+    |grp_fu_208_p0       |   59|         11|   32|        352|
+    |grp_fu_208_p1       |   59|         11|   32|        352|
+    |grp_fu_212_ce       |   59|         11|    1|         11|
+    |grp_fu_212_p0       |   59|         11|   32|        352|
+    |grp_fu_212_p1       |   59|         11|   32|        352|
+    |grp_fu_216_ce       |   59|         11|    1|         11|
+    |grp_fu_216_p0       |   59|         11|   32|        352|
+    |grp_fu_216_p1       |   59|         11|   32|        352|
+    |grp_fu_220_ce       |   59|         11|    1|         11|
+    |grp_fu_220_p0       |   59|         11|   32|        352|
+    |grp_fu_220_p1       |   59|         11|   32|        352|
+    |grp_fu_224_ce       |   59|         11|    1|         11|
+    |grp_fu_224_p0       |   59|         11|   32|        352|
+    |grp_fu_224_p1       |   59|         11|   32|        352|
+    |grp_fu_228_ce       |   59|         11|    1|         11|
+    |grp_fu_228_p0       |   59|         11|   32|        352|
+    |grp_fu_228_p1       |   59|         11|   32|        352|
+    |grp_fu_232_ce       |   59|         11|    1|         11|
+    |grp_fu_232_p0       |   59|         11|   32|        352|
+    |grp_fu_232_p1       |   59|         11|   32|        352|
+    |grp_fu_236_ce       |   59|         11|    1|         11|
+    |grp_fu_236_p0       |   59|         11|   32|        352|
+    |grp_fu_236_p1       |   59|         11|   32|        352|
+    |grp_fu_240_ce       |   54|         10|    1|         10|
+    |grp_fu_240_p0       |   54|         10|   32|        320|
+    |grp_fu_240_p1       |   54|         10|   32|        320|
+    |grp_fu_244_ce       |   54|         10|    1|         10|
+    |grp_fu_244_p0       |   54|         10|   32|        320|
+    |grp_fu_244_p1       |   54|         10|   32|        320|
+    |tw_imag_address0    |   54|         10|    9|         90|
+    |tw_imag_ce0         |   54|         10|    1|         10|
+    |tw_real_address0    |   54|         10|    9|         90|
+    |tw_real_ce0         |   54|         10|    1|         10|
+    +--------------------+-----+-----------+-----+-----------+
+    |Total               | 3567|        673| 1023|       9907|
+    +--------------------+-----+-----------+-----+-----------+
+
+    * Register: 
+    +------------------------------------------------------------+----+----+-----+-----------+
+    |                            Name                            | FF | LUT| Bits| Const Bits|
+    +------------------------------------------------------------+----+----+-----+-----------+
+    |ap_CS_fsm                                                   |  24|   0|   24|          0|
+    |grp_fft_radix2_Pipeline_BITREV_LOAD_fu_70_ap_start_reg      |   1|   0|    1|          0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY1_fu_90_ap_start_reg   |   1|   0|    1|          0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY2_fu_102_ap_start_reg  |   1|   0|    1|          0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY3_fu_114_ap_start_reg  |   1|   0|    1|          0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY4_fu_126_ap_start_reg  |   1|   0|    1|          0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY5_fu_138_ap_start_reg  |   1|   0|    1|          0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY6_fu_150_ap_start_reg  |   1|   0|    1|          0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY7_fu_162_ap_start_reg  |   1|   0|    1|          0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY8_fu_174_ap_start_reg  |   1|   0|    1|          0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY9_fu_186_ap_start_reg  |   1|   0|    1|          0|
+    |grp_fft_radix2_Pipeline_FFT_BUTTERFLY_fu_82_ap_start_reg    |   1|   0|    1|          0|
+    |grp_fft_radix2_Pipeline_WRITE_BACK_fu_198_ap_start_reg      |   1|   0|    1|          0|
+    +------------------------------------------------------------+----+----+-----+-----------+
+    |Total                                                       |  36|   0|   36|          0|
+    +------------------------------------------------------------+----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++-----------------+-----+-----+------------+--------------+--------------+
+|    RTL Ports    | Dir | Bits|  Protocol  | Source Object|    C Type    |
++-----------------+-----+-----+------------+--------------+--------------+
+|ap_clk           |   in|    1|  ap_ctrl_hs|    fft_radix2|  return value|
+|ap_rst           |   in|    1|  ap_ctrl_hs|    fft_radix2|  return value|
+|ap_start         |   in|    1|  ap_ctrl_hs|    fft_radix2|  return value|
+|ap_done          |  out|    1|  ap_ctrl_hs|    fft_radix2|  return value|
+|ap_idle          |  out|    1|  ap_ctrl_hs|    fft_radix2|  return value|
+|ap_ready         |  out|    1|  ap_ctrl_hs|    fft_radix2|  return value|
+|x_real_address0  |  out|   10|   ap_memory|        x_real|         array|
+|x_real_ce0       |  out|    1|   ap_memory|        x_real|         array|
+|x_real_q0        |   in|   32|   ap_memory|        x_real|         array|
+|x_imag_address0  |  out|   10|   ap_memory|        x_imag|         array|
+|x_imag_ce0       |  out|    1|   ap_memory|        x_imag|         array|
+|x_imag_q0        |   in|   32|   ap_memory|        x_imag|         array|
+|y_real_address0  |  out|   10|   ap_memory|        y_real|         array|
+|y_real_ce0       |  out|    1|   ap_memory|        y_real|         array|
+|y_real_we0       |  out|    1|   ap_memory|        y_real|         array|
+|y_real_d0        |  out|   32|   ap_memory|        y_real|         array|
+|y_imag_address0  |  out|   10|   ap_memory|        y_imag|         array|
+|y_imag_ce0       |  out|    1|   ap_memory|        y_imag|         array|
+|y_imag_we0       |  out|    1|   ap_memory|        y_imag|         array|
+|y_imag_d0        |  out|   32|   ap_memory|        y_imag|         array|
++-----------------+-----+-----+------------+--------------+--------------+
+

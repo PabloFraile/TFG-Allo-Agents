@@ -1,0 +1,106 @@
+// kernel.cpp
+// Radix-2 Cooley-Tukey FFT (decimation-in-time, iterative, in-place)
+// N = 1024 points, complex input/output represented as separate real/imag arrays.
+//
+// Target: xcu280-fsvh2892-2L-e, clock period 3.33 ns, II <= 20 on all pipelined loops.
+
+#include <hls_math.h>
+
+#define FFT_N    1024
+#define FFT_LOGN 10
+
+// Fully unrolled bit-reversal (combinational, inlined into caller's pipeline)
+static int bit_reverse(int x, int bits) {
+#pragma HLS INLINE
+    int result = 0;
+    for (int i = 0; i < bits; i++) {
+#pragma HLS UNROLL
+        result = (result << 1) | (x & 1);
+        x >>= 1;
+    }
+    return result;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+) {
+#pragma HLS INTERFACE ap_memory port=x_real
+#pragma HLS INTERFACE ap_memory port=x_imag
+#pragma HLS INTERFACE ap_memory port=y_real
+#pragma HLS INTERFACE ap_memory port=y_imag
+
+    float wk_real[FFT_N];
+    float wk_imag[FFT_N];
+#pragma HLS ARRAY_PARTITION variable=wk_real cyclic factor=2 dim=1
+#pragma HLS ARRAY_PARTITION variable=wk_imag cyclic factor=2 dim=1
+
+    float tw_cos[FFT_N / 2];
+    float tw_sin[FFT_N / 2];
+
+    // ---- Precompute twiddle factors W_N^k = cos(2*pi*k/N) - j*sin(2*pi*k/N) ----
+    const float two_pi_over_n = 6.283185307179586f / (float)FFT_N;
+twiddle_gen:
+    for (int k = 0; k < FFT_N / 2; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = -two_pi_over_n * (float)k;
+        tw_cos[k] = hls::cosf(angle);
+        tw_sin[k] = hls::sinf(angle);
+    }
+
+    // ---- Bit-reversal permutation of the input into the working buffers ----
+bitrev_copy:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        int rev = bit_reverse(i, FFT_LOGN);
+        wk_real[i] = x_real[rev];
+        wk_imag[i] = x_imag[rev];
+    }
+
+    // ---- Iterative radix-2 DIT FFT stages ----
+    for (int s = 1; s <= FFT_LOGN; s++) {
+        const int m         = 1 << s;      // size of the current DFT block
+        const int half       = m >> 1;     // half-block size
+        const int tw_stride  = FFT_N / m;   // step inside the twiddle table
+
+    stage_loop:
+        for (int k = 0; k < FFT_N; k += m) {
+        butterfly_loop:
+            for (int j = 0; j < half; j++) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=1 max=512
+
+                int idx1 = k + j;
+                int idx2 = idx1 + half;
+                int tw_idx = j * tw_stride;
+
+                float wr = tw_cos[tw_idx];
+                float wi = tw_sin[tw_idx];
+
+                float br = wk_real[idx2];
+                float bi = wk_imag[idx2];
+
+                float tr = br * wr - bi * wi;
+                float ti = br * wi + bi * wr;
+
+                float ar = wk_real[idx1];
+                float ai = wk_imag[idx1];
+
+                wk_real[idx1] = ar + tr;
+                wk_imag[idx1] = ai + ti;
+                wk_real[idx2] = ar - tr;
+                wk_imag[idx2] = ai - ti;
+            }
+        }
+    }
+
+    // ---- Write results out ----
+out_copy:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = wk_real[i];
+        y_imag[i] = wk_imag[i];
+    }
+}

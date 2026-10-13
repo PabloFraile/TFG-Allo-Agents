@@ -1,0 +1,108 @@
+#include <cmath>
+
+// ---------------------------------------------------------------------------
+// FFT radix-2 (Cooley-Tukey), N = 1024 puntos, complejo -> complejo
+// Implementación iterativa (decimación en el tiempo) con:
+//   1) Permutación bit-reversed de la entrada
+//   2) log2(N) etapas de mariposas, cada una un bucle pipelineado (II=1)
+//      operando sobre un par de buffers ping-pong (evita conflictos de
+//      puerto de BRAM al leer/escribir en el mismo array)
+//   3) Copia final al puerto de salida
+// ---------------------------------------------------------------------------
+
+#define FFT_N 1024
+#define FFT_LOG2N 10
+
+static inline int bit_reverse10(int x) {
+#pragma HLS INLINE
+    int r = 0;
+    for (int i = 0; i < FFT_LOG2N; i++) {
+#pragma HLS UNROLL
+        r = (r << 1) | (x & 1);
+        x >>= 1;
+    }
+    return r;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+) {
+    // Buffers ping-pong internos (BRAM), partidos en la dimensión de banco
+    // para que cada mitad sea una memoria de doble puerto independiente.
+    static float bufR[2][FFT_N];
+    static float bufI[2][FFT_N];
+#pragma HLS ARRAY_PARTITION variable=bufR complete dim=1
+#pragma HLS ARRAY_PARTITION variable=bufI complete dim=1
+
+    float cosT[FFT_N / 2];
+    float sinT[FFT_N / 2];
+
+    const float PI = 3.14159265358979323846f;
+
+    // ---- Tabla de factores twiddle (ROM calculada una vez por llamada) ----
+twiddle_loop:
+    for (int k = 0; k < FFT_N / 2; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = -2.0f * PI * (float)k / (float)FFT_N;
+        cosT[k] = cosf(angle);
+        sinT[k] = sinf(angle);
+    }
+
+    // ---- Permutación bit-reversed de la entrada hacia el banco 0 ----
+bitrev_loop:
+    for (int n = 0; n < FFT_N; n++) {
+#pragma HLS PIPELINE II=1
+        int r = bit_reverse10(n);
+        bufR[0][r] = x_real[n];
+        bufI[0][r] = x_imag[n];
+    }
+
+    int cur = 0;
+
+    // ---- Etapas de mariposas radix-2 ----
+stage_loop:
+    for (int s = 0; s < FFT_LOG2N; s++) {
+        const int half = 1 << s;          // mitad de la longitud de bloque
+        const int step = (FFT_N >> 1) >> s; // paso en la tabla de twiddles
+        const int nxt  = 1 - cur;
+
+    butterfly_loop:
+        for (int k = 0; k < FFT_N / 2; k++) {
+#pragma HLS PIPELINE II=1
+            int group = k >> s;                 // k / half
+            int j     = k & (half - 1);          // k % half
+            int i     = (group << (s + 1)) + j;  // group*len + j
+
+            int twIdx = j * step;
+
+            float wr = cosT[twIdx];
+            float wi = sinT[twIdx];
+
+            float ur  = bufR[cur][i];
+            float ui  = bufI[cur][i];
+            float vr0 = bufR[cur][i + half];
+            float vi0 = bufI[cur][i + half];
+
+            float vr = vr0 * wr - vi0 * wi;
+            float vi = vr0 * wi + vi0 * wr;
+
+            bufR[nxt][i]        = ur + vr;
+            bufI[nxt][i]        = ui + vi;
+            bufR[nxt][i + half] = ur - vr;
+            bufI[nxt][i + half] = ui - vi;
+        }
+
+        cur = nxt;
+    }
+
+    // ---- Copia del resultado final a los puertos de salida ----
+output_loop:
+    for (int n = 0; n < FFT_N; n++) {
+#pragma HLS PIPELINE II=1
+        y_real[n] = bufR[cur][n];
+        y_imag[n] = bufI[cur][n];
+    }
+}

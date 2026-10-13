@@ -1,0 +1,112 @@
+#include <hls_math.h>
+
+// ---------------------------------------------------------------------------
+// FFT radix-2 (Cooley-Tukey, Decimation-In-Time, iterativa) para N = 1024
+// ---------------------------------------------------------------------------
+//  - Reordenamiento bit-reversal de la entrada.
+//  - 10 etapas de mariposas radix-2 (log2(1024) = 10), cada una como un bucle
+//    aplanado de 512 mariposas, totalmente pipelineado (II objetivo = 1,
+//    muy por debajo del límite de II <= 20 exigido).
+//  - Factores de giro (twiddle factors) calculados una vez por invocación
+//    mediante hls::sinf/hls::cosf (no se usa división en tiempo de síntesis:
+//    el ángulo se obtiene multiplicando por una constante precalculada).
+// ---------------------------------------------------------------------------
+
+static const int kN = 1024;
+
+// Reversión de los 10 bits de índice (log2(1024) = 10), totalmente desenrollada.
+static inline int bitrev10(int x) {
+#pragma HLS INLINE
+    int r = 0;
+BITREV_BITS:
+    for (int b = 0; b < 10; b++) {
+#pragma HLS UNROLL
+        r = (r << 1) | (x & 1);
+        x >>= 1;
+    }
+    return r;
+}
+
+// Una etapa de mariposas radix-2, con HALF y TWSTEP conocidos en tiempo de
+// compilación (una instancia por etapa -> aritmética de direcciones barata).
+template <int HALF, int TWSTEP>
+static void fft_stage(float xr[kN], float xi[kN],
+                       const float twr[kN / 2], const float twi[kN / 2]) {
+#pragma HLS INLINE
+    const int M = HALF * 2;
+
+STAGE_LOOP:
+    for (int i = 0; i < kN / 2; i++) {
+#pragma HLS PIPELINE II=1
+        int group = i / HALF;      // HALF es constante de plantilla -> shift
+        int j     = i % HALF;      // idem -> mask
+        int k     = group * M + j;
+        int idx   = j * TWSTEP;
+
+        float ar = xr[k];
+        float ai = xi[k];
+        float br = xr[k + HALF];
+        float bi = xi[k + HALF];
+        float wr = twr[idx];
+        float wi = twi[idx];
+
+        float tr = wr * br - wi * bi;
+        float ti = wr * bi + wi * br;
+
+        xr[k]        = ar + tr;
+        xi[k]        = ai + ti;
+        xr[k + HALF] = ar - tr;
+        xi[k + HALF] = ai - ti;
+    }
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024])
+{
+    float xr[kN];
+    float xi[kN];
+    float twr[kN / 2];
+    float twi[kN / 2];
+
+    // ---- 1) Cálculo de factores de giro W_N^k = exp(-j*2*pi*k/N) ----------
+    const float kAngStep = -2.0f * 3.14159265358979323846f / (float)kN;
+TW_LOOP:
+    for (int k = 0; k < kN / 2; k++) {
+#pragma HLS PIPELINE II=1
+        float ang = (float)k * kAngStep;
+        twr[k] = hls::cosf(ang);
+        twi[k] = hls::sinf(ang);
+    }
+
+    // ---- 2) Reordenamiento bit-reversal de la entrada ----------------------
+BITREV_LOOP:
+    for (int i = 0; i < kN; i++) {
+#pragma HLS PIPELINE II=1
+        int r = bitrev10(i);
+        xr[r] = x_real[i];
+        xi[r] = x_imag[i];
+    }
+
+    // ---- 3) 10 etapas de mariposas radix-2 (log2(1024) = 10) ---------------
+    fft_stage<1,   512>(xr, xi, twr, twi);
+    fft_stage<2,   256>(xr, xi, twr, twi);
+    fft_stage<4,   128>(xr, xi, twr, twi);
+    fft_stage<8,    64>(xr, xi, twr, twi);
+    fft_stage<16,   32>(xr, xi, twr, twi);
+    fft_stage<32,   16>(xr, xi, twr, twi);
+    fft_stage<64,    8>(xr, xi, twr, twi);
+    fft_stage<128,   4>(xr, xi, twr, twi);
+    fft_stage<256,   2>(xr, xi, twr, twi);
+    fft_stage<512,   1>(xr, xi, twr, twi);
+
+    // ---- 4) Escritura de resultados -----------------------------------------
+OUT_LOOP:
+    for (int i = 0; i < kN; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = xr[i];
+        y_imag[i] = xi[i];
+    }
+}

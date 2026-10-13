@@ -1,0 +1,91 @@
+// kernel.cpp
+// Radix-2 Cooley-Tukey FFT (Decimation-In-Time, iterative), N = 1024 points.
+// Target: AMD/Xilinx Vitis HLS 2023.1, xcu280-fsvh2892-2L-e, clk period 3.33 ns.
+// Constraint: II <= 20 on every pipelined loop.
+
+#include <hls_math.h>
+
+#define FFT_N     1024
+#define FFT_LOG2N 10
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024])
+{
+    // Local twiddle-factor tables: W_N^k = exp(-j*2*pi*k/N), k = 0..N/2-1
+    float twiddle_re[FFT_N / 2];
+    float twiddle_im[FFT_N / 2];
+
+    const float PI = 3.14159265358979323846f;
+
+    // ------------------------------------------------------------------
+    // 1) Precompute twiddle factors
+    // ------------------------------------------------------------------
+    twiddle_loop:
+    for (int k = 0; k < FFT_N / 2; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = (-2.0f * PI * (float)k) / (float)FFT_N;
+        twiddle_re[k] = hls::cosf(angle);
+        twiddle_im[k] = hls::sinf(angle);
+    }
+
+    // ------------------------------------------------------------------
+    // 2) Bit-reversal permutation: y[i] = x[bitrev(i)]
+    //    (x and y are distinct arrays, so no in-place swap hazards)
+    // ------------------------------------------------------------------
+    bitrev_loop:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        unsigned int idx = (unsigned int)i;
+        unsigned int rev = 0;
+        bitrev_unroll:
+        for (int b = 0; b < FFT_LOG2N; b++) {
+#pragma HLS UNROLL
+            rev = (rev << 1) | (idx & 0x1u);
+            idx >>= 1;
+        }
+        y_real[i] = x_real[rev];
+        y_imag[i] = x_imag[rev];
+    }
+
+    // ------------------------------------------------------------------
+    // 3) Iterative radix-2 DIT butterflies, log2(N) stages
+    // ------------------------------------------------------------------
+    stage_loop:
+    for (int stage = 1; stage <= FFT_LOG2N; stage++) {
+        int half_m    = 1 << (stage - 1);   // distance between butterfly partners
+        int m         = half_m << 1;        // size of current sub-FFT
+        int tw_stride = FFT_N / m;          // step between used twiddle indices
+
+        group_loop:
+        for (int k = 0; k < FFT_N; k += m) {
+
+            butterfly_loop:
+            for (int j = 0; j < half_m; j++) {
+#pragma HLS PIPELINE II=1
+                int idx0 = k + j;
+                int idx1 = idx0 + half_m;
+                int tidx = j * tw_stride;
+
+                float a_re = y_real[idx0];
+                float a_im = y_imag[idx0];
+                float b_re = y_real[idx1];
+                float b_im = y_imag[idx1];
+
+                float t_re = twiddle_re[tidx];
+                float t_im = twiddle_im[tidx];
+
+                // complex multiply: bt = b * t
+                float bt_re = b_re * t_re - b_im * t_im;
+                float bt_im = b_re * t_im + b_im * t_re;
+
+                y_real[idx0] = a_re + bt_re;
+                y_imag[idx0] = a_im + bt_im;
+                y_real[idx1] = a_re - bt_re;
+                y_imag[idx1] = a_im - bt_im;
+            }
+        }
+    }
+}

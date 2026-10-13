@@ -1,0 +1,117 @@
+#include "hls_math.h"
+
+#define FFT_N    1024
+#define FFT_LOGN 10
+
+// -----------------------------------------------------------------------
+// fft_radix2
+//
+// Iterative radix-2 Cooley-Tukey (decimation-in-time) FFT, N = 1024.
+// Steps:
+//   1) Precompute twiddle factor table (cos/sin) for k = 0 .. N/2-1.
+//   2) Load input into an internal buffer applying bit-reversal
+//      permutation (standard DIT requirement).
+//   3) Run log2(N) butterfly stages in place on the internal buffer.
+//   4) Write the internal buffer out to the output ports.
+//
+// All index arithmetic inside the pipelined stage loop is done with
+// shifts/masks only (half and the twiddle stride are powers of two),
+// so there are no expensive runtime dividers inside the pipelined
+// region, which keeps II low. Internal buffers are fully partitioned
+// so every butterfly access (two reads + two writes per iteration)
+// can be serviced in a single cycle, allowing II=1 on every pipelined
+// loop -- comfortably below the II<=20 target.
+// -----------------------------------------------------------------------
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+)
+{
+    float buf_real[FFT_N];
+    float buf_imag[FFT_N];
+#pragma HLS ARRAY_PARTITION variable=buf_real complete dim=1
+#pragma HLS ARRAY_PARTITION variable=buf_imag complete dim=1
+
+    float tw_cos[FFT_N / 2];
+    float tw_sin[FFT_N / 2];
+#pragma HLS ARRAY_PARTITION variable=tw_cos complete dim=1
+#pragma HLS ARRAY_PARTITION variable=tw_sin complete dim=1
+
+    const float PI = 3.14159265358979323846f;
+
+    // ---------------------------------------------------------------
+    // 1) Twiddle factor table: W_N^k = exp(-j*2*pi*k/N), k=0..N/2-1
+    // ---------------------------------------------------------------
+    TWIDDLE_LOOP:
+    for (int k = 0; k < FFT_N / 2; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = -2.0f * PI * (float)k / (float)FFT_N;
+        tw_cos[k] = hls::cosf(angle);
+        tw_sin[k] = hls::sinf(angle);
+    }
+
+    // ---------------------------------------------------------------
+    // 2) Load with bit-reversal permutation
+    // ---------------------------------------------------------------
+    BITREV_LOOP:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        int rev = 0;
+        int ii = i;
+        for (int b = 0; b < FFT_LOGN; b++) {
+#pragma HLS UNROLL
+            rev = (rev << 1) | (ii & 1);
+            ii >>= 1;
+        }
+        buf_real[i] = x_real[rev];
+        buf_imag[i] = x_imag[rev];
+    }
+
+    // ---------------------------------------------------------------
+    // 3) Iterative radix-2 DIT butterfly stages
+    // ---------------------------------------------------------------
+    for (int s = 1; s <= FFT_LOGN; s++) {
+        const int shift    = s - 1;      // log2(half)
+        const int half     = 1 << shift; // butterfly half-size (2^(s-1))
+        const int tw_shift = FFT_LOGN - s; // log2(N/m) where m = 2^s
+
+        STAGE_LOOP:
+        for (int i = 0; i < FFT_N / 2; i++) {
+#pragma HLS PIPELINE II=1
+            int j    = i & (half - 1);          // position within butterfly group
+            int k    = (i >> shift) << s;        // base index of the group
+            int idx1 = k + j;
+            int idx2 = idx1 + half;
+            int tw_idx = j << tw_shift;          // j * (N/m)
+
+            float wr = tw_cos[tw_idx];
+            float wi = tw_sin[tw_idx];
+
+            float xr2 = buf_real[idx2];
+            float xi2 = buf_imag[idx2];
+
+            float tr = wr * xr2 - wi * xi2;
+            float ti = wr * xi2 + wi * xr2;
+
+            float xr1 = buf_real[idx1];
+            float xi1 = buf_imag[idx1];
+
+            buf_real[idx1] = xr1 + tr;
+            buf_imag[idx1] = xi1 + ti;
+            buf_real[idx2] = xr1 - tr;
+            buf_imag[idx2] = xi1 - ti;
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // 4) Store results to outputs
+    // ---------------------------------------------------------------
+    OUT_LOOP:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = buf_real[i];
+        y_imag[i] = buf_imag[i];
+    }
+}

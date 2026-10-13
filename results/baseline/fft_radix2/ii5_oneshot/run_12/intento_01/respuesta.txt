@@ -1,0 +1,128 @@
+```cpp
+// kernel.cpp
+// FFT radix-2 (Cooley-Tukey, Decimation-In-Time, iterativa, in-place)
+// N = 1024 puntos, entrada/salida compleja (parte real e imaginaria separadas).
+//
+// Target: xcu280-fsvh2892-2L-e, periodo de reloj 3.33 ns (~300 MHz), II <= 5
+// en todos los bucles pipelineados.
+
+#include <hls_math.h>
+
+static const int FFT_N    = 1024;
+static const int FFT_LOGN = 10;      // log2(1024)
+static const int FFT_HALF = FFT_N / 2;
+
+static const float PI_F = 3.14159265358979323846f;
+
+// ---------------------------------------------------------------------
+// Inversion de bits de 10 bits (totalmente combinacional, se desenrolla)
+// ---------------------------------------------------------------------
+static int bit_reverse10(int x) {
+#pragma HLS INLINE
+    int r = 0;
+BITREV_UNROLL:
+    for (int b = 0; b < FFT_LOGN; b++) {
+#pragma HLS UNROLL
+        r = (r << 1) | (x & 1);
+        x >>= 1;
+    }
+    return r;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+) {
+    // Buffers ping-pong internos: banco 0 = A, banco 1 = B.
+    // El uso de dos bancos (dim completamente particionada) permite,
+    // en cada ciclo, 2 lecturas del banco "src" y 2 escrituras del banco
+    // "dst" sin crear conflictos de puertos (BRAM de doble puerto real).
+    float buf_real[2][FFT_N];
+    float buf_imag[2][FFT_N];
+#pragma HLS ARRAY_PARTITION variable=buf_real dim=1 complete
+#pragma HLS ARRAY_PARTITION variable=buf_imag dim=1 complete
+#pragma HLS BIND_STORAGE variable=buf_real type=RAM_2P impl=bram
+#pragma HLS BIND_STORAGE variable=buf_imag type=RAM_2P impl=bram
+
+    // Tabla de factores de giro (twiddle factors): W_N^k = exp(-j*2*pi*k/N)
+    // para k = 0 .. N/2-1. Se calcula una sola vez con hls::sinf/cosf
+    // (IP transcendental segmentada) y se reutiliza en todas las etapas.
+    float Twr[FFT_HALF];
+    float Twi[FFT_HALF];
+#pragma HLS BIND_STORAGE variable=Twr type=RAM_1P impl=bram
+#pragma HLS BIND_STORAGE variable=Twi type=RAM_1P impl=bram
+
+TWIDDLE_INIT:
+    for (int k = 0; k < FFT_HALF; k++) {
+#pragma HLS PIPELINE II=1
+        float ang = (-2.0f * PI_F * (float)k) / (float)FFT_N;
+        Twr[k] = hls::cosf(ang);
+        Twi[k] = hls::sinf(ang);
+    }
+
+    // ---------------------------------------------------------------
+    // Paso 1: copia con inversion de bits hacia el banco A (indice 0)
+    // ---------------------------------------------------------------
+BITREV_COPY:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        int j = bit_reverse10(i);
+        buf_real[0][i] = x_real[j];
+        buf_imag[0][i] = x_imag[j];
+    }
+
+    // ---------------------------------------------------------------
+    // Paso 2: FFT_LOGN etapas de mariposas radix-2 (Cooley-Tukey DIT)
+    // ---------------------------------------------------------------
+STAGE_LOOP:
+    for (int s = 1; s <= FFT_LOGN; s++) {
+        const int src      = (s - 1) & 1;   // banco de lectura
+        const int dst       = src ^ 1;       // banco de escritura
+        const int shift      = s - 1;          // log2(half)
+        const int half       = 1 << shift;      // tamano de la mitad de bloque
+        const int tw_stride  = FFT_N >> s;      // paso dentro de la tabla de twiddles
+
+    BUTTERFLY_LOOP:
+        for (int idx = 0; idx < FFT_HALF; idx++) {
+#pragma HLS PIPELINE II=1
+            int j = idx & (half - 1);     // posicion dentro del medio bloque
+            int b = idx >> shift;         // indice de bloque
+            int k = b << (shift + 1);     // inicio del bloque (b * m)
+
+            int twIdx = j * tw_stride;
+
+            float wr = Twr[twIdx];
+            float wi = Twi[twIdx];
+
+            float ar = buf_real[src][k + j];
+            float ai = buf_imag[src][k + j];
+            float br = buf_real[src][k + j + half];
+            float bi = buf_imag[src][k + j + half];
+
+            float tr = br * wr - bi * wi;
+            float ti = br * wi + bi * wr;
+
+            buf_real[dst][k + j]        = ar + tr;
+            buf_imag[dst][k + j]        = ai + ti;
+            buf_real[dst][k + j + half] = ar - tr;
+            buf_imag[dst][k + j + half] = ai - ti;
+        }
+    }
+
+    // Tras un numero par de etapas (FFT_LOGN = 10) el resultado final
+    // queda en el banco 0 (A).
+    const int final_buf = (FFT_LOGN % 2 == 0) ? 0 : 1;
+
+    // ---------------------------------------------------------------
+    // Paso 3: volcado del resultado a las salidas
+    // ---------------------------------------------------------------
+OUTPUT_COPY:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = buf_real[final_buf][i];
+        y_imag[i] = buf_imag[final_buf][i];
+    }
+}
+```

@@ -1,0 +1,115 @@
+#include <cmath>
+
+// ---------------------------------------------------------------------------
+// FFT radix-2 (Cooley-Tukey, Decimation In Time), N = 1024 puntos, complejos.
+// ---------------------------------------------------------------------------
+
+static const int N    = 1024;
+static const int LOGN = 10;          // log2(1024)
+static const float PI = 3.14159265358979323846f;
+
+// Inversion de bits de un indice de LOGN bits (combinacional, totalmente
+// desenrollada).
+static unsigned bit_reverse(unsigned x, int bits) {
+#pragma HLS INLINE
+    unsigned r = 0;
+    for (int i = 0; i < bits; i++) {
+#pragma HLS UNROLL
+        r = (r << 1) | (x & 1u);
+        x >>= 1;
+    }
+    return r;
+}
+
+// Una etapa completa de mariposas radix-2: lee de (src_re,src_im) y escribe
+// en (dst_re,dst_im). Al usar dos buffers distintos (ping-pong) cada array
+// solo necesita 2 lecturas o 2 escrituras por ciclo, lo que casa
+// perfectamente con una BRAM de doble puerto y permite II=1.
+static void fft_stage(const float src_re[N], const float src_im[N],
+                       float dst_re[N], float dst_im[N],
+                       const float tw_re[N / 2], const float tw_im[N / 2],
+                       int half, int stride) {
+#pragma HLS INLINE
+    int m = half << 1;
+
+    for (int k = 0; k < N; k += m) {
+        for (int j = 0; j < half; j++) {
+#pragma HLS PIPELINE II=1
+            int idx = j * stride;
+            float w_re = tw_re[idx];
+            float w_im = tw_im[idx];
+
+            int i0 = k + j;
+            int i1 = i0 + half;
+
+            float u_re = src_re[i0];
+            float u_im = src_im[i0];
+            float v_re = src_re[i1];
+            float v_im = src_im[i1];
+
+            float t_re = w_re * v_re - w_im * v_im;
+            float t_im = w_re * v_im + w_im * v_re;
+
+            dst_re[i0] = u_re + t_re;
+            dst_im[i0] = u_im + t_im;
+            dst_re[i1] = u_re - t_re;
+            dst_im[i1] = u_im - t_im;
+        }
+    }
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+) {
+    // Buffers ping-pong en BRAM local
+    static float buf0_re[N], buf0_im[N];
+    static float buf1_re[N], buf1_im[N];
+
+    // Tabla de factores de giro: tw[k] = exp(-2*pi*i*k/N), k = 0..N/2-1
+    static float tw_re[N / 2];
+    static float tw_im[N / 2];
+
+twiddle_init:
+    for (int k = 0; k < N / 2; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = -2.0f * PI * (float)k / (float)N;
+        tw_re[k] = cosf(angle);
+        tw_im[k] = sinf(angle);
+    }
+
+    // Carga de entrada con permutacion por inversion de bits -> buf0
+bitrev_load:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=1
+        unsigned ridx = bit_reverse((unsigned)i, LOGN);
+        buf0_re[ridx] = x_real[i];
+        buf0_im[ridx] = x_imag[i];
+    }
+
+    // Etapas iterativas radix-2 (ping-pong entre buf0 y buf1)
+    bool use_buf0_as_src = true;
+
+stage_loop:
+    for (int s = 1; s <= LOGN; s++) {
+        int half   = 1 << (s - 1);
+        int stride = N >> s;
+
+        if (use_buf0_as_src) {
+            fft_stage(buf0_re, buf0_im, buf1_re, buf1_im, tw_re, tw_im, half, stride);
+        } else {
+            fft_stage(buf1_re, buf1_im, buf0_re, buf0_im, tw_re, tw_im, half, stride);
+        }
+        use_buf0_as_src = !use_buf0_as_src;
+    }
+
+    // LOGN es par -> tras las 10 etapas el resultado final vuelve a estar en buf0
+output_write:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = buf0_re[i];
+        y_imag[i] = buf0_im[i];
+    }
+}

@@ -27,3 +27,7 @@ results/catalogo/*.log
 Thumbs.db
 .vscode/
 .idea/
+
+# --- Baseline (Claude -> HLS C++ -> Vitis): proyectos HLS completos, ocupan mucho ---
+results/baseline/**/proj/
+results/baseline/**/csim.out

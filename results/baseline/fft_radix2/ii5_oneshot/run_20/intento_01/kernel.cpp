@@ -1,0 +1,108 @@
+// kernel.cpp
+// FFT radix-2 Cooley-Tukey, N=1024 puntos, entrada/salida complejas.
+// Implementacion iterativa (Decimation In Time) con reordenado bit-reversal,
+// tabla de factores "twiddle" precalculada y 10 etapas de mariposas.
+
+#include <cmath>
+#include "hls_math.h"
+
+#define FFT_N     1024
+#define FFT_LOGN  10
+#define FFT_HALF  (FFT_N / 2)
+
+// Inversion de bits de 'x' usando 'bits' bits (bits = FFT_LOGN = 10, fijo).
+// Se instancia como logica combinacional pequena (10 iteraciones, totalmente
+// desenrollada) dentro del bucle de reordenado.
+static inline unsigned bit_reverse(unsigned x, int bits) {
+    unsigned r = 0;
+BITREV_UNROLL:
+    for (int i = 0; i < bits; i++) {
+#pragma HLS UNROLL
+        r = (r << 1) | (x & 1u);
+        x >>= 1;
+    }
+    return r;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024])
+{
+    // Buffers internos de trabajo (BRAM)
+    float re[FFT_N];
+    float im[FFT_N];
+
+    // Tablas de senos/cosenos para los factores "twiddle"
+    // W_N^k = exp(-2*pi*i*k/N), k = 0 .. N/2-1
+    float cos_tab[FFT_HALF];
+    float sin_tab[FFT_HALF];
+
+#pragma HLS DEPENDENCE variable=re inter false
+#pragma HLS DEPENDENCE variable=im inter false
+
+    // ---- 1) Precalculo de la tabla de twiddles ----
+TWIDDLE_LOOP:
+    for (int k = 0; k < FFT_HALF; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = (float)(-2.0 * M_PI * (double)k / (double)FFT_N);
+        cos_tab[k] = hls::cosf(angle);
+        sin_tab[k] = hls::sinf(angle);
+    }
+
+    // ---- 2) Reordenado bit-reversal de la entrada ----
+BITREV_LOOP:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        unsigned ridx = bit_reverse((unsigned)i, FFT_LOGN);
+        re[i] = x_real[ridx];
+        im[i] = x_imag[ridx];
+    }
+
+    // ---- 3) Etapas de mariposas radix-2 (DIT) ----
+STAGE_LOOP:
+    for (int stage = 0; stage < FFT_LOGN; stage++) {
+        int half_m = 1 << stage;          // tamano de medio bloque
+        int m      = half_m << 1;         // tamano de bloque completo
+        int step   = FFT_N / m;           // paso en la tabla de twiddles
+        int mask   = half_m - 1;
+
+    BUTTERFLY_LOOP:
+        for (int k = 0; k < FFT_HALF; k++) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=512 max=512
+
+            int j     = k & mask;          // posicion dentro del medio bloque
+            int group = k >> stage;        // indice de bloque (k / half_m)
+            int idx1  = group * m + j;
+            int idx2  = idx1 + half_m;
+            int twidx = j * step;
+
+            float c = cos_tab[twidx];
+            float s = sin_tab[twidx];
+
+            float are = re[idx2];
+            float aim = im[idx2];
+
+            float tre = are * c - aim * s;
+            float tim = are * s + aim * c;
+
+            float ure = re[idx1];
+            float uim = im[idx1];
+
+            re[idx1] = ure + tre;
+            im[idx1] = uim + tim;
+            re[idx2] = ure - tre;
+            im[idx2] = uim - tim;
+        }
+    }
+
+    // ---- 4) Escritura del resultado ----
+OUT_LOOP:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = re[i];
+        y_imag[i] = im[i];
+    }
+}

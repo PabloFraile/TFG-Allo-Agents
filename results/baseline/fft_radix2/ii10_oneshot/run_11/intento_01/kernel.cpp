@@ -1,0 +1,110 @@
+// kernel.cpp
+// Radix-2 Cooley-Tukey FFT (Decimation-In-Time, iterative), N = 1024 points.
+// Target: AMD/Xilinx Vitis HLS 2023.1, device xcu280-fsvh2892-2L-e,
+// clock period 3.33 ns, II <= 10 on every pipelined loop.
+
+#include <hls_math.h>
+
+#define FFT_N    1024
+#define FFT_LOGN 10
+
+static const float PI_F = 3.14159265358979323846f;
+
+// Reverses the lowest FFT_LOGN bits of x. Fully unrolled (constant small loop),
+// used only inside pipelined loops as combinational logic.
+static int bit_reverse(int x) {
+#pragma HLS INLINE
+    int result = 0;
+BITREV_UNROLL:
+    for (int b = 0; b < FFT_LOGN; b++) {
+#pragma HLS UNROLL
+        result = (result << 1) | (x & 1);
+        x >>= 1;
+    }
+    return result;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+) {
+    // Working buffers (mapped to on-chip BRAM by the tool).
+    float xr[FFT_N];
+    float xi[FFT_N];
+#pragma HLS ARRAY_PARTITION variable=xr type=complete dim=0 factor=1 off
+#pragma HLS ARRAY_PARTITION variable=xi type=complete dim=0 factor=1 off
+
+    // Twiddle factor table: W[k] = exp(-j*2*pi*k/N), k = 0 .. N/2-1.
+    float Wr[FFT_N / 2];
+    float Wi[FFT_N / 2];
+
+    // ---- Stage 0: precompute twiddle factors ----------------------------
+TWIDDLE_GEN:
+    for (int k = 0; k < FFT_N / 2; k++) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=512 max=512
+        float angle = -2.0f * PI_F * (float)k / (float)FFT_N;
+        Wr[k] = hls::cosf(angle);
+        Wi[k] = hls::sinf(angle);
+    }
+
+    // ---- Stage 1: bit-reversal permutation (load input) ------------------
+BITREV_LOAD:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=1024 max=1024
+        int j = bit_reverse(i);
+        xr[i] = x_real[j];
+        xi[i] = x_imag[j];
+    }
+
+    // ---- Stage 2: iterative radix-2 DIT butterflies -----------------------
+FFT_STAGES:
+    for (int s = 0; s < FFT_LOGN; s++) {
+        int m    = 1 << (s + 1);  // butterfly span for this stage
+        int half = m >> 1;        // distance between the two butterfly inputs
+        int step = FFT_N / m;     // twiddle table stride for this stage
+
+    FFT_BUTTERFLIES:
+        for (int i = 0; i < FFT_N / 2; i++) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=512 max=512
+#pragma HLS DEPENDENCE variable=xr intra false
+#pragma HLS DEPENDENCE variable=xi intra false
+
+            int j         = i & (half - 1);      // position inside the half-block
+            int blockBase = (i - j) << 1;         // start of the current m-sized block
+            int idx0      = blockBase + j;
+            int idx1      = idx0 + half;
+            int twIdx     = j * step;
+
+            float wr = Wr[twIdx];
+            float wi = Wi[twIdx];
+
+            float xr1 = xr[idx1];
+            float xi1 = xi[idx1];
+
+            float tr = wr * xr1 - wi * xi1;
+            float ti = wr * xi1 + wi * xr1;
+
+            float ur = xr[idx0];
+            float ui = xi[idx0];
+
+            xr[idx0] = ur + tr;
+            xi[idx0] = ui + ti;
+            xr[idx1] = ur - tr;
+            xi[idx1] = ui - ti;
+        }
+    }
+
+    // ---- Stage 3: write results out ---------------------------------------
+OUTPUT_STORE:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_TRIPCOUNT min=1024 max=1024
+        y_real[i] = xr[i];
+        y_imag[i] = xi[i];
+    }
+}

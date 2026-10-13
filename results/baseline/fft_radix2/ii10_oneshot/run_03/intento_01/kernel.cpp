@@ -1,0 +1,137 @@
+// kernel.cpp
+// Radix-2 Cooley-Tukey FFT (Decimation-In-Time, iterative), N = 1024
+// Target: AMD/Xilinx Vitis HLS 2023.1, xcu280-fsvh2892-2L-e, clk period 3.33 ns
+// Constraint: II <= 10 on every pipelined loop.
+
+#include <hls_math.h>
+
+#define N      1024
+#define LOGN   10          // log2(N)
+#define NH     (N / 2)      // number of twiddle factors
+
+// ---------------------------------------------------------------------------
+// Bit-reversal permutation of the input samples into the first working buffer
+// ---------------------------------------------------------------------------
+static void bit_reverse_copy(const float xr_in[N], const float xi_in[N],
+                              float xr_out[N], float xi_out[N]) {
+    for (int i = 0; i < N; i++) {
+        #pragma HLS PIPELINE II = 1
+        int rev = 0;
+        int idx = i;
+        for (int b = 0; b < LOGN; b++) {
+            #pragma HLS UNROLL
+            rev = (rev << 1) | (idx & 1);
+            idx >>= 1;
+        }
+        xr_out[rev] = xr_in[i];
+        xi_out[rev] = xi_in[i];
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Precompute the N/2 twiddle factors (forward FFT, matches numpy.fft.fft):
+//   W_N^k = cos(2*pi*k/N) - j*sin(2*pi*k/N)
+// cos_tab/sin_tab store the *positive*-angle cos/sin values; the sign for
+// the forward transform is applied where the twiddle is consumed.
+// ---------------------------------------------------------------------------
+static void build_twiddles(float cos_tab[NH], float sin_tab[NH]) {
+    for (int i = 0; i < NH; i++) {
+        #pragma HLS PIPELINE II = 1
+        float angle = (2.0f * (float)M_PI * (float)i) / (float)N;
+        cos_tab[i] = hls::cosf(angle);
+        sin_tab[i] = hls::sinf(angle);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// One FFT stage: reads the fully-updated "src" buffer and writes the fully
+// updated "dst" buffer (ping-pong), so there is never a read-after-write
+// hazard inside a stage -> each memory only needs either 2 read ports or
+// 2 write ports per cycle, which a dual-port BRAM provides, enabling a
+// tight pipelined II on the inner loop.
+// ---------------------------------------------------------------------------
+static void fft_stage(const float sr[N], const float si[N],
+                       float dr[N], float di[N],
+                       int m,
+                       const float cos_tab[NH], const float sin_tab[NH]) {
+    const int half_m  = m >> 1;
+    const int tw_step = N / m;
+
+    for (int k = 0; k < N; k += m) {
+        for (int j = 0; j < half_m; j++) {
+            #pragma HLS PIPELINE II = 1
+            const int idx1   = k + j;
+            const int idx2   = idx1 + half_m;
+            const int tw_idx = j * tw_step;
+
+            const float wr = cos_tab[tw_idx];
+            const float wi = -sin_tab[tw_idx];   // forward transform sign
+
+            const float xr2 = sr[idx2];
+            const float xi2 = si[idx2];
+
+            const float tr = xr2 * wr - xi2 * wi;
+            const float ti = xr2 * wi + xi2 * wr;
+
+            const float ur = sr[idx1];
+            const float ui = si[idx1];
+
+            dr[idx1] = ur + tr;
+            di[idx1] = ui + ti;
+            dr[idx2] = ur - tr;
+            di[idx2] = ui - ti;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Top-level kernel
+// ---------------------------------------------------------------------------
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024])
+{
+    #pragma HLS ARRAY_PARTITION variable=x_real cyclic factor=2 dim=1
+    #pragma HLS ARRAY_PARTITION variable=x_imag cyclic factor=2 dim=1
+    #pragma HLS ARRAY_PARTITION variable=y_real cyclic factor=2 dim=1
+    #pragma HLS ARRAY_PARTITION variable=y_imag cyclic factor=2 dim=1
+
+    float bufA_r[N], bufA_i[N];
+    float bufB_r[N], bufB_i[N];
+    float cos_tab[NH], sin_tab[NH];
+
+    #pragma HLS BIND_STORAGE variable=bufA_r type=ram_2p impl=bram
+    #pragma HLS BIND_STORAGE variable=bufA_i type=ram_2p impl=bram
+    #pragma HLS BIND_STORAGE variable=bufB_r type=ram_2p impl=bram
+    #pragma HLS BIND_STORAGE variable=bufB_i type=ram_2p impl=bram
+
+    // Precompute twiddle factors
+    build_twiddles(cos_tab, sin_tab);
+
+    // Stage 0: bit-reversal reorder of the input into bufA
+    bit_reverse_copy(x_real, x_imag, bufA_r, bufA_i);
+
+    // 10 explicit butterfly stages (m = 2,4,8,...,1024), ping-ponging
+    // between bufA and bufB so each buffer is always either pure-src
+    // (2 reads/cycle) or pure-dst (2 writes/cycle) within a stage.
+    fft_stage(bufA_r, bufA_i, bufB_r, bufB_i,    2, cos_tab, sin_tab);
+    fft_stage(bufB_r, bufB_i, bufA_r, bufA_i,    4, cos_tab, sin_tab);
+    fft_stage(bufA_r, bufA_i, bufB_r, bufB_i,    8, cos_tab, sin_tab);
+    fft_stage(bufB_r, bufB_i, bufA_r, bufA_i,   16, cos_tab, sin_tab);
+    fft_stage(bufA_r, bufA_i, bufB_r, bufB_i,   32, cos_tab, sin_tab);
+    fft_stage(bufB_r, bufB_i, bufA_r, bufA_i,   64, cos_tab, sin_tab);
+    fft_stage(bufA_r, bufA_i, bufB_r, bufB_i,  128, cos_tab, sin_tab);
+    fft_stage(bufB_r, bufB_i, bufA_r, bufA_i,  256, cos_tab, sin_tab);
+    fft_stage(bufA_r, bufA_i, bufB_r, bufB_i,  512, cos_tab, sin_tab);
+    fft_stage(bufB_r, bufB_i, bufA_r, bufA_i, 1024, cos_tab, sin_tab);
+
+    // Final result (after 10, i.e. an even number of, ping-pong swaps)
+    // resides in bufA.
+    for (int i = 0; i < N; i++) {
+        #pragma HLS PIPELINE II = 1
+        y_real[i] = bufA_r[i];
+        y_imag[i] = bufA_i[i];
+    }
+}

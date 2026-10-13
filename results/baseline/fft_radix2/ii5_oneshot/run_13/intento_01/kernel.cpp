@@ -1,0 +1,119 @@
+// kernel.cpp
+// FFT radix-2 (Cooley-Tukey, decimation-in-time), N = 1024 puntos.
+// Firma de top obligatoria: fft_radix2(x_real, x_imag, y_real, y_imag)
+
+#include "hls_math.h"
+
+static const int   FFT_N    = 1024;
+static const int   FFT_LOGN = 10;              // log2(1024)
+static const float FFT_PI   = 3.14159265358979323846f;
+
+// ---------------------------------------------------------------------------
+// Inversión de bits de un índice de 10 bits (para el reordenamiento DIT)
+// ---------------------------------------------------------------------------
+static inline int bit_reverse10(int x) {
+    int r = 0;
+#pragma HLS UNROLL
+    for (int b = 0; b < FFT_LOGN; b++) {
+        r = (r << 1) | (x & 1);
+        x >>= 1;
+    }
+    return r;
+}
+
+// ---------------------------------------------------------------------------
+// Una etapa de la FFT radix-2 (plantilla sobre la etapa S -> todo resuelto
+// en tiempo de compilación: tamaño de mariposa, buffers fuente/destino).
+// Lee de src_re/src_im (solo lectura) y escribe en dst_re/dst_im (solo
+// escritura) -> sin dependencias RAW en la misma memoria, lo que permite
+// II=1 en BRAMs de doble puerto.
+// ---------------------------------------------------------------------------
+template <int S>
+static void fft_stage(const float src_re[FFT_N], const float src_im[FFT_N],
+                       float dst_re[FFT_N], float dst_im[FFT_N],
+                       const float tw_re[FFT_N / 2], const float tw_im[FFT_N / 2]) {
+    const int m    = 1 << S;      // tamaño del sub-bloque en esta etapa
+    const int half  = m >> 1;      // distancia entre elementos de la mariposa
+    const int step  = FFT_N / m;   // paso en la tabla de twiddles
+
+    for (int idx = 0; idx < FFT_N / 2; idx++) {
+#pragma HLS PIPELINE II=1
+        int group = idx >> (S - 1);
+        int j     = idx & (half - 1);
+        int k     = group << S;
+
+        int idx1 = k + j;
+        int idx2 = idx1 + half;
+        int twi  = j * step;
+
+        float wr = tw_re[twi];
+        float wi = tw_im[twi];
+
+        float xr2 = src_re[idx2];
+        float xi2 = src_im[idx2];
+        float xr1 = src_re[idx1];
+        float xi1 = src_im[idx1];
+
+        float tr = xr2 * wr - xi2 * wi;
+        float ti = xr2 * wi + xi2 * wr;
+
+        dst_re[idx1] = xr1 + tr;
+        dst_im[idx1] = xi1 + ti;
+        dst_re[idx2] = xr1 - tr;
+        dst_im[idx2] = xi1 - ti;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Top-level
+// ---------------------------------------------------------------------------
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024])
+{
+    // Doble buffer ping-pong (evita hazards RAW en la misma BRAM)
+    static float bufA_re[FFT_N], bufA_im[FFT_N];
+    static float bufB_re[FFT_N], bufB_im[FFT_N];
+#pragma HLS ARRAY_PARTITION variable=bufA_re type=complete dim=0 factor=1
+    // (particiones completas no necesarias; se deja memoria simple de doble puerto)
+
+    static float tw_re[FFT_N / 2], tw_im[FFT_N / 2];
+
+    // --- 1. Tabla de factores de giro (twiddle factors) ---
+    for (int k = 0; k < FFT_N / 2; k++) {
+#pragma HLS PIPELINE II=5
+        float angle = (-2.0f * FFT_PI * (float)k) / (float)FFT_N;
+        tw_re[k] = hls::cosf(angle);
+        tw_im[k] = hls::sinf(angle);
+    }
+
+    // --- 2. Carga con reordenamiento bit-reversed (entrada para DIT) ---
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        int r = bit_reverse10(i);
+        bufA_re[i] = x_real[r];
+        bufA_im[i] = x_imag[r];
+    }
+
+    // --- 3. 10 etapas radix-2, ping-pong entre bufA y bufB ---
+    fft_stage<1>(bufA_re, bufA_im, bufB_re, bufB_im, tw_re, tw_im);
+    fft_stage<2>(bufB_re, bufB_im, bufA_re, bufA_im, tw_re, tw_im);
+    fft_stage<3>(bufA_re, bufA_im, bufB_re, bufB_im, tw_re, tw_im);
+    fft_stage<4>(bufB_re, bufB_im, bufA_re, bufA_im, tw_re, tw_im);
+    fft_stage<5>(bufA_re, bufA_im, bufB_re, bufB_im, tw_re, tw_im);
+    fft_stage<6>(bufB_re, bufB_im, bufA_re, bufA_im, tw_re, tw_im);
+    fft_stage<7>(bufA_re, bufA_im, bufB_re, bufB_im, tw_re, tw_im);
+    fft_stage<8>(bufB_re, bufB_im, bufA_re, bufA_im, tw_re, tw_im);
+    fft_stage<9>(bufA_re, bufA_im, bufB_re, bufB_im, tw_re, tw_im);
+    fft_stage<10>(bufB_re, bufB_im, bufA_re, bufA_im, tw_re, tw_im);
+    // 10 etapas (par) -> el resultado final queda en bufA
+
+    // --- 4. Escritura del resultado (orden natural, sin permutación final) ---
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = bufA_re[i];
+        y_imag[i] = bufA_im[i];
+    }
+}

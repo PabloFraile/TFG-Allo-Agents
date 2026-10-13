@@ -1,0 +1,121 @@
+```cpp
+// kernel.cpp
+// FFT radix-2 Cooley-Tukey (Decimation In Time), N = 1024 puntos, complejo -> complejo.
+// Target: xcu280-fsvh2892-2L-e, periodo de reloj 3.33 ns, II objetivo <= 5 en todo
+// bucle pipelineado.
+
+#include "hls_math.h"
+
+#define FFT_N     1024
+#define LOG2N     10
+#define HALF_N    (FFT_N / 2)
+
+// Bit-reversal de un índice de LOG2N bits. Es lógica puramente combinacional
+// (totalmente desplegada), por lo que no introduce ningún bucle adicional
+// que deba pipelinearse.
+static inline unsigned bit_reverse_idx(unsigned x) {
+    unsigned r = 0;
+#pragma HLS UNROLL
+    for (int i = 0; i < LOG2N; i++) {
+        r <<= 1;
+        r |= (x & 0x1u);
+        x >>= 1;
+    }
+    return r;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024])
+{
+    // Memoria local de trabajo (in-place), completamente particionada para
+    // permitir el acceso simultáneo a los dos operandos de cada mariposa
+    // (top = k+j, bot = top+half) sin conflictos de puerto de BRAM, ya que
+    // la distancia "half" entre ambos cambia en cada etapa (1,2,4,...,512).
+    float xr[FFT_N];
+    float xi[FFT_N];
+#pragma HLS ARRAY_PARTITION variable=xr complete dim=1
+#pragma HLS ARRAY_PARTITION variable=xi complete dim=1
+
+    // Tabla de factores de giro (twiddle factors) W_N^k = exp(-j*2*pi*k/N),
+    // k = 0..N/2-1. Se calcula una vez por invocación.
+    float tw_cos[HALF_N];
+    float tw_sin[HALF_N];
+#pragma HLS ARRAY_PARTITION variable=tw_cos complete dim=1
+#pragma HLS ARRAY_PARTITION variable=tw_sin complete dim=1
+
+    const float TWO_PI = 6.283185307179586f;
+
+twiddle_init:
+    for (int k = 0; k < HALF_N; k++) {
+#pragma HLS PIPELINE II=1
+        float angle = -(TWO_PI * (float)k) / (float)FFT_N;
+        tw_cos[k] = hls::cosf(angle);
+        tw_sin[k] = hls::sinf(angle);
+    }
+
+    // Carga de la entrada aplicando la permutación bit-reversed necesaria
+    // para el algoritmo DIT iterativo.
+load_bitrev:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        unsigned ridx = bit_reverse_idx((unsigned)i);
+        xr[i] = x_real[ridx];
+        xi[i] = x_imag[ridx];
+    }
+
+    // LOG2N etapas de mariposas radix-2. En cada etapa hay exactamente
+    // N/2 mariposas (independientes entre sí dentro de la misma etapa),
+    // repartidas en una rejilla rectangular (k,j) que se aplana (flatten)
+    // en un único bucle pipelineado de II=1.
+stage_loop:
+    for (int s = 1; s <= LOG2N; s++) {
+        int m    = 1 << s;     // tamaño de la sub-FFT en esta etapa
+        int half = m >> 1;     // distancia entre los dos elementos de cada mariposa
+        int step = FFT_N / m;  // paso dentro de la tabla de twiddle factors
+
+    k_loop:
+        for (int k = 0; k < FFT_N; k += m) {
+        j_loop:
+            for (int j = 0; j < half; j++) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_FLATTEN
+#pragma HLS DEPENDENCE variable=xr type=inter dependent=false
+#pragma HLS DEPENDENCE variable=xi type=inter dependent=false
+
+                int top = k + j;
+                int bot = top + half;
+                int tw  = j * step;
+
+                float c  = tw_cos[tw];
+                float sn = tw_sin[tw];
+
+                float br = xr[bot];
+                float bi = xi[bot];
+
+                // producto complejo: (br + j*bi) * (c + j*sn)
+                float tr = br * c - bi * sn;
+                float ti = br * sn + bi * c;
+
+                float ar = xr[top];
+                float ai = xi[top];
+
+                xr[top] = ar + tr;
+                xi[top] = ai + ti;
+                xr[bot] = ar - tr;
+                xi[bot] = ai - ti;
+            }
+        }
+    }
+
+    // Escritura de la salida (ya en orden natural tras las LOG2N etapas).
+store_out:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = xr[i];
+        y_imag[i] = xi[i];
+    }
+}
+```

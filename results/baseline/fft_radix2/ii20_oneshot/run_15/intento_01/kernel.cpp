@@ -1,0 +1,92 @@
+// kernel.cpp
+// Kernel FFT radix-2 (Cooley-Tukey, Decimation-In-Time) para N = 1024 puntos.
+// Implementa la FFT completa in-place: permutación bit-reversal, generación
+// de factores de giro (twiddle factors) y 10 etapas de mariposas radix-2.
+// Objetivo: II <= 20 en todos los bucles pipelineados (xcu280, Tclk = 3.33 ns).
+
+#include "hls_math.h"
+
+#define FFT_N    1024
+#define FFT_LOGN 10
+
+static const float PI_F = 3.14159265358979323846f;
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024])
+{
+    float real_buf[FFT_N];
+    float imag_buf[FFT_N];
+    float tw_real[FFT_N / 2];
+    float tw_imag[FFT_N / 2];
+
+    // Las lecturas/escrituras dentro de una misma etapa acceden siempre a
+    // posiciones distintas (idx_even/idx_odd son biyectivos sobre 0..N-1
+    // para cada k), por lo que no existe aliasing real entre iteraciones.
+    // Se indica a HLS que ignore la dependencia conservadora para permitir
+    // un II bajo.
+    #pragma HLS DEPENDENCE variable=real_buf inter false
+    #pragma HLS DEPENDENCE variable=imag_buf inter false
+
+    // 1) Carga de la entrada con permutación bit-reversal (DIT clásica)
+    bitrev_load: for (int i = 0; i < FFT_N; i++) {
+        #pragma HLS PIPELINE II=1
+        int rev = 0;
+        int idx = i;
+        for (int b = 0; b < FFT_LOGN; b++) {
+            rev = (rev << 1) | (idx & 1);
+            idx >>= 1;
+        }
+        real_buf[i] = x_real[rev];
+        imag_buf[i] = x_imag[rev];
+    }
+
+    // 2) Tabla de factores de giro W_N^k = exp(-j*2*pi*k/N), k = 0..N/2-1
+    twiddle_gen: for (int k = 0; k < FFT_N / 2; k++) {
+        #pragma HLS PIPELINE II=1
+        float angle = -2.0f * PI_F * (float)k / (float)FFT_N;
+        tw_real[k] = hls::cosf(angle);
+        tw_imag[k] = hls::sinf(angle);
+    }
+
+    // 3) Etapas iterativas Cooley-Tukey DIT (log2(N) = 10 etapas)
+    stage_loop: for (int s = 0; s < FFT_LOGN; s++) {
+        int span = 1 << s;              // tamaño medio del grupo de mariposas
+        int step = (FFT_N / 2) >> s;    // paso dentro de la tabla de twiddles
+
+        butterfly_loop: for (int k = 0; k < FFT_N / 2; k++) {
+            #pragma HLS PIPELINE II=20
+            int group     = k / span;
+            int j         = k - group * span;
+            int idx_even  = group * (span << 1) + j;
+            int idx_odd   = idx_even + span;
+            int tw_idx    = j * step;
+
+            float er  = real_buf[idx_even];
+            float ei  = imag_buf[idx_even];
+            float odr = real_buf[idx_odd];
+            float odi = imag_buf[idx_odd];
+
+            float wr = tw_real[tw_idx];
+            float wi = tw_imag[tw_idx];
+
+            // (odr + j*odi) * (wr + j*wi)
+            float tr = odr * wr - odi * wi;
+            float ti = odr * wi + odi * wr;
+
+            real_buf[idx_even] = er + tr;
+            imag_buf[idx_even] = ei + ti;
+            real_buf[idx_odd]  = er - tr;
+            imag_buf[idx_odd]  = ei - ti;
+        }
+    }
+
+    // 4) Escritura del resultado
+    store_out: for (int i = 0; i < FFT_N; i++) {
+        #pragma HLS PIPELINE II=1
+        y_real[i] = real_buf[i];
+        y_imag[i] = imag_buf[i];
+    }
+}

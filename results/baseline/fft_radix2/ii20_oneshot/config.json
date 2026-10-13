@@ -1,0 +1,54 @@
+{
+  "spec_ruta": "/home/pablo/TFG/specs/spec_example.yaml",
+  "spec": {
+    "bloque": "fft_radix2",
+    "descripcion": "Kernel de una mariposa FFT radix-2 (Cooley-Tukey), entrada compleja de N puntos, salida compleja de N puntos.\n",
+    "entradas": [
+      {
+        "nombre": "x_real",
+        "tipo": "allo.float32",
+        "forma": [
+          1024
+        ]
+      },
+      {
+        "nombre": "x_imag",
+        "tipo": "allo.float32",
+        "forma": [
+          1024
+        ]
+      }
+    ],
+    "salidas": [
+      {
+        "nombre": "y_real",
+        "tipo": "allo.float32",
+        "forma": [
+          1024
+        ]
+      },
+      {
+        "nombre": "y_imag",
+        "tipo": "allo.float32",
+        "forma": [
+          1024
+        ]
+      }
+    ],
+    "golden_model_id": "fft_numpy_reference",
+    "restricciones": {
+      "objetivo_ii": 20,
+      "throughput_min": "100e6"
+    }
+  },
+  "modo": "oneshot",
+  "max_iter": 6,
+  "n_vectores": 1,
+  "tolerancia": 0.001,
+  "part": "xcu280-fsvh2892-2L-e",
+  "periodo_reloj_ns": 3.33,
+  "flow_target": "vivado",
+  "timeout_s": 1800,
+  "modelo": "(por defecto del SDK)",
+  "system_prompt": "Eres un ingeniero experto en síntesis de alto nivel (HLS) para FPGA con\nAMD/Xilinx Vitis HLS 2023.1. Escribes código C++ sintetizable, correcto y\noptimizado con las directivas (#pragma HLS ...) que consideres oportunas.\n\nReglas de entrega:\n- Devuelve UN ÚNICO bloque de código ```cpp con el archivo kernel.cpp completo.\n- La función top debe tener EXACTAMENTE la firma que se te indica (mismo\n  nombre, mismos parámetros, mismo orden, mismos tipos).\n- No incluyas main() ni testbench: el testbench ya existe.\n- Puedes usar la biblioteca estándar de C++ soportada por Vitis HLS y las\n  cabeceras de Vitis (hls_math.h, ap_int.h, ap_fixed.h, hls_stream.h...).\n- No expliques nada fuera del bloque de código.\n"
+}

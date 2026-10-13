@@ -1,0 +1,87 @@
+#include <hls_math.h>
+
+// Reverses the low 10 bits of x (N = 1024 = 2^10). Fully unrolled,
+// purely combinational logic.
+static inline unsigned bit_reverse10(unsigned x) {
+    unsigned r = 0;
+    for (int i = 0; i < 10; i++) {
+#pragma HLS UNROLL
+        r = (r << 1) | (x & 1u);
+        x >>= 1;
+    }
+    return r;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+) {
+    const int N      = 1024;
+    const int STAGES = 10;      // log2(1024)
+    const float PI   = 3.14159265358979323846f;
+
+    float real[1024];
+    float imag[1024];
+
+    // ---------------------------------------------------------------
+    // Stage 0: load input applying the bit-reversal permutation
+    // ---------------------------------------------------------------
+    load_bitrev:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=1
+        unsigned ridx = bit_reverse10((unsigned)i);
+        real[i] = x_real[ridx];
+        imag[i] = x_imag[ridx];
+    }
+
+    // ---------------------------------------------------------------
+    // Iterative (in-place) radix-2 Cooley-Tukey DIT FFT.
+    // After bit-reversal, each stage merges pairs of sub-DFTs of
+    // size `half` into sub-DFTs of size `2*half` using N/2 butterflies.
+    // ---------------------------------------------------------------
+    stages:
+    for (int s = 0; s < STAGES; s++) {
+        int half  = 1 << s;          // size of already-combined sub-DFT
+        int tstep = 1 << (9 - s);    // step into the [0..511] twiddle range
+
+        butterflies:
+        for (int idx = 0; idx < N / 2; idx++) {
+#pragma HLS PIPELINE II=20
+            int j    = idx & (half - 1);
+            int base = (idx >> s) << (s + 1);
+            int idx1 = base + j;
+            int idx2 = idx1 + half;
+
+            int   k     = j * tstep;                 // 0 .. 511
+            float angle = -2.0f * PI * (float)k / (float)N;
+            float wr = hls::cosf(angle);
+            float wi = hls::sinf(angle);
+
+            float re1 = real[idx1];
+            float im1 = imag[idx1];
+            float re2 = real[idx2];
+            float im2 = imag[idx2];
+
+            // t = x[idx2] * W
+            float tr = re2 * wr - im2 * wi;
+            float ti = re2 * wi + im2 * wr;
+
+            real[idx1] = re1 + tr;
+            imag[idx1] = im1 + ti;
+            real[idx2] = re1 - tr;
+            imag[idx2] = im1 - ti;
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // Store results
+    // ---------------------------------------------------------------
+    store:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = real[i];
+        y_imag[i] = imag[i];
+    }
+}

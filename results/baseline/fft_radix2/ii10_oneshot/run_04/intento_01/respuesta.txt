@@ -1,0 +1,112 @@
+```cpp
+#include <cmath>
+
+// -----------------------------------------------------------------------
+// Radix-2 Cooley-Tukey FFT (Decimation In Time), N = 1024 points.
+// Forward transform, matching numpy.fft.fft convention:
+//   X[k] = sum_n x[n] * exp(-2*pi*i*k*n/N)
+// -----------------------------------------------------------------------
+
+#define FFT_N     1024
+#define FFT_LOGN  10
+
+static const float PI_F = 3.14159265358979323846f;
+
+static inline int bit_reverse(int x, int bits) {
+#pragma HLS INLINE
+    int result = 0;
+    for (int b = 0; b < bits; b++) {
+#pragma HLS UNROLL
+        result = (result << 1) | (x & 1);
+        x >>= 1;
+    }
+    return result;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024])
+{
+    float real_buf[FFT_N];
+    float imag_buf[FFT_N];
+    float tw_cos[FFT_N / 2];
+    float tw_sin[FFT_N / 2];
+
+#pragma HLS ARRAY_PARTITION variable=real_buf complete dim=1
+#pragma HLS ARRAY_PARTITION variable=imag_buf complete dim=1
+#pragma HLS ARRAY_PARTITION variable=tw_cos   complete dim=1
+#pragma HLS ARRAY_PARTITION variable=tw_sin   complete dim=1
+
+    // -------------------------------------------------------------
+    // 1. Twiddle factor table: exp(-j*2*pi*i/N) = cos(theta) - j*sin(theta)
+    // -------------------------------------------------------------
+    TWIDDLE_GEN:
+    for (int i = 0; i < FFT_N / 2; i++) {
+#pragma HLS PIPELINE II=1
+        float angle = (2.0f * PI_F * (float)i) / (float)FFT_N;
+        tw_cos[i] = cosf(angle);
+        tw_sin[i] = sinf(angle);
+    }
+
+    // -------------------------------------------------------------
+    // 2. Bit-reversal permutation (load input into working buffers)
+    // -------------------------------------------------------------
+    BITREV:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        int ridx = bit_reverse(i, FFT_LOGN);
+        real_buf[i] = x_real[ridx];
+        imag_buf[i] = x_imag[ridx];
+    }
+
+    // -------------------------------------------------------------
+    // 3. Iterative Cooley-Tukey radix-2 DIT FFT, log2(N) stages
+    // -------------------------------------------------------------
+    STAGE:
+    for (int stage = 0; stage < FFT_LOGN; stage++) {
+        int size      = 2 << stage;   // 2,4,8,...,1024
+        int halfsize  = size >> 1;
+        int tablestep = FFT_N / size;
+
+        GROUP:
+        for (int i = 0; i < FFT_N; i += size) {
+            BUTTERFLY:
+            for (int j = 0; j < halfsize; j++) {
+#pragma HLS PIPELINE II=1
+                int idxJ = i + j;
+                int idxL = idxJ + halfsize;
+                int k    = j * tablestep;
+
+                float lr = real_buf[idxL];
+                float li = imag_buf[idxL];
+                float c  = tw_cos[k];
+                float s  = tw_sin[k];
+
+                // (lr + j*li) * (c - j*s)
+                float tpre =  lr * c + li * s;
+                float tpim = -lr * s + li * c;
+
+                float jr = real_buf[idxJ];
+                float ji = imag_buf[idxJ];
+
+                real_buf[idxL] = jr - tpre;
+                imag_buf[idxL] = ji - tpim;
+                real_buf[idxJ] = jr + tpre;
+                imag_buf[idxJ] = ji + tpim;
+            }
+        }
+    }
+
+    // -------------------------------------------------------------
+    // 4. Write results to outputs
+    // -------------------------------------------------------------
+    OUTPUT:
+    for (int i = 0; i < FFT_N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = real_buf[i];
+        y_imag[i] = imag_buf[i];
+    }
+}
+```

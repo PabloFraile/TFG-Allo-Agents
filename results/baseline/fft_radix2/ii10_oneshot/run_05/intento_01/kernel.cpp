@@ -1,0 +1,142 @@
+// kernel.cpp
+// FFT radix-2 (Cooley-Tukey), decimacion en tiempo (DIT), N = 1024 puntos.
+// Algoritmo iterativo: permutacion bit-reversal + 10 etapas de mariposas,
+// usando doble buffer (ping-pong) para evitar conflictos de puerto en BRAM
+// y tabla de factores de giro (twiddle factors) precalculada.
+
+#include <cmath>
+#include <cstdint>
+
+static const int   N      = 1024;
+static const int   LOG2N  = 10;      // log2(1024)
+static const float PI_F   = 3.14159265358979323846f;
+
+// ---------------------------------------------------------------------------
+// Inversion de bits de un indice de 10 bits (combinacional, totalmente
+// desenrollable, se usa dentro de un bucle pipelineado con II=1).
+// ---------------------------------------------------------------------------
+static inline int bit_reverse10(int x) {
+#pragma HLS INLINE
+    int r = 0;
+#pragma HLS UNROLL
+    for (int b = 0; b < LOG2N; b++) {
+        r = (r << 1) | (x & 1);
+        x >>= 1;
+    }
+    return r;
+}
+
+// ---------------------------------------------------------------------------
+// Una etapa completa de mariposas radix-2 (todas las N/2 mariposas de la
+// etapa 's'). Lee de (src_r,src_i) y escribe en (dst_r,dst_i), que son
+// siempre arrays distintos (ping-pong), de modo que cada BRAM solo necesita
+// 2 lecturas O 2 escrituras por ciclo -> compatible con BRAM de doble puerto
+// y permite II=1 en el bucle interno.
+// ---------------------------------------------------------------------------
+static void fft_stage(const float src_r[N], const float src_i[N],
+                       float dst_r[N], float dst_i[N],
+                       int s,
+                       const float wr_tab[N / 2], const float wi_tab[N / 2]) {
+#pragma HLS INLINE
+    int m      = 1 << s;      // tamano de la mariposa en esta etapa
+    int half_m = m >> 1;
+    int stride = N / m;       // paso dentro de la tabla de twiddles
+
+    for (int k = 0; k < N; k += m) {
+        for (int j = 0; j < half_m; j++) {
+#pragma HLS PIPELINE II=1
+#pragma HLS LOOP_FLATTEN
+            int idx1 = k + j;
+            int idx2 = idx1 + half_m;
+            int tw   = j * stride;
+
+            float wr = wr_tab[tw];
+            float wi = wi_tab[tw];
+
+            float xr2 = src_r[idx2];
+            float xi2 = src_i[idx2];
+
+            // producto complejo (xr2 + i*xi2) * (wr + i*wi)
+            float tr = xr2 * wr - xi2 * wi;
+            float ti = xr2 * wi + xi2 * wr;
+
+            float xr1 = src_r[idx1];
+            float xi1 = src_i[idx1];
+
+            dst_r[idx1] = xr1 + tr;
+            dst_i[idx1] = xi1 + ti;
+            dst_r[idx2] = xr1 - tr;
+            dst_i[idx2] = xi1 - ti;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Top-level: FFT radix-2 iterativa de 1024 puntos complejos.
+// ---------------------------------------------------------------------------
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024])
+{
+#pragma HLS INTERFACE ap_memory  port=x_real
+#pragma HLS INTERFACE ap_memory  port=x_imag
+#pragma HLS INTERFACE ap_memory  port=y_real
+#pragma HLS INTERFACE ap_memory  port=y_imag
+
+    // Buffers internos (doble buffer / ping-pong) y tabla de twiddles
+    float realA[N], imagA[N];
+    float realB[N], imagB[N];
+    float wr_tab[N / 2], wi_tab[N / 2];
+
+#pragma HLS BIND_STORAGE variable=realA type=RAM_T2P impl=bram
+#pragma HLS BIND_STORAGE variable=imagA type=RAM_T2P impl=bram
+#pragma HLS BIND_STORAGE variable=realB type=RAM_T2P impl=bram
+#pragma HLS BIND_STORAGE variable=imagB type=RAM_T2P impl=bram
+
+    // -----------------------------------------------------------------
+    // 1) Precalculo de los factores de giro W_N^i = exp(-j*2*pi*i/N)
+    // -----------------------------------------------------------------
+twiddle_loop:
+    for (int i = 0; i < N / 2; i++) {
+#pragma HLS PIPELINE II=1
+        float angle = -2.0f * PI_F * (float)i / (float)N;
+        wr_tab[i] = cosf(angle);
+        wi_tab[i] = sinf(angle);
+    }
+
+    // -----------------------------------------------------------------
+    // 2) Permutacion bit-reversal de la entrada hacia el buffer A
+    // -----------------------------------------------------------------
+bitrev_loop:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=1
+        int idx = bit_reverse10(i);
+        realA[idx] = x_real[i];
+        imagA[idx] = x_imag[i];
+    }
+
+    // -----------------------------------------------------------------
+    // 3) LOG2N etapas de mariposas radix-2, alternando buffers A <-> B
+    //    (LOG2N = 10 es par, por lo que el resultado final queda en A)
+    // -----------------------------------------------------------------
+stage_loop:
+    for (int s = 1; s <= LOG2N; s++) {
+        if (s & 1) {
+            fft_stage(realA, imagA, realB, imagB, s, wr_tab, wi_tab);
+        } else {
+            fft_stage(realB, imagB, realA, imagA, s, wr_tab, wi_tab);
+        }
+    }
+
+    // -----------------------------------------------------------------
+    // 4) Volcado del resultado (orden natural, sin bit-reversal) a salida
+    // -----------------------------------------------------------------
+output_loop:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=1
+        y_real[i] = realA[i];
+        y_imag[i] = imagA[i];
+    }
+}

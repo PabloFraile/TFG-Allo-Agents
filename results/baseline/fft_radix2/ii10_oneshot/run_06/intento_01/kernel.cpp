@@ -1,0 +1,119 @@
+#include "hls_math.h"
+
+// ---------------------------------------------------------------------------
+// fft_radix2: FFT iterativa radix-2, Decimation-In-Time (Cooley-Tukey),
+// N = 1024 puntos, entrada/salida en formato complejo (parte real / imag.
+// separadas). Precisión float32 (IEEE-754 single precision).
+// ---------------------------------------------------------------------------
+
+static const int N    = 1024;
+static const int LOGN = 10; // log2(1024)
+
+// Inversión de bits de un índice de LOGN bits (usado para el reordenado
+// inicial de la DIT-FFT). Se fuerza su inlineado para que, dentro de un
+// bucle con PIPELINE, se "aplane" junto con el bucle que lo invoca.
+static int bit_reverse(int x, int bits) {
+#pragma HLS INLINE
+    int result = 0;
+    for (int b = 0; b < bits; b++) {
+#pragma HLS UNROLL
+        result = (result << 1) | (x & 1);
+        x >>= 1;
+    }
+    return result;
+}
+
+void fft_radix2(
+    const float x_real[1024],
+    const float x_imag[1024],
+    float y_real[1024],
+    float y_imag[1024]
+) {
+#pragma HLS INTERFACE m_axi port=x_real offset=slave bundle=gmem0
+#pragma HLS INTERFACE m_axi port=x_imag offset=slave bundle=gmem1
+#pragma HLS INTERFACE m_axi port=y_real offset=slave bundle=gmem2
+#pragma HLS INTERFACE m_axi port=y_imag offset=slave bundle=gmem3
+#pragma HLS INTERFACE s_axilite port=x_real bundle=control
+#pragma HLS INTERFACE s_axilite port=x_imag bundle=control
+#pragma HLS INTERFACE s_axilite port=y_real bundle=control
+#pragma HLS INTERFACE s_axilite port=y_imag bundle=control
+#pragma HLS INTERFACE s_axilite port=return  bundle=control
+
+    // Buffers internos de trabajo (BRAM)
+    float real[N];
+    float imag[N];
+#pragma HLS BIND_STORAGE variable=real type=ram_2p impl=bram
+#pragma HLS BIND_STORAGE variable=imag type=ram_2p impl=bram
+
+    // Tabla de factores de giro (twiddle factors): w[k] = exp(-j*2*pi*k/N)
+    // para k = 0 .. N/2-1. Se calcula una vez por invocación usando el
+    // núcleo CORDIC sintetizable de hls_math.h.
+    float tw_re[N / 2];
+    float tw_im[N / 2];
+#pragma HLS BIND_STORAGE variable=tw_re type=ram_1p impl=bram
+#pragma HLS BIND_STORAGE variable=tw_im type=ram_1p impl=bram
+
+    const float PI = 3.14159265358979323846f;
+
+twiddle_gen:
+    for (int k = 0; k < N / 2; k++) {
+#pragma HLS PIPELINE II=10
+        float angle = -2.0f * PI * (float)k / (float)N;
+        tw_re[k] = hls::cosf(angle);
+        tw_im[k] = hls::sinf(angle);
+    }
+
+    // Reordenado por inversión de bits (bit-reversal) sobre la entrada
+bit_rev_reorder:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=10
+        int rev = bit_reverse(i, LOGN);
+        real[i] = x_real[rev];
+        imag[i] = x_imag[rev];
+    }
+
+    // Etapas de la FFT iterativa radix-2 DIT
+    for (int s = 1; s <= LOGN; s++) {
+        int m    = 1 << s;        // tamaño de la sub-FFT en esta etapa
+        int half = m >> 1;        // N/2 de la sub-FFT (desplazamiento mariposa)
+        int step = N / m;         // paso en la tabla de twiddles
+
+    fft_stage:
+        for (int idx = 0; idx < N / 2; idx++) {
+#pragma HLS PIPELINE II=10
+#pragma HLS LOOP_TRIPCOUNT min=512 max=512
+            int k = (idx >> (s - 1)) << s; // bloque de la mariposa
+            int j = idx & (half - 1);      // posición dentro del bloque
+
+            int tw_idx = j * step;
+            float wr = tw_re[tw_idx];
+            float wi = tw_im[tw_idx];
+
+            int idx1 = k + j;
+            int idx2 = idx1 + half;
+
+            float ur = real[idx1];
+            float ui = imag[idx1];
+            float br = real[idx2];
+            float bi = imag[idx2];
+
+            // producto complejo: v = b * w
+            float vr = br * wr - bi * wi;
+            float vi = br * wi + bi * wr;
+
+            // mariposa radix-2
+            real[idx1] = ur + vr;
+            imag[idx1] = ui + vi;
+            real[idx2] = ur - vr;
+            imag[idx2] = ui - vi;
+        }
+    }
+
+    // Escritura de resultados en las salidas
+output_copy:
+    for (int i = 0; i < N; i++) {
+#pragma HLS PIPELINE II=10
+        y_real[i] = real[i];
+        y_imag[i] = imag[i];
+    }
+}
