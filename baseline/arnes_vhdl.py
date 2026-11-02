@@ -42,6 +42,7 @@ MARCA_NO_TERMINA = "BASELINE_NO_DONE"
 MARCA_SYN_FIN = "BASELINE_SYNTH_DONE"
 MARCA_SYN_ERROR = "BASELINE_SYNTH_ERROR"
 MARCA_WNS = "BASELINE_WNS"
+MARCA_RELOJES = "BASELINE_CLOCKS"
 
 # Ciclos máximos que el testbench espera a 'done' antes de darlo por colgado.
 # Una FFT de 1024 puntos completamente secuencial (una mariposa cada varios
@@ -336,16 +337,22 @@ def escribir_synth_tcl(spec: dict, part: str, periodo_ns: float, ruta: Path) -> 
 # baseline C++. Síntesis fuera de contexto: los puertos no se asignan a pines.
 if {{[catch {{
   read_vhdl -vhdl2008 kernel.vhd
-  read_xdc -mode out_of_context reloj.xdc
+  read_xdc reloj.xdc
   synth_design -top {nombre_top(spec)} -part {part} -mode out_of_context
+  # Si por lo que sea la restricción no se aplicó, se crea aquí el reloj.
+  if {{[llength [get_clocks -quiet]] == 0}} {{
+    create_clock -period {periodo_ns} -name clk [get_ports clk]
+  }}
+  puts "{MARCA_RELOJES} [llength [get_clocks -quiet]] [get_property PERIOD [get_clocks -quiet]]"
   report_utilization -file utilizacion.rpt
   report_timing_summary -file timing.rpt
-  set ruta [get_timing_paths -max_paths 1 -nworst 1 -setup]
+  set ruta [get_timing_paths -quiet -max_paths 1 -nworst 1 -setup -sort_by slack]
+  set wns NA
   if {{[llength $ruta] > 0}} {{
-    puts "{MARCA_WNS} [get_property SLACK $ruta]"
-  }} else {{
-    puts "{MARCA_WNS} NA"
+    set s [get_property SLACK $ruta]
+    if {{$s ne ""}} {{ set wns $s }}
   }}
+  puts "{MARCA_WNS} $wns"
 }} msg]}} {{
   puts "{MARCA_SYN_ERROR}: $msg"
 }} else {{
@@ -405,6 +412,8 @@ def analizar(spec: dict, directorio: Path, sim: dict, syn: dict | None, referenc
         try:
             wns = float(m.group(1)) if m else None
         except ValueError:
+            wns = None  # "NA": ninguna ruta temporizada (p. ej. diseño puramente combinacional)
+        if wns is not None and not math.isfinite(wns):
             wns = None
         metricas = parsear_utilizacion(directorio / "utilizacion.rpt") if sintesis_ok else None
         for f in ("utilizacion.rpt", "timing.rpt"):
