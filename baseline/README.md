@@ -105,3 +105,54 @@ memoria) y `runs.csv` (una fila por run, para gráficas).
 - csim valida contra un único vector (el mismo que L2) por defecto.
   `--n-vectores 3` endurece el criterio del baseline; para que la
   comparación siga siendo justa habría que endurecer igual L2.
+
+## Baseline VHDL (Claude → VHDL → GHDL + Vivado, sin agentes)
+
+Tercera aproximación. Mismo planteamiento que el baseline C++ en modo
+`oneshot`: **un solo intento por run, sin lazo de corrección**, como si se le
+pidiera el bloque a Claude sin hacer nada más.
+
+| | Baseline C++ | Baseline VHDL |
+|---|---|---|
+| Entrada | spec + firma C++ + objetivo de síntesis | **la misma** spec (sin `objetivo_ii`, que no significa nada en RTL) + entidad VHDL obligatoria + protocolo de interfaz + dispositivo y reloj |
+| Compilación | csim de Vitis | análisis con GHDL (`--std=08`) |
+| Interfaz | `undefined reference` al top | el testbench no elabora contra la entidad generada |
+| Corrección funcional | csim, mismo golden / vector / tolerancia que L2 | simulación GHDL con testbench del arnés; comparación en Python con el mismo golden / vector / tolerancia |
+| Síntesis | csynth, mismo part y reloj, timeout 1800 s | `synth_design -mode out_of_context` de Vivado, mismo part y reloj, timeout 1800 s |
+| Rendimiento | II (peor bucle) + latencia csynth | latencia start→done medida en simulación × periodo estimado (WNS) |
+| Éxito | correcto + II ≤ objetivo | correcto + síntesis termina (estricto: + WNS ≥ 0) |
+
+Interfaz fija (la genera `arnes_vhdl.entidad_vhdl` a partir de la spec):
+memoria de entrada con puerto de escritura (`in_we`, `in_addr`, `x_real`,
+`x_imag`), pulso `start`, nivel `done`, memoria de salida con puerto de
+lectura (`out_addr`, `y_real`, `y_imag`), datos IEEE-754 binary32. Solo
+bibliotecas estándar IEEE (se permite `float_pkg`); sin IP de Vivado, porque
+el flujo no la genera.
+
+```bash
+sudo apt install ghdl                      # GHDL 4.1 en Ubuntu 24.04
+source <ruta_Vivado_2023.1>/settings64.sh  # vivado en el PATH
+cd ~/TFG/baseline
+
+# comprobación del arnés sin gastar cuota (valida un kernel.vhd escrito a mano)
+python3 generar_baseline_vhdl.py --probar-kernel mi_kernel.vhd
+
+# 20 runs independientes, un solo intento cada uno
+LOG=baseline_vhdl_$(date +%Y%m%d_%H%M).log
+nohup python3 -u generar_baseline_vhdl.py --runs 20 > "$LOG" 2>&1 & disown
+
+# tablas + comparación con C++ y pipeline
+python3 resumir_vhdl.py
+```
+
+Si Vivado no está instalado o no tiene licencia para el dispositivo,
+`--sin-sintesis` mide solo compilación, corrección y latencia (los runs
+quedan con `etapa_fallo = sin_sintesis` y no cuentan como éxito).
+
+Resultados en `results/baseline/<bloque>/vhdl_oneshot/run_XX/intento_01/`
+(`prompt.txt`, `respuesta.txt`, `kernel.vhd`, `tb.vhd`, `vectores_in.txt`,
+`salida.txt`, `ghdl.log`, `vivado.log`, `informes_vivado/`).
+
+Asimetrías a declarar en la memoria: la latencia VHDL no incluye la carga ni
+la lectura de los datos (la de HLS sí); los recursos VHDL vienen de
+`synth_design` y los de HLS de la estimación de csynth.
