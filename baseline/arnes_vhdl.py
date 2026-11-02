@@ -407,8 +407,11 @@ def analizar(spec: dict, directorio: Path, sim: dict, syn: dict | None, referenc
     metricas, wns, sintesis_ok, timeout_syn = None, None, False, False
     if syn is not None:
         timeout_syn = syn["timeout"]
-        sintesis_ok = MARCA_SYN_FIN in syn["log"] and not timeout_syn
-        m = re.search(rf"{MARCA_WNS} (\S+)", syn["log"])
+        # Vivado repite en el log las líneas del script (con '#' delante), que
+        # también contienen las marcas: solo cuentan las líneas que EMPIEZAN
+        # por la marca, que son las que imprime puts al ejecutarse.
+        sintesis_ok = bool(re.search(rf"^{MARCA_SYN_FIN}\s*$", syn["log"], re.MULTILINE)) and not timeout_syn
+        m = re.search(rf"^{MARCA_WNS} (\S+)\s*$", syn["log"], re.MULTILINE)
         try:
             wns = float(m.group(1)) if m else None
         except ValueError:
